@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual Environments
+env/
+venv/
+ENV/
+.venv/
+
+# Environment Variables
+.env
+*.env
+
+# Docker
+mysql-data/
+*.log
+docker-compose.override.yml
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS and Miscellaneous
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Testing and Coverage
+.coverage
+coverage.xml
+*.cover
+.pytest_cache/
+
+# Local Development
+*.sqlite3
+*.db
