@@ -22,3 +22,4 @@ export default function FinancialSummary({ balance = 0, payments = [] }) {
 }
 
 
+
