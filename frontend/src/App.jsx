@@ -6,6 +6,9 @@ import Booking from './pages/Booking.jsx'
 import Appointments from './pages/Appointments.jsx'
 import MedicalRecords from './pages/MedicalRecords.jsx'
 import InsuranceManagement from './pages/InsuranceManagement.jsx'
+import DoctorDirectory from './pages/DoctorDirectory.jsx'
+import TreatmentCatalog from './pages/TreatmentCatalog.jsx'
+import Billing from './pages/Billing.jsx'
 
 function App() {
   return (
@@ -16,7 +19,10 @@ function App() {
       {/* <Booking /> */}
       {/* <Appointments /> */}
       {/* <MedicalRecords /> */}
-      <InsuranceManagement />
+      {/* <InsuranceManagement /> */}
+      {/* <DoctorDirectory /> */}
+      {/* <TreatmentCatalog /> */}
+      <Billing />
     </div>
   )
 }
