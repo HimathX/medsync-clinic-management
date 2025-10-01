@@ -5,6 +5,7 @@ import Profile from './pages/Profile.jsx'
 import Booking from './pages/Booking.jsx'
 import Appointments from './pages/Appointments.jsx'
 import MedicalRecords from './pages/MedicalRecords.jsx'
+import InsuranceManagement from './pages/InsuranceManagement.jsx'
 
 function App() {
   return (
@@ -14,7 +15,8 @@ function App() {
       {/* <Profile /> */}
       {/* <Booking /> */}
       {/* <Appointments /> */}
-      <MedicalRecords />
+      {/* <MedicalRecords /> */}
+      <InsuranceManagement />
     </div>
   )
 }
