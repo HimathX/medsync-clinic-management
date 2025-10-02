@@ -1,0 +1,686 @@
+/* Patient Detail Page Styles */
+.patient-detail {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+/* Header Section */
+.patient-header {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.patient-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  position: relative;
+}
+
+.patient-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: white;
+  text-transform: uppercase;
+}
+
+.patient-basic-info h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2.2rem;
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.patient-basic-info .date {
+  color: #718096;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+}
+
+.notification-count {
+  background: #e53e3e;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.medical-center-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #ebf8ff;
+  border: 1px solid #bee3f8;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.info-icon {
+  font-size: 1.5rem;
+}
+
+.info-text {
+  flex: 1;
+}
+
+.info-text strong {
+  display: block;
+  color: #2b6cb0;
+  margin-bottom: 0.25rem;
+}
+
+.info-text p {
+  margin: 0;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+/* Main Content Grid */
+.patient-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Card Styles */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.card h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.2rem;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.section-header h3 {
+  margin: 0;
+}
+
+/* Quick Actions */
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.action-btn:hover {
+  border-color: #3182ce;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn.emergency {
+  border-color: #fc8181;
+  color: #c53030;
+}
+
+.action-btn.emergency:hover {
+  border-color: #e53e3e;
+  background: #fed7d7;
+}
+
+.action-icon {
+  font-size: 1.5rem;
+}
+
+/* Recent Activity */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #f7fafc;
+  border-left: 4px solid #cbd5e0;
+}
+
+.activity-item.appointment {
+  border-left-color: #3182ce;
+}
+
+.activity-item.lab {
+  border-left-color: #38a169;
+}
+
+.activity-item.payment {
+  border-left-color: #d69e2e;
+}
+
+.activity-item.prescription {
+  border-left-color: #805ad5;
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white;
+  flex-shrink: 0;
+}
+
+.activity-icon.success {
+  background: #38a169;
+}
+
+.activity-icon.info {
+  background: #3182ce;
+}
+
+.activity-icon.primary {
+  background: #805ad5;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-content h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
+.activity-content p {
+  margin: 0 0 0.5rem 0;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.activity-time {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* Financial Summary */
+.financial-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.financial-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.financial-card.outstanding {
+  background: #fef5e7;
+  border-color: #f6d55c;
+}
+
+.financial-card.payments {
+  background: #f0fff4;
+  border-color: #68d391;
+}
+
+.card-icon {
+  font-size: 1.5rem;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #718096;
+  margin-bottom: 0.25rem;
+}
+
+.card-amount {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2d3748;
+}
+
+.recent-transactions h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
+.transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.transaction-item:last-child {
+  border-bottom: none;
+}
+
+.transaction-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #2d3748;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.transaction-details {
+  flex: 1;
+}
+
+.transaction-type {
+  display: block;
+  font-weight: 500;
+  color: #2d3748;
+  font-size: 0.9rem;
+}
+
+.transaction-date {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+.transaction-amount {
+  font-weight: bold;
+  color: #2d3748;
+}
+
+.make-payment-btn {
+  margin-top: 1rem;
+  background: #2d3748;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.make-payment-btn:hover {
+  background: #1a202c;
+}
+
+/* Upcoming Appointments */
+.appointments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.appointment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f7fafc;
+}
+
+.appointment-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
+.specialty {
+  display: block;
+  color: #4a5568;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.appointment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.appointment-details span {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+.appointment-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.appointment-status.success {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.appointment-status.primary {
+  background: #bee3f8;
+  color: #1a365d;
+}
+
+/* Health Metrics */
+.health-metrics {
+  grid-column: 1 / -1;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.metric-card {
+  background: #f7fafc;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.metric-icon {
+  font-size: 1.2rem;
+}
+
+.metric-name {
+  font-size: 0.9rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.metric-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.metric-value .value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2d3748;
+}
+
+.metric-value .unit {
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.metric-value .trend {
+  font-size: 1.2rem;
+  color: #4a5568;
+}
+
+.metric-value .trend.elevated {
+  color: #e53e3e;
+}
+
+.metric-updated {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* Weight Card Special Styling */
+.weight-card .weight-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.weight-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: conic-gradient(#38a169 100%, #e2e8f0 0%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.weight-circle::before {
+  content: '';
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  position: absolute;
+}
+
+.weight-percentage {
+  position: relative;
+  z-index: 1;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #38a169;
+}
+
+.weight-value {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.weight-value .value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #2d3748;
+}
+
+.weight-value .unit {
+  color: #718096;
+  font-size: 0.8rem;
+}
+
+/* Utility Classes */
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.btn.link {
+  background: none;
+  border: none;
+  color: #3182ce;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.btn.link:hover {
+  color: #2c5282;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Loading and Error States */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
+
+.loading-spinner {
+  font-size: 1.2rem;
+  color: #4a5568;
+}
+
+.error {
+  text-align: center;
+  padding: 3rem;
+}
+
+.error h2 {
+  color: #e53e3e;
+  margin-bottom: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .patient-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .patient-detail {
+    padding: 1rem;
+  }
+  
+  .patient-header {
+    padding: 1.5rem;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .patient-info {
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .financial-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .appointment-item {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .patient-basic-info h1 {
+    font-size: 1.8rem;
+  }
+  
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .patient-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 1.4rem;
+  }
+}

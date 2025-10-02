@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Header from './components/Header';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Patients from './pages/Patients';
-import Appointments from './pages/Appointments';
-import Treatments from './pages/Treatments';
-import Billing from './pages/Billing';
-import Reporting from './pages/Reporting';
+import React, { useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Header from "./components/Header";
+
+// Pages
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import MyAppointments from "./pages/MyAppointments";
+import Billing from "./pages/Billing";
+import Treatments from "./pages/Treatments";
+import ReportsHistory from "./pages/reportshistory";
+import Patients from "./pages/Patients";
+import PatientPortal from "./pages/PatientPortal";
+import PatientDetail from "./pages/PatientDetail";
+
+// Styles
+import "./styles/auth.css";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
-  const [selectedBranch, setSelectedBranch] = useState('Colombo');
+  const [branch, setBranch] = useState("Colombo");
 
   const handleLogin = (role) => {
     setIsAuthenticated(true);
@@ -24,19 +31,62 @@ function App() {
     setUserRole(null);
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="app">
+        <Routes>
+          <Route path="*" element={<Login onLogin={handleLogin} />} />
+        </Routes>
+      </div>
+    );
+  }
+
   return (
-    <Router>
-      {isAuthenticated && <Header role={userRole} branch={selectedBranch} setBranch={setSelectedBranch} onLogout={handleLogout} />}
-      <Routes>
-        <Route path="/login" element={!isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to="/" />} />
-        <Route path="/" element={isAuthenticated ? <Dashboard role={userRole} /> : <Navigate to="/login" />} />
-        <Route path="/patients" element={isAuthenticated ? <Patients role={userRole} /> : <Navigate to="/login" />} />
-        <Route path="/appointments" element={isAuthenticated ? <Appointments role={userRole} branch={selectedBranch} /> : <Navigate to="/login" />} />
-        <Route path="/treatments" element={isAuthenticated ? <Treatments role={userRole} /> : <Navigate to="/login" />} />
-        <Route path="/billing" element={isAuthenticated ? <Billing role={userRole} /> : <Navigate to="/login" />} />
-        <Route path="/reporting" element={isAuthenticated ? <Reporting role={userRole} /> : <Navigate to="/login" />} />
-      </Routes>
-    </Router>
+    <div className="app">
+      <div className="authenticated-layout">
+        <Header
+          role={userRole}
+          branch={branch}
+          setBranch={setBranch}
+          onLogout={handleLogout}
+        />
+        <main id="main" className="container page-enter">
+          <Routes>
+            <Route path="/" element={<Dashboard user={{ role: userRole, branch }} />} />
+            
+            {(userRole === "Admin Staff" || userRole === "System Admin") && (
+              <Route path="/patients" element={<Patients />} />
+            )}
+            
+            {(userRole === "Admin Staff" || userRole === "System Admin") && (
+              <Route path="/patient-portal" element={<PatientPortal />} />
+            )}
+            
+            {(userRole === "Admin Staff" || userRole === "System Admin") && (
+              <Route path="/patient/:patientId" element={<PatientDetail />} />
+            )}
+            
+            {(userRole === "Admin Staff" || userRole === "Doctor" || userRole === "System Admin") && (
+              <Route path="/appointments" element={<MyAppointments />} />
+            )}
+            
+            {(userRole === "Doctor" || userRole === "System Admin") && (
+              <Route path="/treatments" element={<Treatments />} />
+            )}
+            
+            {(userRole === "Admin Staff" || userRole === "Billing Staff" || userRole === "System Admin") && (
+              <Route path="/billing" element={<Billing />} />
+            )}
+            
+            {(userRole === "Admin Staff" || userRole === "System Admin") && (
+              <Route path="/reporting" element={<ReportsHistory />} />
+            )}
+            
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
   );
 }
 
