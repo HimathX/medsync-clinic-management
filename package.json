@@ -1,6 +1,6 @@
 {
-  "name": "MedSyncCollab",
-  "homepage": "https://HeshXonline.github.io/MedSyncCollab",
+  "name": "med-sync-test",
+  "homepage": "https://HeshXonline.github.io/Med-Sync-Test",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
