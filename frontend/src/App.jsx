@@ -14,7 +14,7 @@ function App() {
   return (
     <div>
       {/* <AuthContainer /> */}
-      {/* <Dashboard /> */}
+      <Dashboard />
       {/* <Profile /> */}
       {/* <Booking /> */}
       {/* <Appointments /> */}
@@ -22,7 +22,7 @@ function App() {
       {/* <InsuranceManagement /> */}
       {/* <DoctorDirectory /> */}
       {/* <TreatmentCatalog /> */}
-      <Billing />
+      {/* <Billing /> */}
     </div>
   )
 }
