@@ -9,12 +9,12 @@
 
 .auth .card {
   background: var(--surface-primary);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-default);
   border-radius: 12px;
   padding: var(--space-2xl);
   max-width: 420px;
   width: 100%;
-  box-shadow: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .auth h2 {
@@ -46,19 +46,22 @@
 .auth .input,
 .auth .select {
   padding: var(--space-md);
-  border: 1px solid var(--border-default);
+  border: 2px solid var(--border-default);
   border-radius: 8px;
   font-size: var(--text-base);
   color: var(--text-primary);
   background: var(--surface-primary);
   transition: all 0.15s ease;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: 48px;
 }
 
 .auth .input:focus,
 .auth .select:focus {
   outline: none;
-  border-color: var(--text-primary);
+  border-color: var(--accent-red);
   transform: translateY(-1px);
+  box-shadow: 0 0 0 3px rgba(197, 48, 48, 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .auth .input::placeholder {
@@ -70,9 +73,9 @@
 }
 
 .auth .btn.primary {
-  background: var(--soft-black);
-  color: var(--primary-white);
-  border: 1px solid var(--soft-black);
+  background: var(--accent-red);
+  color: var(--primary-black);
+  border: 1px solid var(--accent-red);
   padding: var(--space-md);
   border-radius: 8px;
   font-weight: 600;
@@ -82,7 +85,8 @@
 }
 
 .auth .btn.primary:hover {
-  background: var(--primary-black);
+  background: var(--accent-red-light);
+  border-color: var(--accent-red-light);
   transform: translateY(-1px);
 }
 

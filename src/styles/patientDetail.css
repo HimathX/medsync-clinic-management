@@ -10,10 +10,11 @@
 /* Header Section */
 .patient-header {
   background: var(--surface-primary);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-default);
   border-radius: 12px;
   padding: var(--space-2xl);
   margin-bottom: var(--space-2xl);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .header-content {
@@ -133,7 +134,8 @@
   background: var(--surface-primary);
   border-radius: 12px;
   padding: var(--space-xl);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
 }
 
 .card h3 {
@@ -385,9 +387,9 @@
 
 .make-payment-btn {
   margin-top: var(--space-lg);
-  background: var(--soft-black);
-  color: var(--primary-white);
-  border: 1px solid var(--soft-black);
+  background: var(--accent-red);
+  color: var(--primary-black);
+  border: 1px solid var(--accent-red);
   padding: var(--space-md);
   border-radius: 6px;
   font-weight: 600;
@@ -397,7 +399,8 @@
 }
 
 .make-payment-btn:hover {
-  background: var(--primary-black);
+  background: var(--accent-red-light);
+  border-color: var(--accent-red-light);
   transform: translateY(-1px);
 }
 

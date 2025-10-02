@@ -3,17 +3,18 @@
 /* src/index.css */
 /* Modern minimal design system with white/black dominant, red accents */
 :root{
-  /* Primary Colors - White and Black Dominant */
+  /* Primary Colors - New Palette */
   --primary-white: #ffffff;
-  --primary-black: #000000;
+  --primary-black: #3a3a3a;
+  --pure-black: #000000;
   --off-white: #fafafa;
-  --soft-black: #1a1a1a;
+  --soft-black: #4a4a4a;
   
-  /* Red Accent Tones - Patterned fabric inspired */
-  --accent-red: #8B2635;
-  --accent-red-light: #A13344;
-  --accent-red-dark: #6B1D2A;
-  --accent-red-subtle: #F5F0F1;
+  /* Red Accent Tones - New Palette */
+  --accent-red: #c53030;
+  --accent-red-light: #e53e3e;
+  --accent-red-dark: #9c2626;
+  --accent-red-subtle: #fed7d7;
   
   /* Neutral Grays - Minimal palette */
   --neutral-50: #fafafa;
@@ -44,16 +45,16 @@
   --surface-inverse: var(--soft-black);
   
   /* Text Colors */
-  --text-primary: var(--soft-black);
-  --text-secondary: var(--neutral-600);
-  --text-tertiary: var(--neutral-400);
+  --text-primary: var(--primary-black);
+  --text-secondary: #6a6a6a;
+  --text-tertiary: #8a8a8a;
   --text-inverse: var(--primary-white);
   --text-accent: var(--accent-red);
   
-  /* Border Colors */
-  --border-subtle: var(--neutral-200);
-  --border-default: var(--neutral-300);
-  --border-strong: var(--neutral-400);
+  /* Border Colors - High Visibility */
+  --border-subtle: #d5d5d5;
+  --border-default: #8a8a8a;
+  --border-strong: #4a4a4a;
   --border-accent: var(--accent-red);
   
   /* Spacing System */
@@ -131,13 +132,19 @@ p {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Card Component */
+/* Card Component - Visible Boundaries */
 .card {
   background: var(--surface-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
   padding: var(--space-xl);
   margin-bottom: var(--space-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .section {
@@ -154,7 +161,7 @@ p {
 .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
 .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
 
-/* Button System */
+/* Button System - White to Red Transitions */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -163,13 +170,24 @@ p {
   font-size: var(--text-sm);
   font-weight: 500;
   line-height: 1;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
   text-decoration: none;
   white-space: nowrap;
   min-height: 40px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--surface-primary);
+  color: var(--pure-black);
+}
+
+.btn:hover {
+  background: var(--accent-red);
+  color: var(--pure-black);
+  border-color: var(--accent-red);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(197, 48, 48, 0.3);
 }
 
 .btn:focus {
@@ -178,36 +196,48 @@ p {
 }
 
 .btn.primary {
-  background: var(--soft-black);
-  color: var(--primary-white);
-  border-color: var(--soft-black);
+  background: var(--accent-red);
+  color: var(--pure-black);
+  border-color: var(--accent-red);
+  box-shadow: 0 2px 4px rgba(197, 48, 48, 0.3);
+  font-weight: 600;
 }
 
 .btn.primary:hover {
-  background: var(--primary-black);
+  background: var(--accent-red-light);
+  border-color: var(--accent-red-light);
   transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(197, 48, 48, 0.4);
 }
 
 .btn.secondary {
   background: var(--surface-primary);
-  color: var(--text-primary);
+  color: var(--pure-black);
   border-color: var(--border-default);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
 }
 
 .btn.secondary:hover {
-  border-color: var(--soft-black);
+  background: var(--accent-red);
+  color: var(--pure-black);
+  border-color: var(--accent-red);
   transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(197, 48, 48, 0.3);
 }
 
 .btn.accent {
   background: var(--accent-red);
   color: var(--primary-white);
   border-color: var(--accent-red);
+  box-shadow: 0 2px 4px rgba(139, 38, 53, 0.3);
 }
 
 .btn.accent:hover {
   background: var(--accent-red-dark);
+  border-color: var(--accent-red-dark);
   transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(139, 38, 53, 0.4);
 }
 
 .btn.link {
@@ -221,6 +251,17 @@ p {
 
 .btn.link:hover {
   color: var(--text-primary);
+}
+
+/* Ensure Link and div elements with btn class inherit proper text color */
+a.btn, div.btn {
+  color: var(--pure-black) !important;
+  text-decoration: none;
+}
+
+a.btn:hover, div.btn:hover {
+  color: var(--pure-black) !important;
+  text-decoration: none;
 }
 
 .btn.small {
@@ -237,6 +278,15 @@ p {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Ensure all button-like elements have proper text color */
+.btn, .btn *, a.btn, div.btn, button.btn {
+  color: var(--pure-black) !important;
+}
+
+.btn:hover, .btn:hover *, a.btn:hover, div.btn:hover, button.btn:hover {
+  color: var(--pure-black) !important;
 }
 
 /* Form Elements */
@@ -260,19 +310,31 @@ p {
   font-size: var(--text-base);
   color: var(--text-primary);
   background: var(--surface-primary);
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  transition: border-color 0.15s ease;
-  min-height: 40px;
+  border: 2px solid var(--border-default);
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  min-height: 44px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .input:focus, .select:focus {
   outline: none;
-  border-color: var(--soft-black);
+  border-color: var(--accent-red);
+  box-shadow: 0 0 0 3px rgba(197, 48, 48, 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .input::placeholder {
   color: var(--text-tertiary);
+}
+
+.select {
+  cursor: pointer;
+  background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  padding-right: 40px;
 }
 
 /* Error Styling */
@@ -439,7 +501,7 @@ p{line-height:1.6}
 .ms-logout {
   border: 1px solid var(--border-default);
   background: var(--surface-primary);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   padding: var(--space-xs) var(--space-sm);
   border-radius: 6px;
   cursor: pointer;
@@ -449,8 +511,9 @@ p{line-height:1.6}
 }
 
 .ms-logout:hover {
-  background: var(--surface-secondary);
-  color: var(--text-primary);
+  background: var(--accent-red);
+  color: var(--primary-black);
+  border-color: var(--accent-red);
   transform: translateY(-1px);
 }
 
@@ -517,9 +580,36 @@ p{line-height:1.6}
 .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .btn.warn{border-color:#F0D0C9;background:#FFF3F1;color:var(--warn)}
 .btn.block{width:100%;justify-content:center}
-/* Forms */
+/* Forms - Highly Visible Inputs */
 .form{display:grid;gap:12px;max-width:560px}
 .label{font-size:.92rem;color:var(--muted)}
+
+/* Global Input Visibility Fix */
+input[type="text"], 
+input[type="email"], 
+input[type="tel"], 
+input[type="date"], 
+input[type="number"],
+textarea,
+select {
+  border: 2px solid var(--border-default) !important;
+  background: var(--surface-primary) !important;
+  padding: 12px !important;
+  border-radius: 8px !important;
+  min-height: 44px !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+input[type="text"]:focus, 
+input[type="email"]:focus, 
+input[type="tel"]:focus, 
+input[type="date"]:focus, 
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent-red) !important;
+  box-shadow: 0 0 0 3px rgba(197, 48, 48, 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
 .input,.select,.textarea{width:100%;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:10px 12px;outline:none}
 .input:focus,.select:focus,.textarea:focus{box-shadow:var(--focus);border-color:var(--accent-2)}
 /* Table */
