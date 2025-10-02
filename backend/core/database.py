@@ -1,17 +1,42 @@
 from sqlalchemy import create_engine, text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
+from pathlib import Path
 import os
-from urllib.parse import quote_plus
 
-# Your Aiven MySQL database URL
-DATABASE_URL = "mysql+mysqlconnector://avnadmin:AVNS_TUjuWbnDFelNGr5P098@medcync01-medsyncproject1.j.aivencloud.com:21382/defaultdb?ssl_mode=REQUIRED"
+# Database credentials
+DB_USER = "avnadmin"
+DB_PASSWORD = "AVNS_TUjuWbnDFe1NGr5P098"
+DB_HOST = "medcync01-medsyncproject1.j.aivencloud.com"
+DB_PORT = "21382"
+DB_NAME = "defaultdb"
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", DATABASE_URL)
+# SSL certificate path (inside core folder)
+CA_CERT_PATH = Path(__file__).parent / "ca.pem"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# Verify the CA cert exists
+if not CA_CERT_PATH.exists():
+    raise FileNotFoundError(f"SSL CA certificate not found at: {CA_CERT_PATH}")
+
+# Construct Database URL
+DATABASE_URL = (
+    f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
+
+# Configure SSL connection
+connect_args = {
+    "ssl_ca": str(CA_CERT_PATH),
+    "ssl_verify_cert": True
+}
+
+print(f"Using CA certificate at: {CA_CERT_PATH}")
+
+# Create engine with SSL configuration
+engine = create_engine(
+    DATABASE_URL,
+    connect_args=connect_args
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
 
 def get_db():
@@ -24,16 +49,14 @@ def get_db():
 def test_database_connection():
     """Test database connection"""
     try:
-        # Test the connection
         with engine.connect() as connection:
             result = connection.execute(text("SELECT 1 as test"))
             row = result.fetchone()
             if row and row[0] == 1:
                 print("✅ Database connection successful!")
                 return True
-            else:
-                print("❌ Database connection failed!")
-                return False
+            print("❌ Database test returned unexpected result")
+            return False
     except Exception as e:
         print(f"❌ Database connection error: {e}")
         return False
@@ -42,30 +65,21 @@ def get_database_info():
     """Get database information"""
     try:
         with engine.connect() as connection:
-            # Get database version
             result = connection.execute(text("SELECT VERSION() as version"))
-            version_row = result.fetchone()
-            version = version_row[0] if version_row else "Unknown"
+            version = result.fetchone()[0]
             
-            # Get current database name
             result = connection.execute(text("SELECT DATABASE() as db_name"))
-            db_row = result.fetchone()
-            db_name = db_row[0] if db_row else "Unknown"
+            db_name = result.fetchone()[0]
             
-            # Get available tables
             result = connection.execute(text("SHOW TABLES"))
             tables = [row[0] for row in result.fetchall()]
             
-            print(f"📊 Database Info:")
-            print(f"   Version: {version}")
-            print(f"   Current Database: {db_name}")
-            print(f"   Tables: {tables if tables else 'No tables found'}")
-            
-            return {
+            info = {
                 "version": version,
                 "database": db_name,
                 "tables": tables
             }
+            return info
     except Exception as e:
         print(f"❌ Error getting database info: {e}")
         return None
