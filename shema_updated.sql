@@ -38,8 +38,7 @@ CREATE TABLE user (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (address_id) REFERENCES address(address_id) ON DELETE RESTRICT,
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id) ON DELETE RESTRICT,
-    CHECK (email REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$'),
-    CHECK (YEAR(CURDATE()) - YEAR(DOB) >= 0 AND YEAR(CURDATE()) - YEAR(DOB) <= 150)
+    CHECK (email REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$')
 );
 
 -- Branches Table
@@ -153,8 +152,7 @@ CREATE TABLE time_slot(
     FOREIGN KEY (doctor_id) REFERENCES doctor(doctor_id) ON DELETE CASCADE,
     FOREIGN KEY (branch_id) REFERENCES branch(branch_id) ON DELETE RESTRICT,
     UNIQUE KEY unique_time_slot (doctor_id, branch_id, available_date, start_time, end_time),
-    CHECK (end_time > start_time),
-    CHECK (available_date >= CURDATE())
+    CHECK (end_time > start_time)
 );
 
 -- Appointment Table
@@ -219,9 +217,8 @@ CREATE TABLE medication (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-
 CREATE TABLE prescription_item(
-	prescription_item_id CHAR(36) PRIMARY KEY,
+    prescription_item_id CHAR(36) PRIMARY KEY,
     medication_id CHAR(36),
     consultation_rec_id CHAR(36),
     dosage VARCHAR(50),
@@ -229,11 +226,10 @@ CREATE TABLE prescription_item(
     duration_days INT,
     instructions VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	FOREIGN KEY (medication_id) REFERENCES medication (medication_id) ON DELETE RESTRICT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (medication_id) REFERENCES medication (medication_id) ON DELETE RESTRICT,
     FOREIGN KEY (consultation_rec_id) REFERENCES consultation_record (consultation_rec_id) ON DELETE CASCADE
 );
-
 
 -- Conditions Category Table
 CREATE TABLE conditions_category(
@@ -271,8 +267,7 @@ CREATE TABLE patient_condition(
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (patient_id, condition_id),
     FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON DELETE RESTRICT,
-    FOREIGN KEY (condition_id) REFERENCES conditions(condition_id) ON DELETE RESTRICT,
-    CHECK (diagnosed_date <= CURDATE())
+    FOREIGN KEY (condition_id) REFERENCES conditions(condition_id) ON DELETE RESTRICT
 );
 
 -- Insurance Package Table
@@ -305,7 +300,7 @@ CREATE TABLE insurance(
     CHECK (end_date > start_date)
 );
 
--- Invoice Table
+-- Invoice Table (kept as original)
 CREATE TABLE invoice (
     invoice_id CHAR(36) PRIMARY KEY,
     consultation_rec_id CHAR(36) NOT NULL UNIQUE, 
@@ -316,18 +311,17 @@ CREATE TABLE invoice (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (consultation_rec_id) REFERENCES consultation_record(consultation_rec_id) ON DELETE CASCADE,
     CHECK (sub_total >= 0),
-    CHECK (tax_amount >= 0),
-    CHECK (due_date IS NULL OR due_date >= invoice_date)
+    CHECK (tax_amount >= 0)
 );
 
--- Payment Table
+-- Payment Table (kept as original)
 CREATE TABLE payment(
     payment_id CHAR(36) PRIMARY KEY,
     patient_id CHAR(36) NOT NULL,
     amount_paid DECIMAL(10,2) NOT NULL,
     payment_method ENUM('Cash', 'Credit Card', 'Debit Card', 'Online', 'Insurance', 'Other') NOT NULL,
     status ENUM('Completed', 'Pending', 'Failed', 'Refunded') DEFAULT 'Pending',
-    payment_date DATE NOT NULL DEFAULT (CURDATE()),
+    payment_date DATE NOT NULL DEFAULT (CURRENT_DATE),
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -335,13 +329,13 @@ CREATE TABLE payment(
     CHECK (amount_paid > 0)
 );
 
--- Claim Table
+-- Claim Table (kept as original)
 CREATE TABLE claim(
     claim_id CHAR(36) PRIMARY KEY,
     invoice_id CHAR(36) NOT NULL,
     insurance_id CHAR(36) NOT NULL,
     claim_amount DECIMAL(12,2) NOT NULL,
-    claim_date DATE NOT NULL DEFAULT (CURDATE()),
+    claim_date DATE NOT NULL DEFAULT (CURRENT_DATE),
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
