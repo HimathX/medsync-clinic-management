@@ -48,13 +48,12 @@ CREATE TABLE branch(
     branch_name VARCHAR(50) NOT NULL UNIQUE,
     contact_id CHAR(36) NOT NULL,
     address_id CHAR(36) NOT NULL,
-    manager_id CHAR(36),
+    manager_id CHAR(36),  -- FK constraint added later
     is_active BOOL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id) ON DELETE RESTRICT,
-    FOREIGN KEY (address_id) REFERENCES address(address_id) ON DELETE RESTRICT,
-    FOREIGN KEY (manager_id) REFERENCES employee(employee_id) ON DELETE SET NULL
+    FOREIGN KEY (address_id) REFERENCES address(address_id) ON DELETE RESTRICT
 );
 
 -- Patient Table
@@ -101,7 +100,12 @@ CREATE TABLE employee(
     CHECK (end_date IS NULL OR end_date >= joined_date)
 );
 
--- Doctor Table 
+-- Add manager_id FK constraint after employee table exists
+ALTER TABLE branch
+ADD CONSTRAINT fk_branch_manager 
+FOREIGN KEY (manager_id) REFERENCES employee(employee_id) ON DELETE SET NULL;
+
+-- Doctor Table
 CREATE TABLE doctor(
     doctor_id CHAR(36) PRIMARY KEY,
     room_no VARCHAR(5),
@@ -134,7 +138,6 @@ CREATE TABLE doctor_specialization(
     FOREIGN KEY (doctor_id) REFERENCES doctor(doctor_id) ON DELETE CASCADE,
     FOREIGN KEY (specialization_id) REFERENCES specialization(specialization_id) ON DELETE RESTRICT
 );
-
 
 -- Time Slot Table
 CREATE TABLE time_slot(
@@ -173,7 +176,6 @@ CREATE TABLE consultation_record(
     appointment_id CHAR(36) NOT NULL UNIQUE,
     symptoms TEXT NOT NULL,
     diagnoses TEXT NOT NULL,
-    prescription TEXT,
     follow_up_required BOOL DEFAULT FALSE,
     follow_up_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -183,7 +185,7 @@ CREATE TABLE consultation_record(
 
 -- Treatment Catalogue Table
 CREATE TABLE treatment_catalogue(
-    treatment_service_code VARCHAR(36) PRIMARY KEY,
+    treatment_service_code CHAR(36) PRIMARY KEY,
     treatment_name VARCHAR(100) NOT NULL UNIQUE,
     base_price DECIMAL(10,2) NOT NULL,
     duration TIME NOT NULL,
@@ -198,16 +200,40 @@ CREATE TABLE treatment(
     treatment_id CHAR(36) PRIMARY KEY,
     consultation_rec_id CHAR(36) NOT NULL,
     treatment_service_code CHAR(36) NOT NULL,
-    quantity INT DEFAULT 1,
-    discount_percentage DECIMAL(5,2) DEFAULT 0,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (consultation_rec_id) REFERENCES consultation_record(consultation_rec_id) ON DELETE RESTRICT,
-    FOREIGN KEY (treatment_service_code) REFERENCES treatment_catalogue(treatment_service_code) ON DELETE RESTRICT,
-    CHECK (quantity > 0),
-    CHECK (discount_percentage >= 0 AND discount_percentage <= 100)
+    FOREIGN KEY (treatment_service_code) REFERENCES treatment_catalogue(treatment_service_code) ON DELETE RESTRICT
 );
+
+-- medication table
+CREATE TABLE medication (
+  medication_id CHAR(36) PRIMARY KEY,
+  generic_name VARCHAR(50) NOT NULL,
+  manufacturer VARCHAR(50) NOT NULL,
+  form ENUM('Tablet','Capsule','Injection','Syrup','Other') NOT NULL,
+  contraindications TEXT,
+  side_effects TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE prescription_item(
+	prescription_item_id CHAR(36) PRIMARY KEY,
+    medication_id CHAR(36),
+    consultation_rec_id CHAR(36),
+    dosage VARCHAR(50),
+    frequency ENUM('Once daily','Twice daily','Three times daily','As needed'),
+    duration_days INT,
+    instructions VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	FOREIGN KEY (medication_id) REFERENCES medication (medication_id) ON DELETE RESTRICT,
+    FOREIGN KEY (consultation_rec_id) REFERENCES consultation_record (consultation_rec_id) ON DELETE CASCADE
+);
+
 
 -- Conditions Category Table
 CREATE TABLE conditions_category(
@@ -268,7 +294,6 @@ CREATE TABLE insurance(
     insurance_id CHAR(36) PRIMARY KEY,
     patient_id CHAR(36) NOT NULL,
     insurance_package_id CHAR(36) NOT NULL,
-    policy_number VARCHAR(50) NOT NULL UNIQUE,
     status ENUM('Active', 'Inactive', 'Expired', 'Pending') DEFAULT 'Pending',
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -276,50 +301,51 @@ CREATE TABLE insurance(
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON DELETE RESTRICT,
     FOREIGN KEY (insurance_package_id) REFERENCES insurance_package(insurance_package_id) ON DELETE RESTRICT,
-    CHECK (end_date > start_date),
-    CHECK (start_date >= CURDATE() OR status != 'Pending')
+    UNIQUE KEY unique_patient_insurance (patient_id, insurance_package_id),
+    CHECK (end_date > start_date)
 );
 
 -- Invoice Table
-CREATE TABLE invoice(
+CREATE TABLE invoice (
     invoice_id CHAR(36) PRIMARY KEY,
-    appointment_id CHAR(36) NOT NULL UNIQUE,
+    consultation_rec_id CHAR(36) NOT NULL UNIQUE, 
     sub_total DECIMAL(10,2) NOT NULL DEFAULT 0,
     tax_amount DECIMAL(10,2) DEFAULT 0,
-    insurance_claimed_amount DECIMAL(10,2) DEFAULT 0,
-    discount_amount DECIMAL(10,2) DEFAULT 0,
-    total_amount DECIMAL(10,2) GENERATED ALWAYS AS (sub_total + tax_amount - insurance_claimed_amount - discount_amount) STORED,
-    invoice_date DATE NOT NULL DEFAULT (CURDATE()),
     due_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (appointment_id) REFERENCES appointment(appointment_id) ON DELETE RESTRICT,
+    FOREIGN KEY (consultation_rec_id) REFERENCES consultation_record(consultation_rec_id) ON DELETE CASCADE,
     CHECK (sub_total >= 0),
     CHECK (tax_amount >= 0),
-    CHECK (insurance_claimed_amount >= 0),
-    CHECK (discount_amount >= 0),
     CHECK (due_date IS NULL OR due_date >= invoice_date)
 );
 
--- Payments Table
-CREATE TABLE payments(
+-- Payment Table
+CREATE TABLE payment(
     payment_id CHAR(36) PRIMARY KEY,
-    invoice_id CHAR(36) NOT NULL UNIQUE,
     patient_id CHAR(36) NOT NULL,
     amount_paid DECIMAL(10,2) NOT NULL,
     payment_method ENUM('Cash', 'Credit Card', 'Debit Card', 'Online', 'Insurance', 'Other') NOT NULL,
     status ENUM('Completed', 'Pending', 'Failed', 'Refunded') DEFAULT 'Pending',
-    transaction_id VARCHAR(100),
     payment_date DATE NOT NULL DEFAULT (CURDATE()),
-    refund_amount DECIMAL(10,2) DEFAULT 0,
-    refund_date DATE,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON DELETE RESTRICT,
+    CHECK (amount_paid > 0)
+);
+
+-- Claim Table
+CREATE TABLE claim(
+    claim_id CHAR(36) PRIMARY KEY,
+    invoice_id CHAR(36) NOT NULL,
+    insurance_id CHAR(36) NOT NULL,
+    claim_amount DECIMAL(12,2) NOT NULL,
+    claim_date DATE NOT NULL DEFAULT (CURDATE()),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (invoice_id) REFERENCES invoice(invoice_id) ON DELETE RESTRICT,
-    CHECK (amount_paid > 0),
-    CHECK (refund_amount >= 0),
-    CHECK (refund_amount <= amount_paid),
-    CHECK (refund_date IS NULL OR refund_date >= payment_date)
+    FOREIGN KEY (insurance_id) REFERENCES insurance(insurance_id) ON DELETE RESTRICT,
+    CHECK (claim_amount > 0)
 );
