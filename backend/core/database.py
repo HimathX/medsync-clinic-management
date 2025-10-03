@@ -18,7 +18,7 @@ DATABASE_URL = (
 # Create engine
 engine = create_engine(
     DATABASE_URL,
-    echo=True  # Set to False to reduce logging
+    echo=False  # Set to True to see SQL queries
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

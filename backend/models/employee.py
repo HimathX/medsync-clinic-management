@@ -17,9 +17,10 @@ class Employee(Base):
     
     # Relationships
     user = relationship("User", back_populates="employee")
-    branch = relationship("Branch", back_populates="employees")
+    branch = relationship("Branch", foreign_keys=[branch_id], back_populates="employees")
     doctor = relationship("Doctor", back_populates="employee", uselist=False)
     managed_branches = relationship("Branch", back_populates="manager", foreign_keys="[Branch.manager_id]")
+
 
 
 class Doctor(Base):
