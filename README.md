@@ -1,88 +1,201 @@
-# MedSync Clinic Management System
+# 🏥 MedSync - Clinic Management System
 
-A comprehensive healthcare management system built with modern web technologies.
+[![Status](https://img.shields.io/badge/Status-In%20Development-yellow)](https://github.com/HimathX/medsync-clinic-management)
+[![MySQL](https://img.shields.io/badge/Database-MySQL-blue)](https://www.mysql.com/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/Frontend-React-61DAFB)](https://reactjs.org/)
 
-## Project Structure
+> A comprehensive web-based healthcare management system for multi-specialty clinics with multiple branches.
 
+![MedSync Banner](docs/ERD%20Diagram.png)
+
+## 📋 Table of Contents
+- [About](#about)
+- [What It Does](#what-it-does)
+- [Key Features](#key-features)
+- [Technology Stack](#technology-stack)
+- [Installation](#installation)
+- [Project Status](#project-status)
+- [Team](#team)
+- [Development Timeline](#development-timeline)
+
+## 🔍 About
+
+MedSync is designed for medium-scale clinics operating across multiple locations. Currently being developed for MedSync clinic branches in Colombo, Kandy, and Galle to replace their existing paper-based and Excel sheet management system.
+
+## 💼 What It Does
+
+<details>
+<summary><b>👤 For Patients</b></summary>
+<ul>
+  <li>Register at any branch and access records from all locations</li>
+  <li>Schedule appointments with doctors</li>
+  <li>View treatment history and bills</li>
+  <li>Make payments (full or partial)</li>
+</ul>
+</details>
+
+<details>
+<summary><b>👨‍⚕️ For Medical Staff</b></summary>
+<ul>
+  <li>View and manage patient appointments</li>
+  <li>Record consultation notes after appointments</li>
+  <li>Prescribe treatments from a standard catalogue</li>
+  <li>Access patient medical history across branches</li>
+</ul>
+</details>
+
+<details>
+<summary><b>👩‍💼 For Administrative Staff</b></summary>
+<ul>
+  <li>Register new patients</li>
+  <li>Schedule and reschedule appointments</li>
+  <li>Process billing and payments</li>
+  <li>Handle insurance claims</li>
+  <li>Generate various management reports</li>
+</ul>
+</details>
+
+<details>
+<summary><b>📊 For Management</b></summary>
+<ul>
+  <li>View branch-wise appointment summaries</li>
+  <li>Track doctor performance and revenue</li>
+  <li>Monitor outstanding patient balances</li>
+  <li>Analyze treatment statistics</li>
+  <li>Review insurance coverage vs out-of-pocket payments</li>
+</ul>
+</details>
+
+## ✨ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🌐 **Multi-Branch Support** | Patient records accessible from any branch |
+| 📅 **Smart Scheduling** | Prevents double-booking of doctors automatically |
+| 📋 **Treatment Catalogue** | Standardized treatments with fixed pricing |
+| 💰 **Flexible Billing** | Supports partial payments and tracks outstanding balances |
+| 🏥 **Insurance Integration** | Handles insurance claims and reimbursements |
+| 🚑 **Emergency Walk-ins** | Quick registration for urgent appointments |
+| 📊 **Comprehensive Reporting** | Management dashboards and analytics |
+
+## 🛠️ Technology Stack
+
+<table>
+  <tr>
+    <td align="center"><img src="https://img.icons8.com/color/48/000000/react-native.png" width="30"/><br><b>React</b></td>
+    <td>Modern, component-based UI framework for building interactive user interfaces</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://fastapi.tiangolo.com/img/favicon.png" width="30"/><br><b>FastAPI</b></td>
+    <td>High-performance Python framework for building APIs with automatic documentation</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://img.icons8.com/fluency/48/000000/mysql-logo.png" width="30"/><br><b>MySQL</b></td>
+    <td>Relational database for reliable and structured data storage</td>
+  </tr>
+</table>
+
+## 🚀 Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/HimathX/medsync-clinic-management.git
+cd medsync-clinic-management
+
+# Backend setup (requires Python 3.8+)
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+# Frontend setup (requires Node.js)
+cd ../frontend
+npm install
+npm start
 ```
-├── frontend/          # React.js frontend application
-│   ├── src/
-│   │   ├── components/    # Reusable React components
-│   │   ├── pages/         # Page components
-│   │   ├── services/      # API services
-│   │   └── styles/        # CSS stylesheets
-│   ├── public/        # Static assets
-│   └── package.json   # Frontend dependencies
-└── backend/           # Backend API (Coming soon)
-```
 
-## Frontend Features
+## 📌 Project Status
 
-- **Modern UI Design**: Minimal black/white/red color palette
-- **Patient Management**: Complete patient registration and profile management
-- **Appointment System**: Book and manage medical appointments
-- **Medical Records**: Secure patient health records management
-- **Dashboard Analytics**: Real-time healthcare metrics and insights
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
+<p align="center">
+  <img src="https://img.shields.io/badge/Phase-1%20Database%20Design-blue" alt="Project Phase"/>
+  <br>
+  🚧 <b>Currently in Development</b> 🚧
+</p>
 
-## Getting Started
+This project is being developed as part of a database systems course. The focus is on creating a robust database design with proper relationships, constraints, and procedures to ensure data integrity.
 
-### Frontend Setup
+## 👥 Team
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+<p align="center"><b>Group 06</b></p>
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+<table align="center">
+  <tr>
+    <td align="center">👨‍💻 DHANAPALA D.H.N</td>
+    <td>230139N</td>
+  </tr>
+  <tr>
+    <td align="center">👨‍💻 JEGARASHAN B.</td>
+    <td>230304R</td>
+  </tr>
+  <tr>
+    <td align="center">👨‍💻 MALAVIPATHIRANA H.H</td>
+    <td>230389E</td>
+  </tr>
+  <tr>
+    <td align="center">👨‍💻 NETHMINA L.T.H</td>
+    <td>230429E</td>
+  </tr>
+  <tr>
+    <td align="center">👨‍💻 WITHANAGE M.H</td>
+    <td>230736R</td>
+  </tr>
+</table>
 
-3. Start the development server:
-   ```bash
-   npm start
-   ```
+## 📋 Development Timeline
 
-4. Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+<div align="center">
+  <table>
+    <tr>
+      <th>Phase</th>
+      <th>Focus</th>
+      <th>Status</th>
+    </tr>
+    <tr>
+      <td>Phase 1</td>
+      <td>Database design and core functionality</td>
+      <td>🔄 Current</td>
+    </tr>
+    <tr>
+      <td>Phase 2</td>
+      <td>API development with FastAPI</td>
+      <td>⏳ Pending</td>
+    </tr>
+    <tr>
+      <td>Phase 3</td>
+      <td>React frontend development</td>
+      <td>⏳ Pending</td>
+    </tr>
+    <tr>
+      <td>Phase 4</td>
+      <td>Integration and testing</td>
+      <td>⏳ Pending</td>
+    </tr>
+  </table>
+</div>
 
-### Available Scripts
+## 📝 Documentation
 
-- `npm start` - Runs the app in development mode
-- `npm run build` - Builds the app for production
-- `npm test` - Launches the test runner
-- `npm run deploy` - Deploys to GitHub Pages
+For detailed documentation, please refer to:
+- [Entity Relationship Diagram](docs/ERD%20Diagram.png)
+- [System Requirements](docs/Problem%20-%20Clinic%20Appointment%20and%20Treatment%20Management%20System.pdf)
+- [System Specifications](docs/MedSync%20Clinic%20Appointment%20and%20Treatment%20Management%20System%20.docx)
 
-## Technology Stack
+---
 
-### Frontend
-- **React.js 18** - Modern JavaScript library for building user interfaces
-- **React Router** - Declarative routing for React
-- **CSS3** - Custom styling with modern CSS features
-- **Responsive Design** - Mobile-first approach
-
-### Design System
-- **Color Palette**: Minimal black, white, and red tones
-- **Typography**: Clean, readable fonts optimized for medical interfaces
-- **Components**: Reusable UI components for consistency
-- **Accessibility**: WCAG compliant design elements
-
-## Live Demo
-
-🔗 **Frontend Demo**: [https://HeshXonline.github.io/Med-Sync-Test/](https://HeshXonline.github.io/Med-Sync-Test/)
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-Project Link: [https://github.com/HimathX/medsync-clinic-management](https://github.com/HimathX/medsync-clinic-management)
+<p align="center">
+  <i>Last Updated: September 2025</i><br>
+  <a href="https://github.com/HimathX/medsync-clinic-management">GitHub Repository</a> • 
+  <a href="LICENSE">License</a>
+</p>
