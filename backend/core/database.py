@@ -1,39 +1,24 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from pathlib import Path
-import os
+from urllib.parse import quote_plus
 
-# Database credentials
-DB_USER = "avnadmin"
-DB_PASSWORD = "AVNS_TUjuWbnDFe1NGr5P098"
-DB_HOST = "medcync01-medsyncproject1.j.aivencloud.com"
-DB_PORT = "21382"
-DB_NAME = "defaultdb"
+# Database credentials - update with your MySQL Workbench password
+DB_USER = "root"
+DB_PASSWORD = "Himathavenge!23"  # Replace with your actual MySQL root password
+DB_HOST = "localhost"
+DB_PORT = "3306"
+DB_NAME = "medsync_db"
 
-# SSL certificate path (inside core folder)
-CA_CERT_PATH = Path(__file__).parent / "ca.pem"
-
-# Verify the CA cert exists
-if not CA_CERT_PATH.exists():
-    raise FileNotFoundError(f"SSL CA certificate not found at: {CA_CERT_PATH}")
-
-# Construct Database URL
+# Quote password to handle special characters
 DATABASE_URL = (
-    f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    f"mysql+mysqlconnector://{DB_USER}:{quote_plus(DB_PASSWORD)}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 
-# Configure SSL connection
-connect_args = {
-    "ssl_ca": str(CA_CERT_PATH),
-    "ssl_verify_cert": True
-}
-
-print(f"Using CA certificate at: {CA_CERT_PATH}")
-
-# Create engine with SSL configuration
+# Create engine
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args
+    echo=True  # Set to False to reduce logging
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -66,10 +51,10 @@ def get_database_info():
     try:
         with engine.connect() as connection:
             result = connection.execute(text("SELECT VERSION() as version"))
-            version = result.fetchone()[0]
+            version = result.fetchone()[0]  # type: ignore
             
             result = connection.execute(text("SELECT DATABASE() as db_name"))
-            db_name = result.fetchone()[0]
+            db_name = result.fetchone()[0] # type: ignore
             
             result = connection.execute(text("SHOW TABLES"))
             tables = [row[0] for row in result.fetchall()]
