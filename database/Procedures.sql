@@ -185,12 +185,107 @@ CALL RegisterEmployee(
 );
 
 
+/*  Doctor Registration */
+DELIMITER $$
+CREATE PROCEDURE RegisterDoctor(
+    -- Address inputs
+    IN p_address_line1 VARCHAR(50),
+    IN p_address_line2 VARCHAR(50),
+    IN p_city VARCHAR(50),
+    IN p_province VARCHAR(50),
+    IN p_postal_code VARCHAR(20),
+    IN p_country VARCHAR(50),
+    
+    -- Contact inputs
+    IN p_contact_num1 VARCHAR(20),
+    IN p_contact_num2 VARCHAR(20),
+    
+    -- User inputs
+    IN p_full_name VARCHAR(255),
+    IN p_NIC VARCHAR(20),
+    IN p_email VARCHAR(255),
+    IN p_gender ENUM('Male', 'Female', 'Other'),
+    IN p_DOB DATE,
+    IN p_password_hash VARCHAR(255),
+    
+    -- Employee inputs
+    IN p_branch_id CHAR(36),
+    IN p_salary DECIMAL(10,2),
+    IN p_joined_date DATE,
+    IN p_end_date DATE,
+    
+    -- Doctor inputs
+    IN p_room_no VARCHAR(5),
+    IN p_medical_licence_no VARCHAR(50),
+    IN p_consultation_fee DECIMAL(10,2),
+    
+    -- Output: Generated user_id (also employee_id/doctor_id)
+    OUT p_user_id CHAR(36)
+)
+BEGIN
+    DECLARE address_id CHAR(36);
+    DECLARE contact_id CHAR(36);
+    DECLARE user_id CHAR(36);
+    
+    -- Start transaction
+    START TRANSACTION;
+    
+    -- Error handler: Rollback on any error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    
+    -- Generate UUIDs
+    SET address_id = UUID();
+    SET contact_id = UUID();
+    SET user_id = UUID();
+    SET p_user_id = user_id;
+    
+    -- Insert into address
+    INSERT INTO address (
+        address_id, address_line1, address_line2, city, province, postal_code, country
+    ) VALUES (
+        address_id, p_address_line1, p_address_line2, p_city, p_province, p_postal_code, 
+        COALESCE(p_country, 'Sri Lanka')
+    );
+    
+    -- Insert into contact
+    INSERT INTO contact (contact_id, contact_num1, contact_num2) 
+    VALUES (contact_id, p_contact_num1, p_contact_num2);
+    
+    -- Insert into user (user_type fixed to 'employee')
+    INSERT INTO user (
+        user_id, address_id, user_type, full_name, NIC, email, gender, DOB, 
+        contact_id, password_hash
+    ) VALUES (
+        user_id, address_id, 'employee', p_full_name, p_NIC, p_email, p_gender, 
+        p_DOB, contact_id, p_password_hash
+    );
+    
+    -- Insert into employee (role fixed to 'doctor')
+    INSERT INTO employee (employee_id, branch_id, role, salary, joined_date, end_date) 
+    VALUES (user_id, p_branch_id, 'doctor', p_salary, p_joined_date, p_end_date);
+    
+    -- Insert into doctor
+    INSERT INTO doctor (doctor_id, room_no, medical_licence_no, consultation_fee) 
+    VALUES (user_id, p_room_no, p_medical_licence_no, COALESCE(p_consultation_fee, 0));
+    
+    -- Commit if all succeed
+    COMMIT;
+END$$
+DELIMITER ;
 
-
-
-
-
-
+-- Sample Call
+CALL RegisterDoctor(
+    '789 Doc Residence', NULL, 'Colombo 07', 'Western', '00700', NULL,  -- Address
+    '+94115556677', NULL,  -- Contact
+    'Dr. Eva Wickramasinghe', '197501234567', 'dr.eva@clinic.com', 'Female', '1975-01-20', 'hashed_pass_doc1',
+    'YOUR_COLOMBO_BRANCH_UUID_HERE', 120000.00, '2025-10-01', NULL,  -- Employee
+    'R101', 'LK-MED-12345', 2500.00,  -- Doctor
+    @generated_user_id
+);
 
 
 
