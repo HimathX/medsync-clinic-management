@@ -59,8 +59,6 @@ CREATE TABLE branch(
 CREATE TABLE patient(
     patient_id CHAR(36) PRIMARY KEY,
     blood_group ENUM('A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-') NOT NULL,
-    allergies TEXT,
-    chronic_conditions TEXT,
     registered_branch_id CHAR(36) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -76,10 +74,45 @@ CREATE TABLE patient_allergy(
     severity ENUM('Mild', 'Moderate', 'Severe', 'Life-threatening') DEFAULT 'Mild',
     reaction_description VARCHAR(200),
     diagnosed_date DATE,
-    is_active BOOL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON DELETE RESTRICT
+);
+-- Conditions Category Table
+CREATE TABLE conditions_category(
+    condition_category_id CHAR(36) PRIMARY KEY,
+    category_name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Conditions Table
+CREATE TABLE conditions(
+    condition_id CHAR(36) PRIMARY KEY,
+    condition_category_id CHAR(36) NOT NULL,
+    condition_name VARCHAR(50) NOT NULL,
+    description TEXT,
+    severity ENUM('Mild', 'Moderate', 'Severe', 'Critical'),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (condition_category_id) REFERENCES conditions_category(condition_category_id) ON DELETE RESTRICT,
+    UNIQUE KEY unique_condition_name (condition_name, condition_category_id)
+);
+
+-- Patient Condition Table
+CREATE TABLE patient_condition(
+    patient_id CHAR(36) NOT NULL,
+    condition_id CHAR(36) NOT NULL,
+    diagnosed_date DATE NOT NULL,
+    is_chronic BOOL DEFAULT FALSE,
+    current_status ENUM('Active', 'In Treatment', 'Managed', 'Resolved') DEFAULT 'Active',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (patient_id, condition_id),
+    FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON DELETE RESTRICT,
+    FOREIGN KEY (condition_id) REFERENCES conditions(condition_id) ON DELETE RESTRICT
 );
 
 -- Employee Table
@@ -231,44 +264,7 @@ CREATE TABLE prescription_item(
     FOREIGN KEY (consultation_rec_id) REFERENCES consultation_record (consultation_rec_id) ON DELETE CASCADE
 );
 
--- Conditions Category Table
-CREATE TABLE conditions_category(
-    condition_category_id CHAR(36) PRIMARY KEY,
-    category_name VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT,
-    is_active BOOL DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
 
--- Conditions Table
-CREATE TABLE conditions(
-    condition_id CHAR(36) PRIMARY KEY,
-    condition_category_id CHAR(36) NOT NULL,
-    condition_name VARCHAR(50) NOT NULL,
-    description TEXT,
-    severity ENUM('Mild', 'Moderate', 'Severe', 'Critical'),
-    is_active BOOL DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (condition_category_id) REFERENCES conditions_category(condition_category_id) ON DELETE RESTRICT,
-    UNIQUE KEY unique_condition_name (condition_name, condition_category_id)
-);
-
--- Patient Condition Table
-CREATE TABLE patient_condition(
-    patient_id CHAR(36) NOT NULL,
-    condition_id CHAR(36) NOT NULL,
-    diagnosed_date DATE NOT NULL,
-    is_chronic BOOL DEFAULT FALSE,
-    current_status ENUM('Active', 'In Treatment', 'Managed', 'Resolved') DEFAULT 'Active',
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (patient_id, condition_id),
-    FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON DELETE RESTRICT,
-    FOREIGN KEY (condition_id) REFERENCES conditions(condition_id) ON DELETE RESTRICT
-);
 
 -- Insurance Package Table
 CREATE TABLE insurance_package(
