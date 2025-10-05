@@ -5,10 +5,8 @@ from models.branch import Branch
 from models.employee import Employee
 from models.patient import Patient
 
-router = APIRouter(
-    prefix="/branches",
-    tags=["branches"]
-)
+router = APIRouter(tags=["branches"])
+
 
 @router.get("/", status_code=status.HTTP_200_OK)
 def get_all_branches(

@@ -7,10 +7,7 @@ from models.appointment import Appointment, TimeSlot
 from models.patient import Patient
 from models.employee import Doctor
 
-router = APIRouter(
-    prefix="/appointments",
-    tags=["appointments"]
-)
+router = APIRouter(   tags=["appointments"])
 
 @router.get("/", status_code=status.HTTP_200_OK)
 def get_all_appointments(
