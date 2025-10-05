@@ -18,10 +18,8 @@
 
 /* Auth Background */
 .auth-bg {
-  /* Make the auth area a full-viewport overlay so it centers consistently
-     and hides the global app background while on the auth routes */
   position: fixed;
-  inset: 0; /* top:0; right:0; bottom:0; left:0 */
+  inset: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(135deg, var(--antiflash-white), #ffffff);
@@ -40,7 +38,7 @@
   overflow: hidden;
   transition: width 0.3s ease;
   border: 1px solid rgba(149, 165, 166, 0.2);
-  padding: 48px 40px 40px 40px; /* Container padding: vertical 48px, horizontal 40px */
+  padding: 48px 40px;
 }
 
 .card-sm {
@@ -51,20 +49,27 @@
   width: min(96vw, 760px);
 }
 
+/* Auth Form */
+.auth-form {
+  width: 100%;
+}
+
 /* Auth Header */
 .auth-header {
-  margin-bottom: 32px; /* Separate header from form inputs */
+  margin-bottom: 32px;
 }
 
 .auth-header h1 {
   margin: 0 0 8px 0;
   color: var(--charcoal);
   font-weight: 600;
+  font-size: 32px;
 }
 
 .muted {
   color: var(--cadet-gray);
   font-size: 14px;
+  margin: 0;
 }
 
 /* Auth Views */
@@ -73,7 +78,7 @@
 }
 
 .view {
-  padding: 24px;
+  padding: 0;
   transition: transform 0.35s ease, opacity 0.35s ease;
 }
 
@@ -105,7 +110,7 @@
 
 /* Links and Layout */
 .link-row {
-  margin-top: 24px; /* Separate sign-up link from login button */
+  margin-top: 24px;
   text-align: center;
 }
 
@@ -116,6 +121,7 @@
   cursor: pointer;
   font-weight: 500;
   transition: color 0.2s ease;
+  padding: 0;
 }
 
 .link:hover {
@@ -123,20 +129,23 @@
   text-decoration: underline;
 }
 
-.stack-3 > * + * {
-  margin-top: 12px;
+.stack-3 {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .stack-4 {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* Use gap for consistent vertical spacing */
+  gap: 20px;
 }
 
 .between {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin: 4px 0 8px 0;
 }
 
 .grid-2 {
@@ -149,32 +158,66 @@
   .grid-2 {
     grid-template-columns: 1fr;
   }
+  
+  .auth-card {
+    padding: 32px 24px;
+  }
 }
 
-/* Form Inputs */
+/* Form Inputs with Floating Labels */
 .input-field {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px; 
 }
 
 .float-label {
-  font-size: 13px;
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  font-size: 16px;
   color: var(--cadet-gray);
+  transition: all 0.2s ease;
   font-weight: 500;
-  margin-bottom: 6px;
+  pointer-events: none;
+  background: transparent;
+  padding: 0 4px;
+  z-index: 1;
 }
 
 .input {
-  padding: 14px 16px; /* Better touch targets and visual comfort */
+  padding: 16px;
   border: 1px solid rgba(149, 165, 166, 0.4);
   border-radius: 10px;
   background: var(--antiflash-white);
   outline: none;
   color: var(--charcoal);
   transition: all 0.2s ease;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.5;
+  width: 100%;
+}
+
+/* Hide placeholder initially */
+.input::placeholder {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Float label when input is focused or has value */
+.input:focus + .float-label,
+.input:not(:placeholder-shown) + .float-label {
+  top: -8px;
+  transform: translateY(0);
+  font-size: 12px;
+  color: var(--vermilion);
+  background: #ffffff;
+}
+
+/* Show placeholder when focused */
+.input:focus::placeholder {
+  opacity: 0.6;
 }
 
 .input:focus {
@@ -188,31 +231,42 @@
   box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.12);
 }
 
+.has-error .float-label {
+  color: var(--persian-red);
+}
+
 .error-text {
   color: var(--persian-red);
   font-size: 12px;
   margin-top: 6px;
   font-weight: 500;
+  padding-left: 4px;
 }
 
 /* Buttons */
 .btn {
-  padding: 14px 20px; /* Better button sizing */
+  padding: 14px 20px;
   border-radius: 10px;
   border: 0;
   cursor: pointer;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 16px;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .btn-primary {
   background: linear-gradient(135deg, var(--vermilion), var(--persian-red));
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  width: 100%;
+  margin-top: 8px;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--persian-red), var(--vermilion));
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4);
@@ -223,6 +277,7 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  opacity: 0.7;
 }
 
 .btn-outline {
@@ -253,9 +308,9 @@
 /* Loading Spinner */
 .spinner {
   display: inline-block;
-  border: 2px solid rgba(149, 165, 166, 0.3);
-  border-top-color: var(--vermilion);
-  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
@@ -273,7 +328,8 @@
   display: grid;
   place-items: center;
   padding: 16px;
-  z-index: 1000;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
 }
 
 .modal-card {
@@ -282,31 +338,44 @@
   box-shadow: 0 20px 40px rgba(44, 62, 80, 0.3);
   width: min(520px, 94vw);
   border: 1px solid rgba(149, 165, 166, 0.2);
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(149, 165, 166, 0.3);
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(149, 165, 166, 0.2);
 }
 
 .modal-header h3 {
   margin: 0;
   color: var(--charcoal);
   font-weight: 600;
+  font-size: 20px;
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 24px;
 }
 
 /* Checkbox */
 .checkbox {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
 }
 
@@ -315,11 +384,13 @@
   height: 18px;
   cursor: pointer;
   accent-color: var(--vermilion);
+  border-radius: 4px;
 }
 
 .checkbox span {
   color: var(--charcoal);
   font-size: 14px;
+  user-select: none;
 }
 
 /* Additional Utilities */
@@ -327,13 +398,16 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
-.auth-form {
-  width: 100%;
+/* Focus visible for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
 }
 
-
-
-
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
