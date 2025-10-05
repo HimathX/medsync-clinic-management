@@ -25,33 +25,21 @@ function App() {
 
   // Check authentication on mount (this would normally check localStorage/session)
   useEffect(() => {
-    const checkAuth = () => {
-      const authToken = localStorage.getItem('authToken');
-      const savedRole = localStorage.getItem('userRole');
-      const savedBranch = localStorage.getItem('currentBranch');
-      
-      if (authToken) {
-        setIsAuthenticated(true);
-        if (savedRole) setUserRole(savedRole);
-        if (savedBranch) setCurrentBranch(savedBranch);
-      }
-    };
-    
-    checkAuth();
+    // Load saved role/branch if available (but do not auto-authenticate)
+    const savedRole = localStorage.getItem('userRole');
+    const savedBranch = localStorage.getItem('currentBranch');
+    if (savedRole) setUserRole(savedRole);
+    if (savedBranch) setCurrentBranch(savedBranch);
   }, []);
 
-  // Handle login
+  // Handle login (no dummy token or credential storage)
   const handleLogin = (credentials) => {
-    // This would normally call an API
-    const { role, branch, token } = credentials;
-    
-    localStorage.setItem('authToken', token || 'dummy-token');
-    localStorage.setItem('userRole', role || 'Admin Staff');
-    localStorage.setItem('currentBranch', branch || 'Main Clinic');
-    
+    // If caller provides role/branch, use them, otherwise keep existing
+    if (credentials && typeof credentials === 'object') {
+      if (credentials.role) setUserRole(credentials.role);
+      if (credentials.branch) setCurrentBranch(credentials.branch);
+    }
     setIsAuthenticated(true);
-    setUserRole(role || 'Admin Staff');
-    setCurrentBranch(branch || 'Main Clinic');
   };
 
   // Handle logout

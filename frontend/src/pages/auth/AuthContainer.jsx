@@ -1,57 +1,39 @@
-import { useState } from 'react'
-import './auth.css'
-import LoginForm from './LoginForm.jsx'
-import RegistrationForm from './RegistrationForm.jsx'
-import Modal from './Modal.jsx'
+import { useState } from 'react';
+import './auth.css';
+import Login from './Login.jsx';
+import SignUp from './SignUp.jsx';
 
 export default function AuthContainer({ onLogin }) {
-  const [mode, setMode] = useState('login')
-  const [forgotOpen, setForgotOpen] = useState(false)
-  const isLogin = mode === 'login'
+  const [showLogin, setShowLogin] = useState(true);
 
-  const handleLoginSuccess = (credentials) => {
-    // Call the parent's onLogin handler if provided
+  const handleLoginSuccess = () => {
+    // Notify parent to mark user as authenticated
     if (onLogin) {
-      onLogin(credentials);
-    } else {
-      alert('Logged in!');
+      onLogin();
     }
+  };
+
+  const handleSignUpSuccess = () => {
+    // After successful signup, switch to login
+    setShowLogin(true);
   };
 
   return (
     <div className="auth-bg">
-      <div className={`auth-card ${isLogin ? 'card-sm' : 'card-lg'} ${isLogin ? 'show-login' : 'show-register'}`}>
-        <div className="auth-header">
-          <h1>MedSync</h1>
-          <p className="muted">{isLogin ? 'Welcome back' : 'Create your account'}</p>
-        </div>
-        <div className="auth-views">
-          <div className="view view-login">
-            <LoginForm onForgot={() => setForgotOpen(true)} onSuccess={handleLoginSuccess} />
-            <p className="muted link-row">Don't have an account? <button className="link" onClick={() => setMode('register')}>Sign Up</button></p>
-          </div>
-          <div className="view view-register">
-            <RegistrationForm onSuccess={() => setMode('login')} />
-            <p className="muted link-row">Already have an account? <button className="link" onClick={() => setMode('login')}>Login</button></p>
-          </div>
-        </div>
+      <div className={`auth-card ${showLogin ? 'card-sm' : 'card-lg'} ${showLogin ? 'show-login' : 'show-register'}`}>
+        {showLogin ? (
+          <Login 
+            onLogin={handleLoginSuccess} 
+            switchToSignUp={() => setShowLogin(false)} 
+          />
+        ) : (
+          <SignUp 
+            onSignUp={handleSignUpSuccess}
+            switchToLogin={() => setShowLogin(true)} 
+          />
+        )}
       </div>
-
-      {forgotOpen && (
-        <Modal title="Reset your password" onClose={() => setForgotOpen(false)}>
-          <p className="muted">Enter your email to receive a reset link.</p>
-          <form className="stack-3" onSubmit={(e) => { e.preventDefault(); setForgotOpen(false); alert('Reset link sent'); }}>
-            <input className="input" type="email" placeholder="you@example.com" required />
-            <div className="actions-row">
-              <button type="button" className="btn-outline" onClick={() => setForgotOpen(false)}>Cancel</button>
-              <button type="submit" className="btn-primary">Send Link</button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </div>
-  )
+  );
 }
-
-
 
