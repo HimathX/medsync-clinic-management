@@ -1,4 +1,4 @@
-import ProgressBar from './ProgressBar.jsx'
+
 
 export default function HealthMetrics({ metrics }) {
   const stepsPct = Math.round((metrics.steps / metrics.stepsGoal) * 100)
@@ -13,7 +13,7 @@ export default function HealthMetrics({ metrics }) {
       </div>
       <div className="metric-card">
         <div className="metric-title">Sleep</div>
-        <ProgressBar value={Math.min(100, Math.round(metrics.sleepHours / 8 * 100))} label={`${metrics.sleepHours} hrs`} />
+        {/* <ProgressBar value={Math.min(100, Math.round(metrics.sleepHours / 8 * 100))} label={`${metrics.sleepHours} hrs`} /> */}
       </div>
       <div className="metric-card">
         <div className="metric-title">Heart Rate</div>

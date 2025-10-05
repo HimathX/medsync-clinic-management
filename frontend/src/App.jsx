@@ -1,20 +1,20 @@
 import './App.css'
-import AuthContainer from './pages/AuthContainer.jsx'
-import Dashboard from './pages/Dashboard.jsx'
-import Profile from './pages/Profile.jsx'
-import Booking from './pages/Booking.jsx'
-import Appointments from './pages/Appointments.jsx'
-import MedicalRecords from './pages/MedicalRecords.jsx'
-import InsuranceManagement from './pages/InsuranceManagement.jsx'
-import DoctorDirectory from './pages/DoctorDirectory.jsx'
-import TreatmentCatalog from './pages/TreatmentCatalog.jsx'
-import Billing from './pages/Billing.jsx'
+import AuthContainer from './pages/auth/AuthContainer.jsx'
+import Dashboard from './pages/dashboard/Dashboard.jsx'
+import Profile from './pages/profile/Profile.jsx'
+import Booking from './pages/booking/Booking.jsx'
+import Appointments from './pages/appointments/Appointments.jsx'
+import MedicalRecords from './pages/medical-records/MedicalRecords.jsx'
+import InsuranceManagement from './pages/insurance/InsuranceManagement.jsx'
+import DoctorDirectory from './pages/doctor-directory/DoctorDirectory.jsx'
+import TreatmentCatalog from './pages/treatment-catalog/TreatmentCatalog.jsx'
+import Billing from './pages/billing/Billing.jsx'
 
 function App() {
   return (
     <div>
       {/* <AuthContainer /> */}
-      <Dashboard />
+      {/* <Dashboard /> */}
       {/* <Profile /> */}
       {/* <Booking /> */}
       {/* <Appointments /> */}
@@ -22,7 +22,7 @@ function App() {
       {/* <InsuranceManagement /> */}
       {/* <DoctorDirectory /> */}
       {/* <TreatmentCatalog /> */}
-      {/* <Billing /> */}
+      <Billing />
     </div>
   )
 }

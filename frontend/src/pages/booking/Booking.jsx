@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import StepIndicator from '../components/booking/StepIndicator.jsx'
-import DoctorSearch from '../components/booking/DoctorSearch.jsx'
-import CalendarView from '../components/booking/CalendarView.jsx'
-import TimeSlotGrid from '../components/booking/TimeSlotGrid.jsx'
-import AppointmentTypeSelector from '../components/booking/AppointmentTypeSelector.jsx'
-import BookingConfirmation from '../components/booking/BookingConfirmation.jsx'
-import BookingSummaryModal from '../components/booking/BookingSummaryModal.jsx'
+import StepIndicator from './StepIndicator.jsx'
+import DoctorSearch from './DoctorSearch.jsx'
+import CalendarView from './CalendarView.jsx'
+import TimeSlotGrid from './TimeSlotGrid.jsx'
+import AppointmentTypeSelector from './AppointmentTypeSelector.jsx'
+import BookingConfirmation from './BookingConfirmation.jsx'
+import BookingSummaryModal from './BookingSummaryModal.jsx'
 
 export default function Booking() {
   const steps = useMemo(() => [

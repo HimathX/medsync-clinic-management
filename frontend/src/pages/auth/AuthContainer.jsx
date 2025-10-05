@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import '../auth.css'
-import LoginForm from '../components/auth/LoginForm.jsx'
-import RegistrationForm from '../components/auth/RegistrationForm.jsx'
-import Modal from '../components/auth/Modal.jsx'
+import './auth.css'
+import LoginForm from './LoginForm.jsx'
+import RegistrationForm from './RegistrationForm.jsx'
+import Modal from './Modal.jsx'
 
 export default function AuthContainer() {
   const [mode, setMode] = useState('login')

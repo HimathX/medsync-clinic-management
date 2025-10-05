@@ -1,4 +1,3 @@
-import ProgressBar from './ProgressBar.jsx'
 
 export default function FinancialSummary({ balance = 0, payments = [] }) {
   const paidLast = payments[0]
@@ -16,7 +15,6 @@ export default function FinancialSummary({ balance = 0, payments = [] }) {
           <div className="stat-value">{paidLast ? `$${paidLast.amount} on ${paidLast.date}` : '—'}</div>
         </div>
       </div>
-      <ProgressBar value={pct} label="Paid vs. Outstanding" />
     </div>
   )
 }
