@@ -1,59 +1,60 @@
-import StatusBadge from './StatusBadge.jsx'
-import styles from './AppointmentCard.module.css'
+﻿import './Appointments.css'
+
+function formatTime(time) {
+  const [h, m] = time.split(':')
+  const hour = parseInt(h)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const displayHour = hour % 12 || 12
+  return `: `
+}
 
 export default function AppointmentCard({ data, selected, onSelect, onView, onReschedule, onCancel }) {
+  const statusClass = data.status.toLowerCase()
+  
   return (
-    <div className={`${styles.card} ${selected ? styles.selected : ''}`}>
-      <label className={styles.checkbox}>
+    <div className={`appointment-card `}>
+      <label className="appointment-checkbox">
         <input type="checkbox" checked={selected} onChange={onSelect} />
       </label>
-      <div className={styles.avatar} />
-      <div className={styles.info}>
-        <div className={styles.row1}>
+      <div className="appointment-avatar" />
+      <div className="appointment-info">
+        <div className="appointment-row-1">
           <div>
-            <div className={styles.name}>{data.doctor}</div>
-            <div className={styles.creds}>{data.creds}</div>
+            <div className="appointment-name">{data.doctor}</div>
+            <div className="appointment-creds">{data.creds}</div>
           </div>
-          <StatusBadge status={data.status} />
+          <span className={`status-badge `}>{data.status}</span>
         </div>
-        <div className={styles.row2}>
+        <div className="appointment-row-2">
           <div>
-            <span className={styles.label}>Date & Time</span>
-            <span className={styles.value}>{data.date} at {formatTime(data.time)}</span>
+            <span className="appointment-label">Date & Time</span>
+            <span className="appointment-value">{data.date} at {formatTime(data.time)}</span>
           </div>
           <div>
-            <span className={styles.label}>Duration</span>
-            <span className={styles.value}>{data.durationMin} min</span>
-          </div>
-        </div>
-        <div className={styles.row2}>
-          <div>
-            <span className={styles.label}>Branch</span>
-            <span className={styles.value}>{data.branch}</span>
-          </div>
-          <div>
-            <span className={styles.label}>Type</span>
-            <span className={styles.value}>{data.type}</span>
+            <span className="appointment-label">Duration</span>
+            <span className="appointment-value">{data.durationMin} min</span>
           </div>
         </div>
-        <div className={styles.notes}>
-          <span className={styles.label}>Notes</span>
-          <span className={styles.value}>{data.notes}</span>
+        <div className="appointment-row-2">
+          <div>
+            <span className="appointment-label">Branch</span>
+            <span className="appointment-value">{data.branch}</span>
+          </div>
+          <div>
+            <span className="appointment-label">Type</span>
+            <span className="appointment-value">{data.type}</span>
+          </div>
         </div>
-        <div className={styles.actions}>
-          <button className={styles.btn} onClick={onView}>View Details</button>
-          <button className={`${styles.btn} ${styles.primary}`} onClick={onReschedule}>Reschedule</button>
-          <button className={`${styles.btn} ${styles.danger}`} onClick={onCancel}>Cancel</button>
+        <div className="appointment-notes">
+          <span className="appointment-label">Notes</span>
+          <span className="appointment-value">{data.notes}</span>
+        </div>
+        <div className="appointment-actions">
+          <button className="appointment-btn" onClick={onView}>View Details</button>
+          <button className="appointment-btn primary" onClick={onReschedule}>Reschedule</button>
+          <button className="appointment-btn danger" onClick={onCancel}>Cancel</button>
         </div>
       </div>
     </div>
   )
 }
-
-function formatTime(t){
-  const [h,m] = t.split(':').map(Number)
-  const d = new Date(); d.setHours(h, m)
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
-
-
