@@ -24,7 +24,13 @@ export default function LoginForm({ onForgot, onSuccess }) {
     setLoading(true)
     await new Promise(r => setTimeout(r, 800))
     setLoading(false)
-    onSuccess && onSuccess()
+    // Provide a minimal credentials object so parent can handle authentication
+    const credentials = {
+      role: 'Admin Staff',
+      branch: 'Main Clinic',
+      token: 'dummy-token'
+    }
+    onSuccess && onSuccess(credentials)
   }
 
   function onChange(name, value) { setValues(v => ({ ...v, [name]: value })) }

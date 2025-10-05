@@ -4,10 +4,19 @@ import LoginForm from './LoginForm.jsx'
 import RegistrationForm from './RegistrationForm.jsx'
 import Modal from './Modal.jsx'
 
-export default function AuthContainer() {
+export default function AuthContainer({ onLogin }) {
   const [mode, setMode] = useState('login')
   const [forgotOpen, setForgotOpen] = useState(false)
   const isLogin = mode === 'login'
+
+  const handleLoginSuccess = (credentials) => {
+    // Call the parent's onLogin handler if provided
+    if (onLogin) {
+      onLogin(credentials);
+    } else {
+      alert('Logged in!');
+    }
+  };
 
   return (
     <div className="auth-bg">
@@ -18,7 +27,7 @@ export default function AuthContainer() {
         </div>
         <div className="auth-views">
           <div className="view view-login">
-            <LoginForm onForgot={() => setForgotOpen(true)} onSuccess={() => alert('Logged in!')} />
+            <LoginForm onForgot={() => setForgotOpen(true)} onSuccess={handleLoginSuccess} />
             <p className="muted link-row">Don't have an account? <button className="link" onClick={() => setMode('register')}>Sign Up</button></p>
           </div>
           <div className="view view-register">

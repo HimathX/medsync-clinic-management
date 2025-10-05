@@ -19,7 +19,7 @@ const DoctorDirectory = () => {
   const [minRating, setMinRating] = useState(0);
 
   // Sample doctors data
-  const doctorsData = [
+  const doctorsData = useMemo(() => ([
     {
       id: 1,
       name: 'Dr. Michael Chen',
@@ -173,7 +173,7 @@ const DoctorDirectory = () => {
         { patient: 'Nina V.', rating: 5, comment: 'Very professional and reassuring.', date: '2024-09-13' },
       ]
     }
-  ];
+  ]), []);
 
   // Filter and sort doctors
   const filteredDoctors = useMemo(() => {

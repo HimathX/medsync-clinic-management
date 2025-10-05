@@ -193,7 +193,7 @@ export default function Dashboard() {
 
   // Appointment actions
   const handleCancelAppointment = useCallback((appointmentId) => {
-    if (confirm('Are you sure you want to cancel this appointment?')) {
+    if (window.confirm('Are you sure you want to cancel this appointment?')) {
       setData(d => ({
         ...d,
         appointments: d.appointments.filter(a => a.id !== appointmentId)
@@ -264,7 +264,7 @@ export default function Dashboard() {
     return urgent
   }, [data.finance.upcomingBills, data.prescriptions, data.appointments])
 
-  const now = new Date()
+  const now = useMemo(() => new Date(), [lastRefresh])
   const currentDateStr = formatDate(now)
   const timeOfDay = getTimeOfDay()
 

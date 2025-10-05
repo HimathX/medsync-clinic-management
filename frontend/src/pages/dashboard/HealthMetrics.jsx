@@ -5,7 +5,7 @@ export default function HealthMetrics({ metrics }) {
   return (
     <div className="metrics-grid">
       <div className="metric-card">
-        <div className="metric-gauge" style={{ ['--pct']: `${stepsPct}%` }} />
+        <div className="metric-gauge" style={{ '--pct': `${stepsPct}%` }} />
         <div className="metric-info">
           <div className="metric-title">Steps</div>
           <div className="metric-value">{metrics.steps.toLocaleString()} / {metrics.stepsGoal.toLocaleString()}</div>

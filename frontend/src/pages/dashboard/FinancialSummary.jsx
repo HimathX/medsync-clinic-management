@@ -2,7 +2,6 @@
 export default function FinancialSummary({ balance = 0, payments = [] }) {
   const paidLast = payments[0]
   const risk = balance <= 0 ? 'completed' : balance < 200 ? 'scheduled' : 'overdue'
-  const pct = Math.max(0, Math.min(100, 100 - balance))
   return (
     <div className="stack-3">
       <div className="stat-row">
