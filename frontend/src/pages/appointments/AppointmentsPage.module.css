@@ -1,0 +1,9 @@
+.page{padding:24px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.layout{display:grid;grid-template-columns:320px 1fr;gap:24px}
+.sidebar{align-self:start}
+.main{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,.06);padding:16px;display:grid;gap:12px}
+.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.list{display:grid;gap:12px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+

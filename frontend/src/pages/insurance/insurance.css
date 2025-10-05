@@ -1,0 +1,1336 @@
+/* ===================================
+   INSURANCE MANAGEMENT PAGE STYLES
+   =================================== */
+
+/* Base Layout */
+.insurance-page {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 2rem;
+}
+
+.insurance-header {
+  margin-bottom: 2rem;
+}
+
+.insurance-header h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.5rem 0;
+}
+
+.insurance-subtitle {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+}
+
+.insurance-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* ===================================
+   SIDEBAR STYLES
+   =================================== */
+
+.insurance-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Quick Actions Card */
+.quick-actions-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.quick-actions-card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1.5rem 0;
+}
+
+.actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.action-btn {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn.primary {
+  background: #4318d0;
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: #3612a8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(67, 24, 208, 0.2);
+}
+
+.action-btn.secondary {
+  background: #f3f4f6;
+  color: #666;
+}
+
+.action-btn.secondary:hover {
+  background: #e5e7eb;
+  color: #1a1a1a;
+}
+
+/* Coverage Summary Card */
+.coverage-summary-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.coverage-summary-card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1.5rem 0;
+}
+
+.summary-section {
+  padding: 1rem 0;
+}
+
+.summary-section.bordered {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.summary-label {
+  font-size: 0.9375rem;
+  color: #666;
+}
+
+.summary-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.summary-value.met {
+  color: #4318d0;
+}
+
+.summary-value.remaining {
+  color: #dc2626;
+}
+
+.summary-value.spending {
+  color: #10b981;
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 100px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4318d0;
+  border-radius: 100px;
+  transition: width 0.3s ease;
+}
+
+/* ===================================
+   MAIN CONTENT STYLES
+   =================================== */
+
+.insurance-main {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Insurance Tabs */
+.insurance-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 1.5rem;
+  background: white;
+}
+
+.tab-btn {
+  padding: 1rem 1.5rem;
+  background: none;
+  border: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: #4318d0;
+}
+
+.tab-btn.active {
+  color: #4318d0;
+  background: #4318d0;
+  color: white;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
+
+.insurance-content {
+  padding: 2rem;
+}
+
+/* ===================================
+   POLICY OVERVIEW STYLES
+   =================================== */
+
+.policy-overview {
+  animation: fadeIn 0.3s ease;
+}
+
+.policy-selector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.policy-selector-btn {
+  padding: 0.75rem 1.5rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.policy-selector-btn.active {
+  background: #4318d0;
+  color: white;
+}
+
+.policy-selector-btn:hover:not(.active) {
+  background: #e5e7eb;
+  color: #1a1a1a;
+}
+
+/* Insurance Card */
+.insurance-card {
+  background: linear-gradient(135deg, #f8f9fb 0%, #e5e7eb 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.provider-logo {
+  width: 64px;
+  height: 64px;
+  background: #4318d0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+}
+
+.provider-info h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.25rem 0;
+}
+
+.plan-name {
+  font-size: 0.9375rem;
+  color: #666;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-label {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.detail-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* Copay Grid */
+.copay-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.copay-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.copay-label {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.75rem;
+}
+
+.copay-amount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* ===================================
+   COVERAGE DETAILS STYLES
+   =================================== */
+
+.coverage-details {
+  animation: fadeIn 0.3s ease;
+}
+
+.coverage-intro {
+  margin-bottom: 2rem;
+}
+
+.coverage-intro h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.5rem 0;
+}
+
+.coverage-intro p {
+  color: #666;
+  margin: 0;
+}
+
+.coverage-category {
+  margin-bottom: 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.category-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+}
+
+.coverage-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.coverage-table-header,
+.coverage-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.coverage-table-header {
+  background: white;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.coverage-table-row {
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.coverage-col {
+  display: flex;
+  align-items: center;
+}
+
+.coverage-percentage {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.coverage-cost {
+  font-weight: 600;
+  color: #4318d0;
+}
+
+.coverage-notes {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.coverage-notes h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #856404;
+  margin: 0 0 1rem 0;
+}
+
+.coverage-notes ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #856404;
+}
+
+.coverage-notes li {
+  margin-bottom: 0.5rem;
+}
+
+/* ===================================
+   CLAIMS MANAGEMENT STYLES
+   =================================== */
+
+.claims-management {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Claims Stats */
+.claims-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.stat-card.approved {
+  background: #d1fae5;
+  border-color: #10b981;
+}
+
+.stat-card.processing {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.stat-card.pending {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.stat-card.denied {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.stat-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* Claims List */
+.claims-list {
+  margin-top: 2rem;
+}
+
+.claims-list h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1.5rem 0;
+}
+
+.claim-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.claim-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.claim-card.status-approved {
+  border-left-color: #10b981;
+}
+
+.claim-card.status-processing {
+  border-left-color: #3b82f6;
+}
+
+.claim-card.status-pending {
+  border-left-color: #f59e0b;
+}
+
+.claim-card.status-denied {
+  border-left-color: #ef4444;
+}
+
+.claim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.claim-id-date {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.claim-id {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.claim-date {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.claim-status {
+  padding: 0.5rem 1rem;
+  border-radius: 100px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.claim-status.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.claim-status.status-processing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.claim-status.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.claim-status.status-denied {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-icon {
+  font-size: 1rem;
+}
+
+.claim-body {
+  margin-bottom: 1rem;
+}
+
+.claim-provider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.provider-icon {
+  font-size: 1.25rem;
+}
+
+.provider-name {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.claim-service {
+  font-size: 0.9375rem;
+  color: #666;
+  margin: 0 0 1rem 0;
+}
+
+.claim-amounts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.amount-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.amount-label {
+  font-size: 0.75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.amount-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.amount-item.covered .amount-value {
+  color: #10b981;
+}
+
+.amount-item.your-cost .amount-value {
+  color: #4318d0;
+}
+
+.denial-reason {
+  background: #fee2e2;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  font-size: 0.9375rem;
+  color: #991b1b;
+}
+
+.claim-meta {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.claim-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.claim-action-btn {
+  padding: 0.625rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.claim-action-btn.view {
+  background: #4318d0;
+  color: white;
+  border-color: #4318d0;
+}
+
+.claim-action-btn.view:hover {
+  background: #3612a8;
+}
+
+.claim-action-btn.appeal {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+
+.claim-action-btn.appeal:hover {
+  background: #fde68a;
+}
+
+.claim-action-btn.download {
+  background: white;
+  color: #666;
+}
+
+.claim-action-btn.download:hover {
+  background: #f8f9fa;
+  color: #1a1a1a;
+}
+
+/* ===================================
+   REIMBURSEMENTS STYLES
+   =================================== */
+
+.reimbursements-section {
+  animation: fadeIn 0.3s ease;
+}
+
+.reimbursement-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #d1fae5 0%, #10b981 100%);
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.summary-card.pending {
+  background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 100%);
+}
+
+.summary-amount {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.summary-label {
+  display: block;
+  font-size: 1rem;
+  color: white;
+  opacity: 0.9;
+}
+
+.reimbursements-list h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1.5rem 0;
+}
+
+.reimbursement-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.reimbursement-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.reimbursement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.reimbursement-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.reimbursement-id {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.reimbursement-claim {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.reimbursement-status {
+  padding: 0.5rem 1rem;
+  border-radius: 100px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.reimbursement-status.status-completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.reimbursement-status.status-processing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.reimbursement-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.reimbursement-amount-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.reimbursement-amount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.reimbursement-date {
+  font-size: 0.9375rem;
+  color: #666;
+}
+
+.reimbursement-method,
+.expected-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+}
+
+.method-label,
+.expected-label {
+  color: #666;
+}
+
+.method-value,
+.expected-value {
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.account-info {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* ===================================
+   PROVIDER NETWORK STYLES
+   =================================== */
+
+.provider-network {
+  animation: fadeIn 0.3s ease;
+}
+
+.provider-search {
+  margin-bottom: 2rem;
+}
+
+.provider-search h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 1.5rem 0;
+}
+
+.search-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #666;
+}
+
+.search-input,
+.filter-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: #4318d0;
+  box-shadow: 0 0 0 3px rgba(67, 24, 208, 0.1);
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.providers-results {
+  margin-top: 2rem;
+}
+
+.results-header {
+  margin-bottom: 1.5rem;
+}
+
+.results-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.providers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.provider-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.provider-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.provider-main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.provider-icon {
+  font-size: 2rem;
+}
+
+.provider-info {
+  flex: 1;
+}
+
+.provider-info h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 0.25rem 0;
+}
+
+.provider-specialty {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #f3f4f6;
+  border-radius: 100px;
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.provider-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stars {
+  color: #fbbf24;
+}
+
+.rating-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.accepting-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 100px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.accepting-badge.accepting {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.accepting-badge.not-accepting {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.provider-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.detail-icon {
+  font-size: 1.125rem;
+}
+
+.detail-text {
+  flex: 1;
+  font-size: 0.9375rem;
+  color: #1a1a1a;
+}
+
+.text-muted {
+  color: #666;
+}
+
+.provider-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.provider-btn {
+  padding: 0.625rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.provider-btn.primary {
+  background: #4318d0;
+  color: white;
+  border-color: #4318d0;
+}
+
+.provider-btn.primary:hover {
+  background: #3612a8;
+}
+
+.provider-btn.secondary {
+  background: white;
+  color: #666;
+}
+
+.provider-btn.secondary:hover {
+  background: #f8f9fa;
+  color: #1a1a1a;
+}
+
+/* ===================================
+   EMPTY STATE
+   =================================== */
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.empty-state p {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.reset-btn {
+  padding: 0.75rem 1.5rem;
+  background: #4318d0;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-btn:hover {
+  background: #3612a8;
+}
+
+/* ===================================
+   ANIMATIONS
+   =================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
+
+@media (max-width: 1024px) {
+  .insurance-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .insurance-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .detail-row,
+  .copay-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .claims-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .insurance-page {
+    padding: 1rem;
+  }
+
+  .insurance-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .insurance-tabs {
+    overflow-x: auto;
+    padding: 0 1rem;
+  }
+
+  .tab-btn {
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .insurance-content {
+    padding: 1.5rem;
+  }
+
+  .insurance-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .policy-selector {
+    flex-direction: column;
+  }
+
+  .insurance-card {
+    padding: 1.5rem;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .copay-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .claims-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .claim-amounts {
+    grid-template-columns: 1fr;
+  }
+
+  .reimbursement-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .provider-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .provider-actions {
+    flex-direction: column;
+  }
+
+  .provider-btn {
+    width: 100%;
+  }
+
+  .claim-actions {
+    flex-direction: column;
+  }
+
+  .claim-action-btn {
+    width: 100%;
+  }
+
+  .coverage-table-header,
+  .coverage-table-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .coverage-col {
+    padding: 0.25rem 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .insurance-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .summary-amount {
+    font-size: 2rem;
+  }
+
+  .reimbursement-amount {
+    font-size: 1.5rem;
+  }
+}
+
+/* ===================================
+   PRINT STYLES
+   =================================== */
+
+@media print {
+  .insurance-sidebar,
+  .insurance-tabs,
+  .action-btn,
+  .claim-actions,
+  .provider-actions {
+    display: none !important;
+  }
+
+  .insurance-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .insurance-page {
+    padding: 0;
+  }
+
+  .insurance-card,
+  .claim-card,
+  .provider-card {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+    page-break-inside: avoid;
+  }
+}
