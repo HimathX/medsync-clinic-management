@@ -891,6 +891,88 @@ proc_label: BEGIN
    
     COMMIT;
 END proc_label$$
+-- ============================================
+-- ADD Doc Specializaiton 
+-- ============================================
+DROP PROCEDURE IF EXISTS AddDoctorSpecialization$$
+
+CREATE PROCEDURE AddDoctorSpecialization(
+    IN p_doctor_id CHAR(36),
+    IN p_specialization_id CHAR(36),
+    IN p_certification_date DATE,
+   
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    -- ALL DECLARE STATEMENTS MUST COME FIRST
+    DECLARE v_doctor_exists INT DEFAULT 0;
+    DECLARE v_specialization_exists INT DEFAULT 0;
+    DECLARE v_duplicate_exists INT DEFAULT 0;
+   
+    -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- NOW executable statements can start
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+   
+    -- Start transaction
+    START TRANSACTION;
+   
+    -- Validation: Check if doctor exists
+    SELECT COUNT(*) INTO v_doctor_exists
+    FROM doctor
+    WHERE doctor_id = p_doctor_id;
+   
+    IF v_doctor_exists = 0 THEN
+        SET p_error_message = 'Doctor not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check if specialization exists
+    SELECT COUNT(*) INTO v_specialization_exists
+    FROM specialization
+    WHERE specialization_id = p_specialization_id;
+   
+    IF v_specialization_exists = 0 THEN
+        SET p_error_message = 'Specialization not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check for duplicate (doctor + specialization)
+    SELECT COUNT(*) INTO v_duplicate_exists
+    FROM doctor_specialization
+    WHERE doctor_id = p_doctor_id AND specialization_id = p_specialization_id;
+   
+    IF v_duplicate_exists > 0 THEN
+        SET p_error_message = 'Specialization already assigned to this doctor';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Insert doctor_specialization
+    INSERT INTO doctor_specialization (
+        doctor_id, specialization_id, certification_date
+    ) VALUES (
+        p_doctor_id, p_specialization_id, p_certification_date
+    );
+   
+    -- Success
+    SET p_success = TRUE;
+    SET p_error_message = 'Doctor specialization added successfully';
+   
+    COMMIT;
+END proc_label$$
 
 DELIMITER ;
 
@@ -980,7 +1062,7 @@ INSERT INTO conditions_category (condition_category_id, category_name, descripti
     (UUID(), 'Musculoskeletal', 'Conditions involving bones, muscles, and joints, like arthritis and osteoporosis.'),
     (UUID(), 'Dermatological', 'Skin-related conditions, such as eczema and psoriasis.');
 
-
+-- ADD Sample Insurance Packages
 INSERT INTO insurance_package (insurance_package_id, package_name, annual_limit, copayment_percentage, description, is_active) VALUES 
     (UUID(), 'Basic Health Plan', 500000.00, 30.00, 'Entry-level coverage for routine checkups and minor treatments.', TRUE),
     (UUID(), 'Standard Family Plan', 1000000.00, 20.00, 'Comprehensive family coverage including hospitalization and specialist visits.', TRUE),
@@ -988,3 +1070,10 @@ INSERT INTO insurance_package (insurance_package_id, package_name, annual_limit,
     (UUID(), 'Senior Care Plan', 1500000.00, 25.00, 'Tailored for seniors with focus on chronic conditions and geriatric services.', TRUE),
     (UUID(), 'Emergency Only Plan', 750000.00, 40.00, 'Affordable option for emergency treatments and accidents only.', TRUE);
 
+-- ADD Sample Specializaation
+INSERT INTO specialization (specialization_id, specialization_title, other_details) VALUES 
+    (UUID(), 'Cardiology', 'Specialist in heart and circulatory system disorders.'),
+    (UUID(), 'Neurology', 'Expert in brain, spinal cord, and nervous system conditions.'),
+    (UUID(), 'Orthopedics', 'Focus on musculoskeletal system, including bones, joints, and muscles.'),
+    (UUID(), 'Dermatology', 'Treatment of skin, hair, and nail diseases.'),
+    (UUID(), 'Pediatrics', 'Care for infants, children, and adolescents.');
