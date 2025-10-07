@@ -21,8 +21,8 @@ CREATE PROCEDURE RegisterPatient(
     IN p_email VARCHAR(255),
     IN p_gender ENUM('Male', 'Female', 'Other'),
     IN p_DOB DATE,
-    IN p_password_hash VARCHAR(255),
-   
+    IN p_password_hash VARCHAR(64),  -- Changed to 64 for SHA-256
+    
     -- Patient inputs
     IN p_blood_group ENUM('A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'),
     IN p_registered_branch_name VARCHAR(50),  -- Changed to branch name
@@ -59,15 +59,21 @@ proc_label: BEGIN
    
     -- Start transaction
     START TRANSACTION;
-   
-    -- Validation: Get branch_id from branch_name
-    SELECT branch_id INTO v_branch_id
-    FROM branch
-    WHERE branch_name = p_registered_branch_name AND is_active = TRUE
-    LIMIT 1;
-   
-    IF v_branch_id IS NULL THEN
-        SET p_error_message = 'Branch not found or inactive';
+    
+    -- Validation: Check password hash length (SHA-256 should be exactly 64 hex chars)
+    IF LENGTH(p_password_hash) != 64 THEN
+        SET p_error_message = 'Invalid password hash format';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+    
+    -- Validation: Check if branch exists
+    SELECT COUNT(*) INTO v_branch_exists 
+    FROM branch 
+    WHERE branch_id = p_registered_branch_id AND is_active = TRUE;
+    
+    IF v_branch_exists = 0 THEN
+        SET p_error_message = 'Invalid or inactive branch';
         ROLLBACK;
         LEAVE proc_label;
     END IF;
@@ -122,8 +128,8 @@ proc_label: BEGIN
     -- Insert contact
     INSERT INTO contact (contact_id, contact_num1, contact_num2)
     VALUES (v_contact_id, TRIM(p_contact_num1), TRIM(p_contact_num2));
-   
-    -- Insert user
+    
+    -- Insert user (password_hash is already hashed by the API)
     INSERT INTO user (
         user_id, address_id, user_type, full_name, NIC, email, gender, DOB,
         contact_id, password_hash
@@ -167,7 +173,7 @@ CREATE PROCEDURE RegisterEmployee(
     IN p_email VARCHAR(255),
     IN p_gender ENUM('Male', 'Female', 'Other'),
     IN p_DOB DATE,
-    IN p_password_hash VARCHAR(255),
+    IN p_password_hash VARCHAR(64),
     
     -- Employee inputs
     IN p_branch_name VARCHAR(50),
@@ -339,7 +345,7 @@ CREATE PROCEDURE RegisterDoctor(
     IN p_email VARCHAR(255),
     IN p_gender ENUM('Male', 'Female', 'Other'),
     IN p_DOB DATE,
-    IN p_password_hash VARCHAR(255),
+    IN p_password_hash VARCHAR(64),
     
     -- Employee inputs
     IN p_branch_name VARCHAR(50),
