@@ -780,6 +780,118 @@ proc_label: BEGIN
     COMMIT;
 END proc_label$$
 
+-- ============================================
+-- ADD Insurance Package
+-- ============================================
+DROP PROCEDURE IF EXISTS AddPatientInsurance$$
+CREATE PROCEDURE AddPatientInsurance(
+    IN p_patient_id CHAR(36),
+    IN p_insurance_package_id CHAR(36),
+    IN p_start_date DATE,
+    IN p_end_date DATE,
+    IN p_status ENUM('Active', 'Inactive', 'Expired', 'Pending'),
+   
+    OUT p_insurance_id CHAR(36),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    -- ALL DECLARE STATEMENTS MUST COME FIRST
+    DECLARE v_insurance_id CHAR(36);
+    DECLARE v_patient_exists INT DEFAULT 0;
+    DECLARE v_package_exists INT DEFAULT 0;
+    DECLARE v_duplicate_exists INT DEFAULT 0;
+   
+    -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- NOW executable statements can start
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_insurance_id = NULL;
+   
+    -- Start transaction
+    START TRANSACTION;
+   
+    -- Validation: Check if patient exists
+    SELECT COUNT(*) INTO v_patient_exists
+    FROM patient
+    WHERE patient_id = p_patient_id;
+   
+    IF v_patient_exists = 0 THEN
+        SET p_error_message = 'Patient not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check if insurance package exists and is active
+    SELECT COUNT(*) INTO v_package_exists
+    FROM insurance_package
+    WHERE insurance_package_id = p_insurance_package_id AND is_active = TRUE;
+   
+    IF v_package_exists = 0 THEN
+        SET p_error_message = 'Insurance package not found or inactive';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check required fields
+    IF p_start_date IS NULL THEN
+        SET p_error_message = 'Start date is required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    IF p_end_date IS NULL THEN
+        SET p_error_message = 'End date is required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check dates (end > start)
+    IF p_end_date <= p_start_date THEN
+        SET p_error_message = 'End date must be after start date';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check for duplicate (patient + package)
+    SELECT COUNT(*) INTO v_duplicate_exists
+    FROM insurance
+    WHERE patient_id = p_patient_id AND insurance_package_id = p_insurance_package_id;
+   
+    IF v_duplicate_exists > 0 THEN
+        SET p_error_message = 'Insurance package already assigned to this patient';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Generate UUID
+    SET v_insurance_id = UUID();
+   
+    -- Insert insurance
+    INSERT INTO insurance (
+        insurance_id, patient_id, insurance_package_id, status, start_date, end_date
+    ) VALUES (
+        v_insurance_id, p_patient_id, p_insurance_package_id, 
+        COALESCE(p_status, 'Pending'), p_start_date, p_end_date
+    );
+   
+    -- Success
+    SET p_insurance_id = v_insurance_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Patient insurance added successfully';
+   
+    COMMIT;
+END proc_label$$
+
 DELIMITER ;
 
 -- ============================================
@@ -847,6 +959,17 @@ CALL AddPatientCondition(
     @condition_id, @error_msg, @success
 );
 
+CALL AddPatientInsurance(
+    'YOUR_ROHAN_PATIENT_UUID_HERE',  -- e.g., from patient table
+    'YOUR_BASIC_PACKAGE_UUID_HERE',  -- e.g., from insurance_package
+    '2025-10-07',                    -- Start date (today)
+    '2026-10-06',                    -- End date (1 year later)
+    'Active',                        -- Status
+    @insurance_id,                   -- OUT: New insurance ID
+    @error_msg,                      -- OUT: Error/success message
+    @success                         -- OUT: TRUE/FALSE
+);
+
 -- ADD Sample Conditon Catogeries 
 INSERT INTO conditions_category (condition_category_id, category_name, description) VALUES 
     (UUID(), 'Cardiovascular', 'Conditions affecting the heart and blood vessels, such as hypertension and heart disease.'),
@@ -858,5 +981,10 @@ INSERT INTO conditions_category (condition_category_id, category_name, descripti
     (UUID(), 'Dermatological', 'Skin-related conditions, such as eczema and psoriasis.');
 
 
-
+INSERT INTO insurance_package (insurance_package_id, package_name, annual_limit, copayment_percentage, description, is_active) VALUES 
+    (UUID(), 'Basic Health Plan', 500000.00, 30.00, 'Entry-level coverage for routine checkups and minor treatments.', TRUE),
+    (UUID(), 'Standard Family Plan', 1000000.00, 20.00, 'Comprehensive family coverage including hospitalization and specialist visits.', TRUE),
+    (UUID(), 'Premium Wellness Plan', 2000000.00, 10.00, 'High-end plan with wellness programs, preventive care, and full hospital benefits.', TRUE),
+    (UUID(), 'Senior Care Plan', 1500000.00, 25.00, 'Tailored for seniors with focus on chronic conditions and geriatric services.', TRUE),
+    (UUID(), 'Emergency Only Plan', 750000.00, 40.00, 'Affordable option for emergency treatments and accidents only.', TRUE);
 
