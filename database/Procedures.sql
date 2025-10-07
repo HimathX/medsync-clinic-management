@@ -1,6 +1,7 @@
 /*     PATIENT REGISTRATION     */
 DELIMITER $$
 DROP PROCEDURE IF EXISTS RegisterPatient$$
+
 CREATE PROCEDURE RegisterPatient(
     -- Address inputs
     IN p_address_line1 VARCHAR(50),
@@ -9,11 +10,11 @@ CREATE PROCEDURE RegisterPatient(
     IN p_province VARCHAR(50),
     IN p_postal_code VARCHAR(20),
     IN p_country VARCHAR(50),
-    
+   
     -- Contact inputs
     IN p_contact_num1 VARCHAR(20),
     IN p_contact_num2 VARCHAR(20),
-    
+   
     -- User inputs
     IN p_full_name VARCHAR(255),
     IN p_NIC VARCHAR(20),
@@ -21,25 +22,26 @@ CREATE PROCEDURE RegisterPatient(
     IN p_gender ENUM('Male', 'Female', 'Other'),
     IN p_DOB DATE,
     IN p_password_hash VARCHAR(255),
-    
+   
     -- Patient inputs
     IN p_blood_group ENUM('A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'),
-    IN p_registered_branch_id CHAR(36),
-    
+    IN p_registered_branch_name VARCHAR(50),  -- Changed to branch name
+   
     -- Outputs
     OUT p_user_id CHAR(36),
     OUT p_error_message VARCHAR(255),
     OUT p_success BOOLEAN
 )
-proc_label: BEGIN  -- Add label here
+proc_label: BEGIN
     -- ALL DECLARE STATEMENTS MUST COME FIRST
     DECLARE v_address_id CHAR(36);
     DECLARE v_contact_id CHAR(36);
     DECLARE v_user_id CHAR(36);
-    DECLARE v_branch_exists INT DEFAULT 0;
+    DECLARE v_branch_id CHAR(36);  -- Added for branch ID lookup
+    DECLARE v_branch_exists INT DEFAULT 0;  -- Can remove if not needed, but kept for consistency
     DECLARE v_email_exists INT DEFAULT 0;
     DECLARE v_nic_exists INT DEFAULT 0;
-    
+   
     -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -48,98 +50,99 @@ proc_label: BEGIN  -- Add label here
         ROLLBACK;
         SET p_success = FALSE;
     END;
-    
+   
     -- NOW executable statements can start
     -- Initialize outputs
     SET p_success = FALSE;
     SET p_error_message = NULL;
     SET p_user_id = NULL;
-    
+   
     -- Start transaction
     START TRANSACTION;
-    
-    -- Validation: Check if branch exists
-    SELECT COUNT(*) INTO v_branch_exists 
-    FROM branch 
-    WHERE branch_id = p_registered_branch_id AND is_active = TRUE;
-    
-    IF v_branch_exists = 0 THEN
-        SET p_error_message = 'Invalid or inactive branch';
+   
+    -- Validation: Get branch_id from branch_name
+    SELECT branch_id INTO v_branch_id
+    FROM branch
+    WHERE branch_name = p_registered_branch_name AND is_active = TRUE
+    LIMIT 1;
+   
+    IF v_branch_id IS NULL THEN
+        SET p_error_message = 'Branch not found or inactive';
         ROLLBACK;
-        LEAVE proc_label;  -- Use label
+        LEAVE proc_label;
     END IF;
-    
+   
     -- Validation: Check for duplicate email
-    SELECT COUNT(*) INTO v_email_exists 
-    FROM user 
-    WHERE email = p_email;
-    
+    SELECT COUNT(*) INTO v_email_exists
+    FROM user
+    WHERE email = LOWER(TRIM(p_email));  -- Added LOWER/TRIM for consistency
+   
     IF v_email_exists > 0 THEN
         SET p_error_message = 'Email already registered';
         ROLLBACK;
-        LEAVE proc_label;  -- Use label
+        LEAVE proc_label;
     END IF;
-    
+   
     -- Validation: Check for duplicate NIC
-    SELECT COUNT(*) INTO v_nic_exists 
-    FROM user 
-    WHERE NIC = p_NIC;
-    
+    SELECT COUNT(*) INTO v_nic_exists
+    FROM user
+    WHERE NIC = TRIM(p_NIC);  -- Added TRIM for consistency
+   
     IF v_nic_exists > 0 THEN
         SET p_error_message = 'NIC already registered';
         ROLLBACK;
-        LEAVE proc_label;  -- Use label
+        LEAVE proc_label;
     END IF;
-    
+   
     -- Validation: Check age (must be 18+)
     IF TIMESTAMPDIFF(YEAR, p_DOB, CURDATE()) < 18 THEN
         SET p_error_message = 'Patient must be at least 18 years old';
         ROLLBACK;
-        LEAVE proc_label;  -- Use label
+        LEAVE proc_label;
     END IF;
-    
+   
     -- Generate UUIDs
     SET v_address_id = UUID();
     SET v_contact_id = UUID();
     SET v_user_id = UUID();
-    
+   
     -- Insert address
     INSERT INTO address (
         address_id, address_line1, address_line2, city, province, postal_code, country
     ) VALUES (
-        v_address_id, 
-        TRIM(p_address_line1), 
-        TRIM(p_address_line2), 
-        TRIM(p_city), 
-        TRIM(p_province), 
-        TRIM(p_postal_code), 
+        v_address_id,
+        TRIM(p_address_line1),
+        TRIM(p_address_line2),
+        TRIM(p_city),
+        TRIM(p_province),
+        TRIM(p_postal_code),
         COALESCE(TRIM(p_country), 'Sri Lanka')
     );
-    
+   
     -- Insert contact
-    INSERT INTO contact (contact_id, contact_num1, contact_num2) 
+    INSERT INTO contact (contact_id, contact_num1, contact_num2)
     VALUES (v_contact_id, TRIM(p_contact_num1), TRIM(p_contact_num2));
-    
+   
     -- Insert user
     INSERT INTO user (
-        user_id, address_id, user_type, full_name, NIC, email, gender, DOB, 
+        user_id, address_id, user_type, full_name, NIC, email, gender, DOB,
         contact_id, password_hash
     ) VALUES (
-        v_user_id, v_address_id, 'patient', TRIM(p_full_name), TRIM(p_NIC), 
+        v_user_id, v_address_id, 'patient', TRIM(p_full_name), TRIM(p_NIC),
         LOWER(TRIM(p_email)), p_gender, p_DOB, v_contact_id, p_password_hash
     );
-    
-    -- Insert patient
-    INSERT INTO patient (patient_id, blood_group, registered_branch_id) 
-    VALUES (v_user_id, p_blood_group, p_registered_branch_id);
-    
+   
+    -- Insert patient (use v_branch_id)
+    INSERT INTO patient (patient_id, blood_group, registered_branch_id)
+    VALUES (v_user_id, p_blood_group, v_branch_id);
+   
     -- Success
     SET p_user_id = v_user_id;
     SET p_success = TRUE;
     SET p_error_message = 'Patient registered successfully';
-    
+   
     COMMIT;
-END proc_label$$  -- Close label
+END proc_label$$
 
 -- ============================================
 -- IMPROVED EMPLOYEE REGISTRATION
