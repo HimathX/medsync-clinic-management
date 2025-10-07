@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.database import test_database_connection, get_database_info, engine, Base
 
 # Import routers
-from routers import doctor, appointment, branch, patient
+from routers import doctor, appointment, branch, patient, conditions
 
 # Create FastAPI app
 app = FastAPI(
@@ -22,10 +22,11 @@ app.add_middleware(
 )
 
 
-app.include_router(patient.router , prefix="/patients")
-app.include_router(doctor.router , prefix="/doctors")
-app.include_router(appointment.router , prefix="/appointments")
-app.include_router(branch.router , prefix="/branches")
+app.include_router(patient.router, prefix="/patients")
+app.include_router(doctor.router, prefix="/doctors")
+app.include_router(appointment.router, prefix="/appointments")
+app.include_router(branch.router, prefix="/branches")
+app.include_router(conditions.router, prefix="/patients")  
 
 @app.on_event("startup")
 async def startup_event():

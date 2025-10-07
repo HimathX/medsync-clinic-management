@@ -100,6 +100,30 @@ class DoctorRegistrationResponse(BaseModel):
             }
         }
 
+class AddSpecializationRequest(BaseModel):
+    specialization_id: str = Field(..., description="Specialization ID (UUID)")
+    certification_date: date = Field(..., description="Date of certification (YYYY-MM-DD)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "specialization_id": "spec-uuid-here",
+                "certification_date": "2024-01-15"
+            }
+        }
+
+class AddSpecializationResponse(BaseModel):
+    success: bool
+    message: str
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Doctor specialization added successfully"
+            }
+        }
+
 # ============================================
 # DOCTOR REGISTRATION ENDPOINT
 # ============================================
@@ -291,4 +315,144 @@ def get_doctors_by_specialization(
         "specialization_id": specialization_id,
         "doctors": doctors
     }
+
+@router.post("/{doctor_id}/specializations", status_code=status.HTTP_201_CREATED, response_model=AddSpecializationResponse)
+def add_doctor_specialization(
+    doctor_id: str,
+    specialization_data: AddSpecializationRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Add a new specialization to a doctor
+    
+    - Validates doctor and specialization exist
+    - Checks for duplicates
+    - Associates specialization with certification date
+    """
+    try:
+        # Call the stored procedure
+        result = db.execute(
+            text("""
+                CALL AddDoctorSpecialization(
+                    :p_doctor_id,
+                    :p_specialization_id,
+                    :p_certification_date,
+                    @p_error_message,
+                    @p_success
+                )
+            """),
+            {
+                "p_doctor_id": doctor_id,
+                "p_specialization_id": specialization_data.specialization_id,
+                "p_certification_date": specialization_data.certification_date
+            }
+        )
+        
+        # Get output parameters
+        output = db.execute(text("SELECT @p_error_message, @p_success")).fetchone()
+        
+        error_message = output[0]  # type: ignore
+        success = bool(output[1])  # type: ignore
+        
+        # Commit the transaction
+        db.commit()
+        
+        if success:
+            return AddSpecializationResponse(
+                success=True,
+                message=error_message or "Doctor specialization added successfully"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_message or "Failed to add specialization"
+            )
+            
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while adding specialization: {str(e)}"
+        )
+
+@router.get("/{doctor_id}/specializations", status_code=status.HTTP_200_OK)
+def get_doctor_specializations(
+    doctor_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get all specializations for a specific doctor"""
+    # Check if doctor exists
+    doctor = db.query(Doctor).filter(Doctor.doctor_id == doctor_id).first()
+    if not doctor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Doctor with ID {doctor_id} not found"
+        )
+    
+    # Get specializations with certification dates
+    specializations = db.query(
+        Specialization,
+        DoctorSpecialization.certification_date
+    ).join(
+        DoctorSpecialization,
+        Specialization.specialization_id == DoctorSpecialization.specialization_id
+    ).filter(
+        DoctorSpecialization.doctor_id == doctor_id
+    ).all()
+    
+    return {
+        "doctor_id": doctor_id,
+        "total": len(specializations),
+        "specializations": [
+            {
+                "specialization_id": spec.specialization_id,
+                "specialization_title": spec.specialization_title,
+                "other_details": spec.other_details,
+                "certification_date": cert_date
+            }
+            for spec, cert_date in specializations
+        ]
+    }
+
+@router.delete("/{doctor_id}/specializations/{specialization_id}", status_code=status.HTTP_200_OK)
+def remove_doctor_specialization(
+    doctor_id: str,
+    specialization_id: str,
+    db: Session = Depends(get_db)
+):
+    """Remove a specialization from a doctor"""
+    try:
+        # Check if the association exists
+        specialization = db.query(DoctorSpecialization).filter(
+            DoctorSpecialization.doctor_id == doctor_id,
+            DoctorSpecialization.specialization_id == specialization_id
+        ).first()
+        
+        if not specialization:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Specialization not found for this doctor"
+            )
+        
+        # Delete the association
+        db.delete(specialization)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Specialization removed successfully"
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while removing specialization: {str(e)}"
+        )
 
