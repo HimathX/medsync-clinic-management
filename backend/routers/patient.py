@@ -4,15 +4,28 @@ from sqlalchemy import text
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 from datetime import date
+import hashlib
+import uuid
 from core.database import get_db
 from models.patient import Patient, PatientAllergy
 from models.user import User
-from passlib.context import CryptContext
 
 router = APIRouter(tags=["patients"])
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Simple password hashing using hashlib (SHA256 with salt)
+def hash_password(password: str) -> str:
+    """Hash password using SHA256 with random salt"""
+    salt = uuid.uuid4().hex
+    password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+    return f"{salt}${password_hash}"
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify password against hash"""
+    try:
+        salt, password_hash = hashed_password.split('$')
+        return hashlib.sha256((plain_password + salt).encode()).hexdigest() == password_hash
+    except:
+        return False
 
 # ============================================
 # PYDANTIC SCHEMAS
