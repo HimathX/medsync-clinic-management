@@ -606,6 +606,180 @@ proc_label: BEGIN
     COMMIT;
 END proc_label$$
 
+
+-- ============================================
+-- ADD PATIENT ALLERGYIES 
+-- ============================================
+DROP PROCEDURE IF EXISTS AddPatientAllergy$$
+CREATE PROCEDURE AddPatientAllergy(
+    IN p_patient_id CHAR(36),
+    IN p_allergy_name VARCHAR(50),
+    IN p_severity ENUM('Mild', 'Moderate', 'Severe', 'Life-threatening'),
+    IN p_reaction_description VARCHAR(200),
+    IN p_diagnosed_date DATE,
+   
+    OUT p_patient_allergy_id CHAR(36),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    -- ALL DECLARE STATEMENTS MUST COME FIRST
+    DECLARE v_patient_allergy_id CHAR(36);
+    DECLARE v_patient_exists INT DEFAULT 0;
+   
+    -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- NOW executable statements can start
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_patient_allergy_id = NULL;
+   
+    -- Start transaction
+    START TRANSACTION;
+   
+    -- Validation: Check if patient exists
+    SELECT COUNT(*) INTO v_patient_exists
+    FROM patient
+    WHERE patient_id = p_patient_id;
+   
+    IF v_patient_exists = 0 THEN
+        SET p_error_message = 'Patient not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check required fields
+    IF TRIM(p_allergy_name) IS NULL OR TRIM(p_allergy_name) = '' THEN
+        SET p_error_message = 'Allergy name is required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Generate UUID
+    SET v_patient_allergy_id = UUID();
+   
+    -- Insert allergy
+    INSERT INTO patient_allergy (
+        patient_allergy_id, patient_id, allergy_name, severity, 
+        reaction_description, diagnosed_date
+    ) VALUES (
+        v_patient_allergy_id, p_patient_id, TRIM(p_allergy_name), 
+        COALESCE(p_severity, 'Mild'), TRIM(p_reaction_description), p_diagnosed_date
+    );
+   
+    -- Success
+    SET p_patient_allergy_id = v_patient_allergy_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Patient allergy added successfully';
+   
+    COMMIT;
+END proc_label$$
+
+-- ============================================
+-- ADD PATIENT CONDITION
+-- ============================================
+DROP PROCEDURE IF EXISTS AddPatientCondition$$
+
+CREATE PROCEDURE AddPatientCondition(
+    IN p_patient_id CHAR(36),
+    IN p_condition_category_id CHAR(36),
+    IN p_condition_name VARCHAR(50),
+    IN p_diagnosed_date DATE,
+    IN p_is_chronic BOOL,
+    IN p_current_status ENUM('Active', 'In Treatment', 'Managed', 'Resolved'),
+    IN p_notes TEXT,
+   
+    OUT p_condition_id CHAR(36),  -- Output the new condition_id created
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    -- ALL DECLARE STATEMENTS MUST COME FIRST
+    DECLARE v_condition_id CHAR(36);
+    DECLARE v_patient_exists INT DEFAULT 0;
+    DECLARE v_category_exists INT DEFAULT 0;
+   
+    -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- NOW executable statements can start
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_condition_id = NULL;
+   
+    -- Start transaction
+    START TRANSACTION;
+   
+    -- Validation: Check if patient exists
+    SELECT COUNT(*) INTO v_patient_exists
+    FROM patient
+    WHERE patient_id = p_patient_id;
+   
+    IF v_patient_exists = 0 THEN
+        SET p_error_message = 'Patient not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check if category exists
+    SELECT COUNT(*) INTO v_category_exists
+    FROM conditions_category
+    WHERE condition_category_id = p_condition_category_id;
+   
+    IF v_category_exists = 0 THEN
+        SET p_error_message = 'Condition category not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check required fields
+    IF TRIM(p_condition_name) IS NULL OR TRIM(p_condition_name) = '' THEN
+        SET p_error_message = 'Condition name is required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Always create a new condition for this patient_condition
+    SET v_condition_id = UUID();
+   
+    -- Insert new condition dynamically
+    INSERT INTO conditions (
+        condition_id, condition_category_id, condition_name, description, severity
+    ) VALUES (
+        v_condition_id, p_condition_category_id, TRIM(p_condition_name), NULL, NULL  -- Description and severity optional
+    );
+   
+    -- Insert patient_condition
+    INSERT INTO patient_condition (
+        patient_id, condition_id, diagnosed_date, is_chronic, current_status, notes
+    ) VALUES (
+        p_patient_id, v_condition_id, p_diagnosed_date, p_is_chronic, 
+        COALESCE(p_current_status, 'Active'), TRIM(p_notes)
+    );
+   
+    -- Success
+    SET p_condition_id = v_condition_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Patient condition added successfully';
+   
+    COMMIT;
+END proc_label$$
+
 DELIMITER ;
 
 -- ============================================
@@ -648,6 +822,41 @@ CALL RegisterDoctor(
 );
 
 SELECT @success AS Success, @error_msg AS Message, @user_id AS DoctorID;
+
+-- ADD PatientAllergy
+
+CALL AddPatientAllergy(
+    'YOUR_PATIENT_UUID_HERE',  -- e.g., from patient table
+    'Peanuts', 'Life-threatening', 
+    'Anaphylaxis: swelling, difficulty breathing', 
+    '2025-05-15',
+    @allergy_id, @error_msg, @success
+);
+
+SELECT @allergy_id AS new_allergy_id, @error_msg AS message, @success AS succeeded;
+
+-- ADD PatientCondition 
+CALL AddPatientCondition(
+    'YOUR_PATIENT_UUID_HERE',
+    'YOUR_CATEGORY_UUID_HERE',  -- Now ID, not name
+    'Hypertension',              -- Always creates new condition entry
+    '2025-06-10',
+    TRUE,
+    'Managed',
+    'Blood pressure controlled with medication',
+    @condition_id, @error_msg, @success
+);
+
+-- ADD Sample Conditon Catogeries 
+INSERT INTO conditions_category (condition_category_id, category_name, description) VALUES 
+    (UUID(), 'Cardiovascular', 'Conditions affecting the heart and blood vessels, such as hypertension and heart disease.'),
+    (UUID(), 'Respiratory', 'Disorders of the lungs and breathing, including asthma and COPD.'),
+    (UUID(), 'Neurological', 'Issues related to the nervous system, like migraines and epilepsy.'),
+    (UUID(), 'Gastrointestinal', 'Problems with the digestive system, such as IBS and ulcers.'),
+    (UUID(), 'Endocrine', 'Hormonal and metabolic disorders, including diabetes and thyroid issues.'),
+    (UUID(), 'Musculoskeletal', 'Conditions involving bones, muscles, and joints, like arthritis and osteoporosis.'),
+    (UUID(), 'Dermatological', 'Skin-related conditions, such as eczema and psoriasis.');
+
 
 
 
