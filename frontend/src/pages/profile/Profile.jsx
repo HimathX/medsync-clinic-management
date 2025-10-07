@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import '../auth.css'
-import TabNavigation from '../components/profile/TabNavigation.jsx'
-import FormSection from '../components/profile/FormSection.jsx'
-import SaveIndicator from '../components/profile/SaveIndicator.jsx'
-import ProfilePhotoUpload from '../components/profile/ProfilePhotoUpload.jsx'
+import './profile.css'
+import TabNavigation from './TabNavigation.jsx'
+import FormSection from './FormSection.jsx'
+import SaveIndicator from './SaveIndicator.jsx'
+import ProfilePhotoUpload from './ProfilePhotoUpload.jsx'
 
 function PlaceholderForm({ title }) {
   const [state, setState] = useState('idle')

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import '../billing.css';
+import './billing.css';
 
 const Billing = () => {
   const [activeTab, setActiveTab] = useState('overview');

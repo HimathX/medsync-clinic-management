@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
-import '../medicalRecords.css'
-import FilterSidebar from '../components/medical/FilterSidebar.jsx'
-import MedicalTimeline from '../components/medical/MedicalTimeline.jsx'
-import RecordTabs from '../components/medical/RecordTabs.jsx'
+import './medical-records.css'
+import FilterSidebar from './FilterSidebar.jsx'
+import MedicalTimeline from './MedicalTimeline.jsx'
+import RecordTabs from './RecordTabs.jsx'
 
 export default function MedicalRecords() {
   const [activeTab, setActiveTab] = useState('timeline')

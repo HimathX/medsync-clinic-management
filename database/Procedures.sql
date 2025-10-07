@@ -317,7 +317,7 @@ proc_label: BEGIN
 END proc_label$$
 
 -- ============================================
--- IMPROVED DOCTOR REGISTRATION
+-- IMPROVED DOCTOR REGISTRATION WITH SPECIALIZATION VALIDATION
 -- ============================================
 DROP PROCEDURE IF EXISTS RegisterDoctor$$
 CREATE PROCEDURE RegisterDoctor(
@@ -358,6 +358,7 @@ CREATE PROCEDURE RegisterDoctor(
     OUT p_success BOOLEAN
 )
 proc_label: BEGIN
+    -- All DECLARE statements must come first
     DECLARE v_address_id CHAR(36);
     DECLARE v_contact_id CHAR(36);
     DECLARE v_user_id CHAR(36);
@@ -367,15 +368,11 @@ proc_label: BEGIN
     DECLARE v_licence_exists INT DEFAULT 0;
     DECLARE v_room_taken INT DEFAULT 0;
     DECLARE v_spec_count INT DEFAULT 0;
+    DECLARE v_spec_exists INT DEFAULT 0;
     DECLARE v_idx INT DEFAULT 0;
     DECLARE v_spec_id CHAR(36);
     
-    -- Initialize outputs
-    SET p_success = FALSE;
-    SET p_error_message = NULL;
-    SET p_user_id = NULL;
-    
-    -- Error handler
+    -- Error handler must also be declared here
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         GET DIAGNOSTICS CONDITION 1
@@ -383,6 +380,11 @@ proc_label: BEGIN
         ROLLBACK;
         SET p_success = FALSE;
     END;
+    
+    -- Initialize outputs (now after all DECLAREs)
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_user_id = NULL;
     
     START TRANSACTION;
     
@@ -494,12 +496,26 @@ proc_label: BEGIN
     VALUES (v_user_id, p_room_no, TRIM(p_medical_licence_no), p_consultation_fee, TRUE);
     
     -- Insert specializations if provided
-    IF p_specialization_ids IS NOT NULL THEN
+    IF p_specialization_ids IS NOT NULL AND JSON_LENGTH(p_specialization_ids) > 0 THEN
+        IF JSON_TYPE(p_specialization_ids) != 'ARRAY' THEN
+            SET p_error_message = 'Specialization IDs must be a valid JSON array';
+            ROLLBACK;
+            LEAVE proc_label;
+        END IF;
+        
         SET v_spec_count = JSON_LENGTH(p_specialization_ids);
         SET v_idx = 0;
         
         WHILE v_idx < v_spec_count DO
             SET v_spec_id = JSON_UNQUOTE(JSON_EXTRACT(p_specialization_ids, CONCAT('$[', v_idx, ']')));
+            
+            -- Validate specialization exists
+            SELECT COUNT(*) INTO v_spec_exists FROM specialization WHERE specialization_id = v_spec_id;
+            IF v_spec_exists = 0 THEN
+                SET p_error_message = CONCAT('Specialization ID ', v_spec_id, ' not found');
+                ROLLBACK;
+                LEAVE proc_label;
+            END IF;
             
             INSERT INTO doctor_specialization (doctor_id, specialization_id, certification_date)
             VALUES (v_user_id, v_spec_id, p_joined_date);
@@ -517,7 +533,7 @@ proc_label: BEGIN
 END proc_label$$
 
 -- ============================================
--- NEW: BOOK APPOINTMENT PROCEDURE
+-- BOOK APPOINTMENT PROCEDURE
 -- ============================================
 DROP PROCEDURE IF EXISTS BookAppointment$$
 CREATE PROCEDURE BookAppointment(
@@ -529,21 +545,23 @@ CREATE PROCEDURE BookAppointment(
     OUT p_error_message VARCHAR(255),
     OUT p_success BOOLEAN
 )
-BEGIN
+proc_label: BEGIN
     DECLARE v_appointment_id CHAR(36);
     DECLARE v_slot_available INT DEFAULT 0;
     DECLARE v_patient_exists INT DEFAULT 0;
     
-    SET p_success = FALSE;
-    SET p_error_message = NULL;
-    SET p_appointment_id = NULL;
-    
+    -- Error handler
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         GET DIAGNOSTICS CONDITION 1 p_error_message = MESSAGE_TEXT;
         ROLLBACK;
         SET p_success = FALSE;
     END;
+    
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_appointment_id = NULL;
     
     START TRANSACTION;
     
@@ -553,7 +571,7 @@ BEGIN
     IF v_patient_exists = 0 THEN
         SET p_error_message = 'Patient not found';
         ROLLBACK;
-        LEAVE;
+        LEAVE proc_label;
     END IF;
     
     -- Check if time slot is available
@@ -566,7 +584,7 @@ BEGIN
     IF v_slot_available = 0 THEN
         SET p_error_message = 'Time slot not available';
         ROLLBACK;
-        LEAVE;
+        LEAVE proc_label;
     END IF;
     
     -- Generate appointment ID
@@ -586,7 +604,7 @@ BEGIN
     SET p_error_message = 'Appointment booked successfully';
     
     COMMIT;
-END$$
+END proc_label$$
 
 DELIMITER ;
 

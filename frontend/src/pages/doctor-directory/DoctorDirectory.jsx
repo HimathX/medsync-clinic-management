@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import SearchFilters from '../components/doctor-directory/SearchFilters';
-import DoctorCard from '../components/doctor-directory/DoctorCard';
-import DoctorProfileModal from '../components/doctor-directory/DoctorProfileModal';
-import ViewToggle from '../components/doctor-directory/ViewToggle';
-import '../doctorDirectory.css';
+import SearchFilters from './SearchFilters';
+import DoctorCard from './DoctorCard';
+import DoctorProfileModal from './DoctorProfileModal';
+import ViewToggle from './ViewToggle';
+import './doctor-directory.css';
 
 const DoctorDirectory = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'

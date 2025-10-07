@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
-import '../dashboard.css'
-import DashboardWidget from '../components/DashboardWidget.jsx'
-import AppointmentCard from '../components/AppointmentCard.jsx'
-import ActivityTimeline from '../components/ActivityTimeline.jsx'
-import FinancialSummary from '../components/FinancialSummary.jsx'
-import QuickActions from '../components/QuickActions.jsx'
-import HealthMetrics from '../components/HealthMetrics.jsx'
-import NotificationBell from '../components/NotificationBell.jsx'
+import './dashboard.css'
+import DashboardWidget from './DashboardWidget.jsx'
+import AppointmentCard from './AppointmentCard.jsx'
+import ActivityTimeline from './ActivityTimeline.jsx'
+import FinancialSummary from './FinancialSummary.jsx'
+import QuickActions from './QuickActions.jsx'
+import HealthMetrics from './HealthMetrics.jsx'
+import NotificationBell from './NotificationBell.jsx'
 
 function formatDate(date) {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })

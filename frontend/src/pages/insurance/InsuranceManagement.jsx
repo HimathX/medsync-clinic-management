@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
-import QuickActions from '../components/insurance/QuickActions';
-import CoverageSummary from '../components/insurance/CoverageSummary';
-import InsuranceTabs from '../components/insurance/InsuranceTabs';
-import PolicyOverview from '../components/insurance/PolicyOverview';
-import CoverageDetails from '../components/insurance/CoverageDetails';
-import ClaimsManagement from '../components/insurance/ClaimsManagement';
-import Reimbursements from '../components/insurance/Reimbursements';
-import ProviderNetwork from '../components/insurance/ProviderNetwork';
-import '../insuranceManagement.css';
+import QuickActions from './QuickActions';
+import CoverageSummary from './CoverageSummary';
+import InsuranceTabs from './InsuranceTabs';
+import PolicyOverview from './PolicyOverview';
+import CoverageDetails from './CoverageDetails';
+import ClaimsManagement from './ClaimsManagement';
+import Reimbursements from './Reimbursements';
+import ProviderNetwork from './ProviderNetwork';
+import './insurance.css';
 
 function InsuranceManagement() {
   const [activeTab, setActiveTab] = useState('policy');

@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
-import ViewToggle from '../components/appointments/ViewToggle.jsx'
-import SearchBar from '../components/appointments/SearchBar.jsx'
-import FilterSidebar from '../components/appointments/FilterSidebar.jsx'
-import AppointmentCard from '../components/appointments/AppointmentCard.jsx'
-import AppointmentCalendar from '../components/appointments/AppointmentCalendar.jsx'
-import BulkActions from '../components/appointments/BulkActions.jsx'
-import PaginationControls from '../components/appointments/PaginationControls.jsx'
-import styles from '../components/appointments/AppointmentsPage.module.css'
+import ViewToggle from './ViewToggle.jsx'
+import SearchBar from './SearchBar.jsx'
+import FilterSidebar from './FilterSidebar.jsx'
+import AppointmentCard from './AppointmentCard.jsx'
+import AppointmentCalendar from './AppointmentCalendar.jsx'
+import BulkActions from './BulkActions.jsx'
+import PaginationControls from './PaginationControls.jsx'
+import styles from './AppointmentsPage.module.css'
 
 const MOCK = [
   { id: 'a1', doctor: 'Dr. Priya Patel', creds: 'MBBS, MS', specialty: 'Orthopedics', branch: 'Galle', status: 'Scheduled', type: 'Procedure', date: '2024-01-20', time: '11:30', durationMin: 60, notes: 'Knee examination and treatment' },

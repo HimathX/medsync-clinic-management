@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import '../treatmentCatalog.css';
-import CategorySidebar from '../components/CategorySidebar';
-import TreatmentCard from '../components/TreatmentCard';
-import TreatmentFilters from '../components/TreatmentFilters';
-import TreatmentDetailModal from '../components/TreatmentDetailModal';
+import './treatment-catalog.css';
+import CategorySidebar from './CategorySidebar';
+import TreatmentCard from './TreatmentCard';
+import TreatmentFilters from './TreatmentFilters';
+import TreatmentDetailModal from './TreatmentDetailModal';
 
 const TreatmentCatalog = () => {
   // State management
