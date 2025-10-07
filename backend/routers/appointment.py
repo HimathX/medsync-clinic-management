@@ -8,6 +8,11 @@ from core.database import get_db
 from models.appointment import Appointment, TimeSlot
 from models.patient import Patient
 from models.employee import Doctor
+from schemas.appointment import (
+    AppointmentBookingRequest,
+    AppointmentBookingResponse,
+    AppointmentUpdateRequest
+)
 
 router = APIRouter(tags=["appointments"])
 
@@ -15,53 +20,6 @@ router = APIRouter(tags=["appointments"])
 # PYDANTIC SCHEMAS
 # ============================================
 
-class AppointmentBookingRequest(BaseModel):
-    patient_id: str = Field(..., description="Patient ID (UUID)")
-    time_slot_id: str = Field(..., description="Time slot ID (UUID)")
-    notes: Optional[str] = Field(None, description="Additional notes or symptoms")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "patient_id": "patient-uuid-here",
-                "time_slot_id": "timeslot-uuid-here",
-                "notes": "Patient complains of headache and fever"
-            }
-        }
-
-class AppointmentBookingResponse(BaseModel):
-    success: bool
-    message: str
-    appointment_id: Optional[str] = None
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Appointment booked successfully",
-                "appointment_id": "appointment-uuid-here"
-            }
-        }
-
-class AppointmentUpdateRequest(BaseModel):
-    status: Optional[str] = Field(None, pattern="^(Scheduled|Completed|Cancelled|No-show)$")
-    diagnosis: Optional[str] = None
-    prescription: Optional[str] = None
-    notes: Optional[str] = None
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "status": "Completed",
-                "diagnosis": "Common cold",
-                "prescription": "Paracetamol 500mg twice daily",
-                "notes": "Patient advised to rest"
-            }
-        }
-
-# ============================================
-# BOOK APPOINTMENT ENDPOINT
-# ============================================
 
 @router.post("/book", status_code=status.HTTP_201_CREATED, response_model=AppointmentBookingResponse)
 def book_appointment(

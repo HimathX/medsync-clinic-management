@@ -1,8 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 from datetime import date
-from core.database import get_db
-from models.user import User
 
 
 class PatientRegistrationRequest(BaseModel):
