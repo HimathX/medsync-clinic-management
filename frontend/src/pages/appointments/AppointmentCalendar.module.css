@@ -1,0 +1,14 @@
+.wrapper{border:1px solid #e2e8f0;border-radius:12px;padding:12px;background:#fff}
+.header{font-weight:600;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.dow{font-size:12px;color:#64748b;text-align:center}
+.cell{border:1px solid #e2e8f0;border-radius:8px;min-height:92px;padding:6px;position:relative}
+.faded{opacity:.5}
+.dateNum{position:absolute;top:6px;right:6px;font-size:12px;color:#64748b}
+.markers{display:flex;gap:4px;flex-wrap:wrap;margin-top:18px}
+.marker{width:10px;height:10px;border-radius:999px;border:1px solid rgba(2,6,23,.12)}
+.scheduled{background:#2563eb}
+.completed{background:#10b981}
+.cancelled{background:#ef4444}
+.more{font-size:12px;color:#334155}
+
