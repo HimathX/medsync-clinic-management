@@ -4,28 +4,21 @@ from sqlalchemy import text
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 from datetime import date
-import hashlib
-import uuid
 from core.database import get_db
 from models.patient import Patient, PatientAllergy
 from models.user import User
+import hashlib
 
 router = APIRouter(tags=["patients"])
 
-# Simple password hashing using hashlib (SHA256 with salt)
+# Password hashing helper
 def hash_password(password: str) -> str:
-    """Hash password using SHA256 with random salt"""
-    salt = uuid.uuid4().hex
-    password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
-    return f"{salt}${password_hash}"
+    """Hash password using SHA-256"""
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password against hash"""
-    try:
-        salt, password_hash = hashed_password.split('$')
-        return hashlib.sha256((plain_password + salt).encode()).hexdigest() == password_hash
-    except:
-        return False
+    return hash_password(plain_password) == hashed_password
 
 # ============================================
 # PYDANTIC SCHEMAS
@@ -109,8 +102,8 @@ def register_patient(
     - Registers patient with blood group and branch
     """
     try:
-        # Hash the password
-        password_hash = pwd_context.hash(patient_data.password)
+        # Hash the password using SHA-256 (64 hex characters, well under 255)
+        password_hash = hash_password(patient_data.password)
         
         # Call the stored procedure
         result = db.execute(

@@ -20,7 +20,7 @@ CREATE PROCEDURE RegisterPatient(
     IN p_email VARCHAR(255),
     IN p_gender ENUM('Male', 'Female', 'Other'),
     IN p_DOB DATE,
-    IN p_password_hash VARCHAR(255),
+    IN p_password_hash VARCHAR(64),  -- Changed to 64 for SHA-256
     
     -- Patient inputs
     IN p_blood_group ENUM('A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'),
@@ -57,6 +57,13 @@ proc_label: BEGIN
     
     -- Start transaction
     START TRANSACTION;
+    
+    -- Validation: Check password hash length (SHA-256 should be exactly 64 hex chars)
+    IF LENGTH(p_password_hash) != 64 THEN
+        SET p_error_message = 'Invalid password hash format';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
     
     -- Validation: Check if branch exists
     SELECT COUNT(*) INTO v_branch_exists 
@@ -120,7 +127,7 @@ proc_label: BEGIN
     INSERT INTO contact (contact_id, contact_num1, contact_num2) 
     VALUES (v_contact_id, TRIM(p_contact_num1), TRIM(p_contact_num2));
     
-    -- Insert user
+    -- Insert user (password_hash is already hashed by the API)
     INSERT INTO user (
         user_id, address_id, user_type, full_name, NIC, email, gender, DOB, 
         contact_id, password_hash
@@ -164,7 +171,7 @@ CREATE PROCEDURE RegisterEmployee(
     IN p_email VARCHAR(255),
     IN p_gender ENUM('Male', 'Female', 'Other'),
     IN p_DOB DATE,
-    IN p_password_hash VARCHAR(255),
+    IN p_password_hash VARCHAR(64),
     
     -- Employee inputs
     IN p_branch_name VARCHAR(50),
@@ -336,7 +343,7 @@ CREATE PROCEDURE RegisterDoctor(
     IN p_email VARCHAR(255),
     IN p_gender ENUM('Male', 'Female', 'Other'),
     IN p_DOB DATE,
-    IN p_password_hash VARCHAR(255),
+    IN p_password_hash VARCHAR(64),
     
     -- Employee inputs
     IN p_branch_name VARCHAR(50),
