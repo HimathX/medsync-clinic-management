@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 
-// Pages
+// Staff Pages
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -13,7 +13,14 @@ import ReportsHistory from "./pages/reportshistory";
 import Patients from "./pages/Patients";
 import PatientPortal from "./pages/PatientPortal";
 import PatientDetail from "./pages/PatientDetail";
+
+// Patient Portal Pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
+import BookAppointment from "./pages/patient/BookAppointment";
+import PatientBilling from "./pages/patient/Billing";
+import PatientMedicalRecords from "./pages/patient/MedicalRecords";
+import PatientPrescriptions from "./pages/patient/Prescriptions";
+import PatientLabResults from "./pages/patient/LabResults";
 
 // Styles
 import "./styles/auth.css";
@@ -55,8 +62,14 @@ function App() {
         // Patient Portal Layout (no header, full dashboard)
         <Routes>
           <Route path="/" element={<PatientDashboard />} />
-          <Route path="/patient/*" element={<PatientDashboard />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/patient/dashboard" element={<PatientDashboard />} />
+          <Route path="/patient/book" element={<BookAppointment />} />
+          <Route path="/patient/appointments" element={<PatientDashboard />} />
+          <Route path="/patient/billing" element={<PatientBilling />} />
+          <Route path="/patient/records" element={<PatientMedicalRecords />} />
+          <Route path="/patient/prescriptions" element={<PatientPrescriptions />} />
+          <Route path="/patient/lab-results" element={<PatientLabResults />} />
+          <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
         </Routes>
       ) : (
         // Staff Portal Layout (with header)
