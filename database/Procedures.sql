@@ -979,8 +979,388 @@ proc_label: BEGIN
    
     COMMIT;
 END proc_label$$
+-- ============================================
+-- Assign TimeSlot to a doctor (Admin Only)
+-- ============================================
+
+DROP PROCEDURE IF EXISTS AddTimeSlot$$
+CREATE PROCEDURE AddTimeSlot(
+    IN p_doctor_id CHAR(36),
+    IN p_branch_id CHAR(36),
+    IN p_available_date DATE,
+    IN p_start_time TIME,
+    IN p_end_time TIME,
+   
+    OUT p_time_slot_id CHAR(36),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    -- ALL DECLARE STATEMENTS MUST COME FIRST
+    DECLARE v_time_slot_id CHAR(36);
+    DECLARE v_doctor_exists INT DEFAULT 0;
+    DECLARE v_branch_exists INT DEFAULT 0;
+   
+    -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- NOW executable statements can start
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_time_slot_id = NULL;
+   
+    -- Start transaction
+    START TRANSACTION;
+   
+    -- Validation: Check if doctor exists
+    SELECT COUNT(*) INTO v_doctor_exists
+    FROM doctor
+    WHERE doctor_id = p_doctor_id;
+   
+    IF v_doctor_exists = 0 THEN
+        SET p_error_message = 'Doctor not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check if branch exists and is active
+    SELECT COUNT(*) INTO v_branch_exists
+    FROM branch
+    WHERE branch_id = p_branch_id AND is_active = TRUE;
+   
+    IF v_branch_exists = 0 THEN
+        SET p_error_message = 'Branch not found or inactive';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check required fields
+    IF p_available_date IS NULL THEN
+        SET p_error_message = 'Available date is required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    IF p_start_time IS NULL THEN
+        SET p_error_message = 'Start time is required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    IF p_end_time IS NULL THEN
+        SET p_error_message = 'End time is required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check end_time > start_time
+    IF p_end_time <= p_start_time THEN
+        SET p_error_message = 'End time must be after start time';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Generate UUID
+    SET v_time_slot_id = UUID();
+   
+    -- Insert time slot
+    INSERT INTO time_slot (
+        time_slot_id, doctor_id, branch_id, available_date, 
+        is_booked, start_time, end_time
+    ) VALUES (
+        v_time_slot_id, p_doctor_id, p_branch_id, p_available_date, 
+        FALSE, p_start_time, p_end_time
+    );
+   
+    -- Success
+    SET p_time_slot_id = v_time_slot_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Time slot added successfully';
+   
+    COMMIT;
+END proc_label$$
+
+-- ============================================
+-- ADD Consultation Rec to an appoinment
+-- ============================================
+DROP PROCEDURE IF EXISTS AddConsultationRecord$$
+
+CREATE PROCEDURE AddConsultationRecord(
+    IN p_appointment_id CHAR(36),
+    IN p_symptoms TEXT,
+    IN p_diagnoses TEXT,
+    IN p_follow_up_required BOOL,
+    IN p_follow_up_date DATE,
+   
+    OUT p_consultation_rec_id CHAR(36),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    -- ALL DECLARE STATEMENTS MUST COME FIRST
+    DECLARE v_consultation_rec_id CHAR(36);
+    DECLARE v_appointment_exists INT DEFAULT 0;
+   
+    -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- NOW executable statements can start
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_consultation_rec_id = NULL;
+   
+    -- Start transaction
+    START TRANSACTION;
+   
+    -- Validation: Check if appointment exists
+    SELECT COUNT(*) INTO v_appointment_exists
+    FROM appointment
+    WHERE appointment_id = p_appointment_id;
+   
+    IF v_appointment_exists = 0 THEN
+        SET p_error_message = 'Appointment not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check required fields
+    IF TRIM(p_symptoms) IS NULL OR TRIM(p_symptoms) = '' THEN
+        SET p_error_message = 'Symptoms are required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    IF TRIM(p_diagnoses) IS NULL OR TRIM(p_diagnoses) = '' THEN
+        SET p_error_message = 'Diagnoses are required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: If follow-up required, ensure date is provided
+    IF p_follow_up_required = TRUE AND p_follow_up_date IS NULL THEN
+        SET p_error_message = 'Follow-up date is required when follow-up is needed';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Generate UUID
+    SET v_consultation_rec_id = UUID();
+   
+    -- Insert consultation record
+    INSERT INTO consultation_record (
+        consultation_rec_id, appointment_id, symptoms, diagnoses, 
+        follow_up_required, follow_up_date
+    ) VALUES (
+        v_consultation_rec_id, p_appointment_id, TRIM(p_symptoms), 
+        TRIM(p_diagnoses), p_follow_up_required, p_follow_up_date
+    );
+   
+    -- Success
+    SET p_consultation_rec_id = v_consultation_rec_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Consultation record added successfully';
+   
+    COMMIT;
+END proc_label$$
+
+-- ============================================
+-- ADD Prescription item to Consultation Rec
+-- ============================================
+
+DROP PROCEDURE IF EXISTS AddPrescriptionItem$$
+
+CREATE PROCEDURE AddPrescriptionItem(
+    IN p_consultation_rec_id CHAR(36),
+    IN p_medication_id CHAR(36),
+    IN p_dosage VARCHAR(50),
+    IN p_frequency ENUM('Once daily','Twice daily','Three times daily','As needed'),
+    IN p_duration_days INT,
+    IN p_instructions VARCHAR(500),
+   
+    OUT p_prescription_item_id CHAR(36),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    -- ALL DECLARE STATEMENTS MUST COME FIRST
+    DECLARE v_prescription_item_id CHAR(36);
+    DECLARE v_consultation_exists INT DEFAULT 0;
+    DECLARE v_medication_exists INT DEFAULT 0;
+   
+    -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- NOW executable statements can start
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_prescription_item_id = NULL;
+   
+    -- Start transaction
+    START TRANSACTION;
+   
+    -- Validation: Check if consultation record exists
+    SELECT COUNT(*) INTO v_consultation_exists
+    FROM consultation_record
+    WHERE consultation_rec_id = p_consultation_rec_id;
+   
+    IF v_consultation_exists = 0 THEN
+        SET p_error_message = 'Consultation record not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check if medication exists
+    SELECT COUNT(*) INTO v_medication_exists
+    FROM medication
+    WHERE medication_id = p_medication_id;
+   
+    IF v_medication_exists = 0 THEN
+        SET p_error_message = 'Medication not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check required fields
+    IF TRIM(p_dosage) IS NULL OR TRIM(p_dosage) = '' THEN
+        SET p_error_message = 'Dosage is required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    IF p_frequency IS NULL THEN
+        SET p_error_message = 'Frequency is required';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    IF p_duration_days IS NULL OR p_duration_days <= 0 THEN
+        SET p_error_message = 'Duration must be greater than zero days';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Generate UUID
+    SET v_prescription_item_id = UUID();
+   
+    -- Insert prescription item
+    INSERT INTO prescription_item (
+        prescription_item_id, medication_id, consultation_rec_id, dosage, 
+        frequency, duration_days, instructions
+    ) VALUES (
+        v_prescription_item_id, p_medication_id, p_consultation_rec_id, 
+        TRIM(p_dosage), p_frequency, p_duration_days, TRIM(p_instructions)
+    );
+   
+    -- Success
+    SET p_prescription_item_id = v_prescription_item_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Prescription item added successfully';
+   
+    COMMIT;
+END proc_label$$
+-- ============================================
+-- ADD Treatments to Consultation Rec
+-- ============================================
+
+DROP PROCEDURE IF EXISTS AddTreatment$$
+
+CREATE PROCEDURE AddTreatment(
+    IN p_consultation_rec_id CHAR(36),
+    IN p_treatment_service_code CHAR(36),
+    IN p_notes TEXT,
+   
+    OUT p_treatment_id CHAR(36),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    -- ALL DECLARE STATEMENTS MUST COME FIRST
+    DECLARE v_treatment_id CHAR(36);
+    DECLARE v_consultation_exists INT DEFAULT 0;
+    DECLARE v_treatment_service_exists INT DEFAULT 0;
+   
+    -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- NOW executable statements can start
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_treatment_id = NULL;
+   
+    -- Start transaction
+    START TRANSACTION;
+   
+    -- Validation: Check if consultation record exists
+    SELECT COUNT(*) INTO v_consultation_exists
+    FROM consultation_record
+    WHERE consultation_rec_id = p_consultation_rec_id;
+   
+    IF v_consultation_exists = 0 THEN
+        SET p_error_message = 'Consultation record not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validation: Check if treatment service exists
+    SELECT COUNT(*) INTO v_treatment_service_exists
+    FROM treatment_catalogue
+    WHERE treatment_service_code = p_treatment_service_code;
+   
+    IF v_treatment_service_exists = 0 THEN
+        SET p_error_message = 'Treatment service not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Generate UUID
+    SET v_treatment_id = UUID();
+   
+    -- Insert treatment
+    INSERT INTO treatment (
+        treatment_id, consultation_rec_id, treatment_service_code, notes
+    ) VALUES (
+        v_treatment_id, p_consultation_rec_id, p_treatment_service_code, 
+        TRIM(p_notes)
+    );
+   
+    -- Success
+    SET p_treatment_id = v_treatment_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Treatment added successfully';
+   
+    COMMIT;
+END proc_label$$
 
 DELIMITER ;
+
 
 -- ============================================
 -- EXAMPLE USAGE
@@ -1023,6 +1403,17 @@ CALL RegisterDoctor(
 
 SELECT @success AS Success, @error_msg AS Message, @user_id AS DoctorID;
 
+-- ADD Appointment 
+CALL BookAppointment(
+    'YOUR_PATIENT_UUID_HERE',     
+    'YOUR_AVAILABLE_SLOT_UUID_HERE',  --  time slot ID
+    'Patient requests routine checkup; no specific concerns.',  -- Notes
+    @appointment_id,              
+    @error_msg,                     
+    @success                     
+);
+SELECT @error_msg AS message, @success AS succeeded;
+
 -- ADD PatientAllergy
 
 CALL AddPatientAllergy(
@@ -1058,6 +1449,46 @@ CALL AddPatientInsurance(
     @success                         -- OUT: TRUE/FALSE
 );
 
+CALL AddTimeSlot(
+    'YOUR_DOCTOR_UUID_HERE',
+    'YOUR_BRANCH_UUID_HERE',
+    '2025-10-15',      -- Available date (future)
+    '10:00:00',        -- Start time
+    '10:30:00',        -- End time (after start)
+    @slot_id, @error_msg, @success
+);
+SELECT @slot_id AS new_slot_id, @error_msg AS message, @success AS succeeded;
+
+CALL AddConsultationRecord(
+    'YOUR_APPOINTMENT_UUID_HERE',
+    'Patient reports chest pain and shortness of breath for 2 days.',
+    'Acute myocardial infarction suspected; ECG and blood tests ordered.',
+    TRUE,
+    '2025-10-16',  -- Follow-up date
+    @rec_id, @error_msg, @success
+);
+SELECT @rec_id AS new_record_id, @error_msg AS message, @success AS succeeded;
+
+CALL AddPrescriptionItem(
+    'YOUR_CONSULTATION_REC_UUID_HERE',
+    'YOUR_MEDICATION_UUID_HERE',
+    '500mg',                           -- Dosage
+    'Twice daily',                     -- Frequency
+    14,                                -- Duration days
+    'Take with food; avoid alcohol.',  -- Instructions
+    @item_id, @error_msg, @success
+);
+SELECT @item_id AS new_item_id, @error_msg AS message, @success AS succeeded;
+
+CALL AddTreatment(
+    'YOUR_CONSULTATION_REC_UUID_HERE',
+    'YOUR_TREATMENT_SERVICE_UUID_HERE',
+    'Patient to fast for 8 hours prior to test.',  -- Notes (optional)
+    @treatment_id, @error_msg, @success
+);
+
+SELECT @treatment_id AS new_treatment_id, @error_msg AS message, @success AS succeeded;
+
 -- ADD Sample Conditon Catogeries 
 INSERT INTO conditions_category (condition_category_id, category_name, description) VALUES 
     (UUID(), 'Cardiovascular', 'Conditions affecting the heart and blood vessels, such as hypertension and heart disease.'),
@@ -1083,3 +1514,19 @@ INSERT INTO specialization (specialization_id, specialization_title, other_detai
     (UUID(), 'Orthopedics', 'Focus on musculoskeletal system, including bones, joints, and muscles.'),
     (UUID(), 'Dermatology', 'Treatment of skin, hair, and nail diseases.'),
     (UUID(), 'Pediatrics', 'Care for infants, children, and adolescents.');
+
+-- ADD Sample treatments 
+INSERT INTO treatment_catalogue (treatment_service_code, treatment_name, base_price, duration, description) VALUES 
+    (UUID(), 'Blood Test', 1500.00, '00:30:00', 'Basic blood analysis for routine health checkups.'),
+    (UUID(), 'X-Ray Scan', 2500.00, '00:45:00', 'Chest X-ray for respiratory or cardiac evaluation.'),
+    (UUID(), 'ECG Test', 2000.00, '00:20:00', 'Electrocardiogram to assess heart electrical activity.'),
+    (UUID(), 'Ultrasound Scan', 3500.00, '01:00:00', 'Abdominal ultrasound for organ imaging.'),
+    (UUID(), 'Physiotherapy Session', 1800.00, '00:45:00', 'Targeted therapy for musculoskeletal rehabilitation.');
+
+-- ADD Sample medications
+INSERT INTO medication (medication_id, generic_name, manufacturer, form, contraindications, side_effects) VALUES 
+    (UUID(), 'Paracetamol', 'GlaxoSmithKline', 'Tablet', 'Hypersensitivity to paracetamol; severe hepatic impairment.', 'Nausea, rash, allergic reactions.'),
+    (UUID(), 'Aspirin', 'Bayer', 'Tablet', 'Active peptic ulcer; bleeding disorders; children under 16 with viral infections.', 'Gastrointestinal bleeding, tinnitus, allergic reactions.'),
+    (UUID(), 'Amoxicillin', 'Pfizer', 'Capsule', 'Hypersensitivity to penicillins; infectious mononucleosis.', 'Diarrhea, nausea, skin rash.'),
+    (UUID(), 'Metformin', 'Merck', 'Tablet', 'Severe renal impairment; acute heart failure.', 'Gastrointestinal upset, lactic acidosis (rare).'),
+    (UUID(), 'Salbutamol', 'AstraZeneca', 'Inhaler', 'Other', 'Hypersensitivity to salbutamol; tachyarrhythmias.', 'Tremor, tachycardia, headache.');
