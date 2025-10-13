@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 
+
 // Staff Pages
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
@@ -21,6 +22,7 @@ import PatientBilling from "./pages/patient/Billing";
 import PatientMedicalRecords from "./pages/patient/MedicalRecords";
 import PatientPrescriptions from "./pages/patient/Prescriptions";
 import PatientLabResults from "./pages/patient/LabResults";
+import PatientProfile from "./pages/patient/Profile";
 
 // Styles
 import "./styles/auth.css";
@@ -63,6 +65,7 @@ function App() {
         <Routes>
           <Route path="/" element={<PatientDashboard />} />
           <Route path="/patient/dashboard" element={<PatientDashboard />} />
+          <Route path="/patient/profile" element={<PatientProfile />} />
           <Route path="/patient/book" element={<BookAppointment />} />
           <Route path="/patient/appointments" element={<PatientDashboard />} />
           <Route path="/patient/billing" element={<PatientBilling />} />
