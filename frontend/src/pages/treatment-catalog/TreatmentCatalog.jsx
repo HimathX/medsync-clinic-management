@@ -18,7 +18,7 @@ const TreatmentCatalog = () => {
   const [selectedTreatment, setSelectedTreatment] = useState(null);
 
   // Sample treatments data
-  const treatmentsData = [
+  const treatmentsData = useMemo(() => ([
     {
       id: 'GC001',
       name: 'General Consultation',
@@ -195,10 +195,10 @@ const TreatmentCatalog = () => {
       rating: 4.7,
       reviewCount: 298
     }
-  ];
+  ]), []);
 
   // Category data with counts
-  const categories = [
+  const categories = useMemo(() => ([
     { id: 'all', name: 'All Categories', count: treatmentsData.length },
     { id: 'Consultations', name: 'Consultations', count: 15, popular: true },
     { id: 'Diagnostic Procedures', name: 'Diagnostic Procedures', count: 28, popular: true },
@@ -207,7 +207,7 @@ const TreatmentCatalog = () => {
     { id: 'Emergency Services', name: 'Emergency Services', count: 8 },
     { id: 'Preventive Care', name: 'Preventive Care', count: 18, popular: true },
     { id: 'Specialized Treatments', name: 'Specialized Treatments', count: 22 }
-  ];
+  ]), [treatmentsData.length]);
 
   // Filter and sort treatments
   const filteredTreatments = useMemo(() => {

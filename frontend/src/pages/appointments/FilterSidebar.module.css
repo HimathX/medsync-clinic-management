@@ -1,9 +1,0 @@
-.wrapper{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,.06);padding:12px;display:grid;gap:12px}
-.header{display:flex;justify-content:space-between;align-items:center}
-.clear{background:none;border:0;color:#2563eb;cursor:pointer}
-.section{border-top:1px solid #e2e8f0;padding-top:8px}
-.sectionHeader{display:flex;justify-content:space-between;width:100%;background:none;border:0;padding:6px 0;cursor:pointer}
-.sectionBody{display:grid;gap:8px;padding-bottom:8px}
-.input,.select{padding:10px;border:1px solid #cbd5e1;border-radius:10px}
-.chev{color:#64748b}
-
