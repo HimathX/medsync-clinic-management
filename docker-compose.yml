@@ -4,7 +4,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=mysql+mysqlconnector://root:2003@host.docker.internal:3306/ClinicManagement
-      - SECRET_KEY=your-secret-key
+      - DB_HOST=host.docker.internal
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=2003
+      - DB_NAME=ClinicManagementNew
+      - SECRET_KEY=your-secret-key-change-in-production
     volumes:
       - ./app:/app/app
