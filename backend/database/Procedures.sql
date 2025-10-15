@@ -21,11 +21,11 @@ CREATE PROCEDURE RegisterPatient(
     IN p_email VARCHAR(255),
     IN p_gender ENUM('Male', 'Female', 'Other'),
     IN p_DOB DATE,
-    IN p_password_hash VARCHAR(64),  -- Changed to 64 for SHA-256
+    IN p_password_hash VARCHAR(255),
     
     -- Patient inputs
     IN p_blood_group ENUM('A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'),
-    IN p_registered_branch_name VARCHAR(50),  -- Changed to branch name
+    IN p_registered_branch_name VARCHAR(50),
    
     -- Outputs
     OUT p_user_id CHAR(36),
@@ -33,16 +33,13 @@ CREATE PROCEDURE RegisterPatient(
     OUT p_success BOOLEAN
 )
 proc_label: BEGIN
-    -- ALL DECLARE STATEMENTS MUST COME FIRST
     DECLARE v_address_id CHAR(36);
     DECLARE v_contact_id CHAR(36);
     DECLARE v_user_id CHAR(36);
-    DECLARE v_branch_id CHAR(36);  -- Added for branch ID lookup
-    DECLARE v_branch_exists INT DEFAULT 0;  -- Can remove if not needed, but kept for consistency
+    DECLARE v_branch_id CHAR(36);
     DECLARE v_email_exists INT DEFAULT 0;
     DECLARE v_nic_exists INT DEFAULT 0;
    
-    -- Error handler (must be declared AFTER variables but BEFORE any SET/SELECT)
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         GET DIAGNOSTICS CONDITION 1
@@ -51,37 +48,32 @@ proc_label: BEGIN
         SET p_success = FALSE;
     END;
    
-    -- NOW executable statements can start
-    -- Initialize outputs
     SET p_success = FALSE;
     SET p_error_message = NULL;
     SET p_user_id = NULL;
    
-    -- Start transaction
     START TRANSACTION;
     
-    -- Validation: Check password hash length (SHA-256 should be exactly 64 hex chars)
+    -- Updated password hash validation for SHA-256 (64 chars)
     IF LENGTH(p_password_hash) != 64 THEN
         SET p_error_message = 'Invalid password hash format';
         ROLLBACK;
         LEAVE proc_label;
     END IF;
     
-    -- Validation: Check if branch exists
-    SELECT COUNT(*) INTO v_branch_exists 
+    SELECT branch_id INTO v_branch_id 
     FROM branch 
-    WHERE branch_id = p_registered_branch_id AND is_active = TRUE;
+    WHERE branch_name = TRIM(p_registered_branch_name) AND is_active = TRUE;
     
-    IF v_branch_exists = 0 THEN
+    IF v_branch_id IS NULL THEN
         SET p_error_message = 'Invalid or inactive branch';
         ROLLBACK;
         LEAVE proc_label;
     END IF;
    
-    -- Validation: Check for duplicate email
     SELECT COUNT(*) INTO v_email_exists
     FROM user
-    WHERE email = LOWER(TRIM(p_email));  -- Added LOWER/TRIM for consistency
+    WHERE email = LOWER(TRIM(p_email));
    
     IF v_email_exists > 0 THEN
         SET p_error_message = 'Email already registered';
@@ -89,10 +81,9 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
    
-    -- Validation: Check for duplicate NIC
     SELECT COUNT(*) INTO v_nic_exists
     FROM user
-    WHERE NIC = TRIM(p_NIC);  -- Added TRIM for consistency
+    WHERE NIC = TRIM(p_NIC);
    
     IF v_nic_exists > 0 THEN
         SET p_error_message = 'NIC already registered';
@@ -100,19 +91,16 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
    
-    -- Validation: Check age (must be 18+)
     IF TIMESTAMPDIFF(YEAR, p_DOB, CURDATE()) < 18 THEN
         SET p_error_message = 'Patient must be at least 18 years old';
         ROLLBACK;
         LEAVE proc_label;
     END IF;
    
-    -- Generate UUIDs
     SET v_address_id = UUID();
     SET v_contact_id = UUID();
     SET v_user_id = UUID();
    
-    -- Insert address
     INSERT INTO address (
         address_id, address_line1, address_line2, city, province, postal_code, country
     ) VALUES (
@@ -125,11 +113,9 @@ proc_label: BEGIN
         COALESCE(TRIM(p_country), 'Sri Lanka')
     );
    
-    -- Insert contact
     INSERT INTO contact (contact_id, contact_num1, contact_num2)
     VALUES (v_contact_id, TRIM(p_contact_num1), TRIM(p_contact_num2));
     
-    -- Insert user (password_hash is already hashed by the API)
     INSERT INTO user (
         user_id, address_id, user_type, full_name, NIC, email, gender, DOB,
         contact_id, password_hash
@@ -138,11 +124,9 @@ proc_label: BEGIN
         LOWER(TRIM(p_email)), p_gender, p_DOB, v_contact_id, p_password_hash
     );
    
-    -- Insert patient (use v_branch_id)
     INSERT INTO patient (patient_id, blood_group, registered_branch_id)
     VALUES (v_user_id, p_blood_group, v_branch_id);
    
-    -- Success
     SET p_user_id = v_user_id;
     SET p_success = TRUE;
     SET p_error_message = 'Patient registered successfully';

@@ -1,9 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
-from models.branch import Branch
-from models.employee import Employee
-from models.patient import Patient
 
 router = APIRouter(tags=["branches"])
 

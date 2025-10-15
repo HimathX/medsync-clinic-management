@@ -5,9 +5,6 @@ from typing import Optional, List
 from datetime import date, time
 from pydantic import BaseModel, Field
 from core.database import get_db
-from models.appointment import Appointment, TimeSlot
-from models.patient import Patient
-from models.employee import Doctor
 from schemas.appointment import (
     AppointmentBookingRequest,
     AppointmentBookingResponse,

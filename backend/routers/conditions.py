@@ -5,8 +5,6 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from datetime import date
 from core.database import get_db
-from models.patient import Patient, PatientAllergy, PatientCondition
-from models import Condition, ConditionsCategory
 
 router = APIRouter(tags=["patient-conditions"])
 

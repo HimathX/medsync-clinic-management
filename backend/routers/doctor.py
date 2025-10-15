@@ -6,9 +6,6 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import date
 from decimal import Decimal
 from core.database import get_db
-from models.employee import Doctor, Employee, DoctorSpecialization, Specialization
-from models.user import User
-from models.appointment import TimeSlot
 import hashlib
 import json
 
