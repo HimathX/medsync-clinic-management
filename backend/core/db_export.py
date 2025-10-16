@@ -239,11 +239,11 @@ def export_functions_only(output_file, timestamp):
             
             if functions:
                 for func in functions:
-                    func_name = func['Name']
+                    func_name = func['Name'] # type: ignore
                     cursor.execute(f"SHOW CREATE FUNCTION `{func_name}`")
                     result = cursor.fetchone()
                     if result and 'Create Function' in result:
-                        create_func = result['Create Function']
+                        create_func = result['Create Function'] # type: ignore
                         f.write(f"-- Function: {func_name}\n")
                         f.write(f"DROP FUNCTION IF EXISTS `{func_name}`$$\n\n")
                         f.write(f"{create_func}$$\n\n")
@@ -278,11 +278,11 @@ def export_views_only(output_file, timestamp):
             
             if views:
                 for view in views:
-                    view_name = list(view.values())[0]
+                    view_name = list(view.values())[0] # type: ignore
                     cursor.execute(f"SHOW CREATE VIEW `{view_name}`")
                     result = cursor.fetchone()
                     if result and 'Create View' in result:
-                        create_view = result['Create View']
+                        create_view = result['Create View'] # type: ignore
                         f.write(f"-- View: {view_name}\n")
                         f.write(f"DROP VIEW IF EXISTS `{view_name}`;\n\n")
                         f.write(f"{create_view};\n\n")
@@ -328,12 +328,12 @@ def export_using_python():
             f.write(f"USE `{database}`;\n\n")
             
             cursor.execute("SHOW TABLES")
-            tables = [list(row.values())[0] for row in cursor.fetchall()]
+            tables = [list(row.values())[0] for row in cursor.fetchall()] # type: ignore
             
             for table in tables:
                 cursor.execute(f"SHOW CREATE TABLE `{table}`")
                 result = cursor.fetchone()
-                create_statement = list(result.values())[1]
+                create_statement = list(result.values())[1] # type: ignore
                 f.write(f"-- ============================================\n")
                 f.write(f"-- Table: {table}\n")
                 f.write(f"-- ============================================\n")
@@ -354,9 +354,9 @@ def export_using_python():
             
             for table in tables:
                 cursor.execute(f"SELECT COUNT(*) as count FROM `{table}`")
-                count = cursor.fetchone()['count']
+                count = cursor.fetchone()['count'] # type: ignore
                 
-                if count > 0:
+                if count > 0: # type: ignore
                     f.write(f"-- ============================================\n")
                     f.write(f"-- Data for table: {table} ({count} rows)\n")
                     f.write(f"-- ============================================\n\n")
@@ -365,7 +365,7 @@ def export_using_python():
                     rows = cursor.fetchall()
                     
                     if rows:
-                        columns = list(rows[0].keys())
+                        columns = list(rows[0].keys()) # type: ignore
                         column_list = ', '.join([f"`{col}`" for col in columns])
                         
                         batch_size = 100
@@ -376,7 +376,7 @@ def export_using_python():
                             for idx, row in enumerate(batch):
                                 values = []
                                 for col in columns:
-                                    val = row[col]
+                                    val = row[col] # type: ignore
                                     if val is None:
                                         values.append('NULL')
                                     elif isinstance(val, (int, float)):
@@ -415,11 +415,11 @@ def export_using_python():
             
             if procedures:
                 for proc in procedures:
-                    proc_name = proc['Name']
+                    proc_name = proc['Name'] # type: ignore
                     cursor.execute(f"SHOW CREATE PROCEDURE `{proc_name}`")
                     result = cursor.fetchone()
                     if result and 'Create Procedure' in result:
-                        create_proc = result['Create Procedure']
+                        create_proc = result['Create Procedure'] # type: ignore
                         f.write(f"-- Procedure: {proc_name}\n")
                         f.write(f"DROP PROCEDURE IF EXISTS `{proc_name}`$$\n\n")
                         f.write(f"{create_proc}$$\n\n")
@@ -450,11 +450,11 @@ def export_using_python():
             
             if triggers:
                 for trigger in triggers:
-                    trigger_name = trigger['Trigger']
+                    trigger_name = trigger['Trigger'] # type: ignore
                     cursor.execute(f"SHOW CREATE TRIGGER `{trigger_name}`")
                     result = cursor.fetchone()
                     if result and 'SQL Original Statement' in result:
-                        create_trigger = result['SQL Original Statement']
+                        create_trigger = result['SQL Original Statement'] # type: ignore
                         f.write(f"-- Trigger: {trigger_name}\n")
                         f.write(f"DROP TRIGGER IF EXISTS `{trigger_name}`$$\n\n")
                         f.write(f"{create_trigger}$$\n\n")
