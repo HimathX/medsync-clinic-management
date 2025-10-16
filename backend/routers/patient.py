@@ -56,7 +56,7 @@ def register_patient(patient_data: PatientRegistrationRequest):
                 patient_data.city,                    # 3 IN
                 patient_data.province,                # 4 IN
                 patient_data.postal_code,             # 5 IN
-                patient_data.country or 'Sri Lanka',  # 6 IN (handle None)
+                patient_data.country or 'Sri Lanka',  # 6 IN
                 patient_data.contact_num1,            # 7 IN
                 patient_data.contact_num2 or '',      # 8 IN (handle None)
                 patient_data.full_name,               # 9 IN

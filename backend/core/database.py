@@ -129,7 +129,7 @@ def execute_query(query: str, params: Optional[Tuple] = None, fetch: str = 'none
                 raise ValueError("fetch must be 'one', 'all', or 'none'")
 
 
-def execute_stored_procedure(proc_name: str, args: List = None) -> Tuple[List[Dict], List[Any]]:
+def execute_stored_procedure(proc_name: str, args: List = None) -> Tuple[List[Dict], List[Any]]: # type: ignore
     """
     Execute stored procedure with parameters
     

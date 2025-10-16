@@ -4,27 +4,20 @@ from datetime import date
 
 
 class PatientRegistrationRequest(BaseModel):
-    # Address
     address_line1: str = Field(..., max_length=50, description="Primary address line")
     address_line2: Optional[str] = Field(None, max_length=50, description="Secondary address line")
     city: str = Field(..., max_length=50)
     province: str = Field(..., max_length=50)
     postal_code: str = Field(..., max_length=20)
     country: Optional[str] = Field("Sri Lanka", max_length=50)
-    
-    # Contact
     contact_num1: str = Field(..., max_length=20, description="Primary contact number")
     contact_num2: Optional[str] = Field(None, max_length=20, description="Secondary contact number")
-    
-    # User Info
     full_name: str = Field(..., max_length=255)
     NIC: str = Field(..., max_length=20, description="National Identity Card number")
     email: EmailStr
     gender: str = Field(..., pattern="^(Male|Female|Other)$")
     DOB: date = Field(..., description="Date of birth (YYYY-MM-DD)")
     password: str = Field(..., min_length=8, description="Password (min 8 characters)")
-    
-    # Patient Info
     blood_group: str = Field(..., pattern="^(A\\+|A-|B\\+|B-|O\\+|O-|AB\\+|AB-)$")
     registered_branch_name: str = Field(..., description="Branch Name")
     

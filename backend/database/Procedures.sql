@@ -600,7 +600,6 @@ END proc_label$$
 -- ============================================
 -- ADD PATIENT ALLERGYIES 
 -- ============================================
-DROP PROCEDURE IF EXISTS AddPatientAllergy$$
 CREATE PROCEDURE AddPatientAllergy(
     IN p_patient_id CHAR(36),
     IN p_allergy_name VARCHAR(50),
@@ -624,53 +623,74 @@ proc_label: BEGIN
             p_error_message = MESSAGE_TEXT;
         ROLLBACK;
         SET p_success = FALSE;
+        SET p_patient_allergy_id = NULL;
     END;
-   
+    
     -- NOW executable statements can start
     -- Initialize outputs
     SET p_success = FALSE;
     SET p_error_message = NULL;
     SET p_patient_allergy_id = NULL;
-   
+    
     -- Start transaction
     START TRANSACTION;
-   
+    
     -- Validation: Check if patient exists
-    SELECT COUNT(*) INTO v_patient_exists
-    FROM patient
+    SELECT COUNT(*) INTO v_patient_exists 
+    FROM patient 
     WHERE patient_id = p_patient_id;
-   
+    
     IF v_patient_exists = 0 THEN
         SET p_error_message = 'Patient not found';
         ROLLBACK;
         LEAVE proc_label;
     END IF;
-   
-    -- Validation: Check required fields
-    IF TRIM(p_allergy_name) IS NULL OR TRIM(p_allergy_name) = '' THEN
+    
+    -- Validation: Check if allergy name is provided
+    IF p_allergy_name IS NULL OR TRIM(p_allergy_name) = '' THEN
         SET p_error_message = 'Allergy name is required';
         ROLLBACK;
         LEAVE proc_label;
     END IF;
-   
-    -- Generate UUID
+    
+    -- Validation: Check for duplicate allergy for this patient
+    IF EXISTS (
+        SELECT 1 FROM patient_allergy 
+        WHERE patient_id = p_patient_id 
+        AND LOWER(allergy_name) = LOWER(TRIM(p_allergy_name))
+    ) THEN
+        SET p_error_message = 'This allergy is already recorded for the patient';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+    
+    -- Generate UUID for patient_allergy_id
     SET v_patient_allergy_id = UUID();
-   
-    -- Insert allergy
+    
+    -- Insert patient allergy record
     INSERT INTO patient_allergy (
-        patient_allergy_id, patient_id, allergy_name, severity, 
-        reaction_description, diagnosed_date
+        patient_allergy_id,
+        patient_id,
+        allergy_name,
+        severity,
+        reaction_description,
+        diagnosed_date
     ) VALUES (
-        v_patient_allergy_id, p_patient_id, TRIM(p_allergy_name), 
-        COALESCE(p_severity, 'Mild'), TRIM(p_reaction_description), p_diagnosed_date
+        v_patient_allergy_id,
+        p_patient_id,
+        TRIM(p_allergy_name),
+        p_severity,
+        TRIM(p_reaction_description),
+        p_diagnosed_date
     );
-   
+    
     -- Success
     SET p_patient_allergy_id = v_patient_allergy_id;
     SET p_success = TRUE;
     SET p_error_message = 'Patient allergy added successfully';
-   
+    
     COMMIT;
+    
 END proc_label$$
 
 -- ============================================

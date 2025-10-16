@@ -4,7 +4,11 @@ from contextlib import asynccontextmanager
 from core.database import test_database_connection, get_database_info
 
 # Import routers
-from routers import doctor, appointment, branch, patient, conditions
+from routers import (
+    doctor, appointment, branch, patient, conditions, 
+    staff, timeslot, insurance, medication, prescription, 
+    consultation, treatment_catalogue
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,7 +38,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this properly in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,9 +46,16 @@ app.add_middleware(
 
 app.include_router(patient.router, prefix="/patients")
 app.include_router(doctor.router, prefix="/doctors")
+app.include_router(staff.router, prefix="/staff")
 app.include_router(appointment.router, prefix="/appointments")
+app.include_router(timeslot.router, prefix="/timeslots")
 app.include_router(branch.router, prefix="/branches")
-app.include_router(conditions.router, prefix="/conditions")  
+app.include_router(conditions.router, prefix="/conditions")
+app.include_router(insurance.router, prefix="/insurance")
+app.include_router(medication.router, prefix="/medications")
+app.include_router(prescription.router, prefix="/prescriptions")
+app.include_router(consultation.router, prefix="/consultations")
+app.include_router(treatment_catalogue.router, prefix="/treatments")
 
 @app.get("/")
 def read_root():
@@ -66,4 +77,4 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8020, reload=True)  # Changed port to 8000
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
