@@ -74,11 +74,7 @@ nosetests.xml
 *.sql.gz
 *.sql.zip
 
-# MySQL dumps
-*.sql
-!database/schema.sql
-!database/tables.sql
-!database/Procedures.sql
+
 
 # Database backups
 backups/
