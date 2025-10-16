@@ -1,105 +1,228 @@
-// src/pages/Dashboard.js
+// src/pages/Dashboard.js - Staff/Admin Dashboard
 import React from 'react';
 
 export default function Dashboard({ user }) {
   const today = new Date().toLocaleDateString();
-  const upcoming = [
-    { id:1, doctor:'Dr. Perera', specialty:'Cardiology', branch:user.branch, date:'2025-09-22', time:'10:00', type:'Consultation' },
-    { id:2, doctor:'Dr. Silva', specialty:'Dermatology', branch:'Kandy', date:'2025-09-25', time:'14:30', type:'Follow-up' },
-    { id:3, doctor:'Dr. Fernando', specialty:'ENT', branch:'Galle', date:'2025-09-30', time:'09:00', type:'Consultation' },
+  const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
+  // Today's appointments scheduled at this branch
+  const todayAppointments = [
+    { id:1, patient:'John Silva', patientId:'P-2401', doctor:'Dr. Perera', specialty:'Cardiology', time:'10:00', status:'Checked-in' },
+    { id:2, patient:'Mary Fernando', patientId:'P-2398', doctor:'Dr. Silva', specialty:'Dermatology', time:'10:30', status:'Waiting' },
+    { id:3, patient:'Kumar Raj', patientId:'P-2405', doctor:'Dr. Fernando', specialty:'ENT', time:'11:00', status:'Scheduled' },
+    { id:4, patient:'Amara Dias', patientId:'P-2392', doctor:'Dr. Perera', specialty:'Cardiology', time:'14:00', status:'Scheduled' },
   ];
+
+  // Staff notifications and alerts
   const notifications = [
-    {id:1, type:'Medical', text:'Lab results ready for viewing', when:'Just now'},
-    {id:2, type:'Billing', text:'Invoice #INV-1023 is due on 2025-09-28', when:'2h ago'},
-    {id:3, type:'System', text:'Policy update: privacy terms revised', when:'Yesterday'},
+    {id:1, type:'Urgent', text:'Patient P-2401 requires lab results review', when:'Just now', priority:'high'},
+    {id:2, type:'Billing', text:'3 pending insurance claims need approval', when:'15 min ago', priority:'medium'},
+    {id:3, type:'System', text:'Dr. Chen running 20 minutes behind schedule', when:'1h ago', priority:'low'},
   ];
+
+  // Today's statistics
+  const stats = {
+    totalAppointments: 24,
+    checkedIn: 8,
+    completed: 5,
+    cancelled: 2,
+    newPatients: 3,
+    pendingBills: 12,
+    totalRevenue: '125,000',
+    outstandingBalance: '45,000'
+  };
 
   return (
     <div>
+      {/* Header Section */}
       <section className="card">
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
           <div>
-            <h1 style={{marginTop:0}}>Welcome, {user.name}</h1>
-            <p className="label">Today is {today}</p>
+            <h1 style={{marginTop:0}}>Staff Dashboard - {user.branch}</h1>
+            <p className="label">{today} • {currentTime} • {user.role || 'Staff Member'}</p>
           </div>
           <div style={{display:'flex', gap:8}}>
-            <a href="#/book" className="btn primary">Book New Appointment</a>
-            <button className="btn warn">Emergency Request</button>
+            <a href="#/patients" className="btn primary">Register New Patient</a>
+            <a href="#/book" className="btn">Schedule Appointment</a>
+            <button className="btn warn">Emergency Check-in</button>
           </div>
         </div>
       </section>
 
-      <div className="grid grid-3 section" style={{gridTemplateColumns:'2fr 1.5fr 1fr'}}>
+      {/* Quick Stats Overview */}
+      <div className="grid grid-4 section">
+        <div className="card" style={{textAlign:'center', padding:'20px'}}>
+          <div style={{fontSize:'32px', fontWeight:'bold', color:'var(--accent-red)'}}>{stats.totalAppointments}</div>
+          <div className="label">Today's Appointments</div>
+        </div>
+        <div className="card" style={{textAlign:'center', padding:'20px'}}>
+          <div style={{fontSize:'32px', fontWeight:'bold', color:'var(--primary-black)'}}>{stats.checkedIn}</div>
+          <div className="label">Patients Checked-In</div>
+        </div>
+        <div className="card" style={{textAlign:'center', padding:'20px'}}>
+          <div style={{fontSize:'32px', fontWeight:'bold', color:'var(--primary-black)'}}>{stats.newPatients}</div>
+          <div className="label">New Registrations</div>
+        </div>
+        <div className="card" style={{textAlign:'center', padding:'20px'}}>
+          <div style={{fontSize:'32px', fontWeight:'bold', color:'var(--accent-red)'}}>LKR {stats.totalRevenue}</div>
+          <div className="label">Today's Revenue</div>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-3 section" style={{gridTemplateColumns:'2fr 1fr 1fr'}}>
+        {/* Today's Appointments */}
         <section className="card">
-          <h3>Upcoming Appointments</h3>
-          {upcoming.map(a => (
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+            <h3 style={{margin:0}}>Today's Appointments</h3>
+            <span className="label">{stats.totalAppointments} total • {stats.checkedIn} checked-in</span>
+          </div>
+          {todayAppointments.map(a => (
             <div key={a.id} className="slot" style={{marginBottom:8}}>
               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                 <div>
-                  <div><strong>{a.date} {a.time}</strong> — {a.type}</div>
-                  <div className="label">{a.doctor} • {a.specialty} • {a.branch}</div>
+                  <div><strong>{a.time}</strong> — {a.patient} ({a.patientId})</div>
+                  <div className="label">{a.doctor} • {a.specialty}</div>
                 </div>
-                <div style={{display:'flex', gap:6}}>
-                  <button className="btn">Reschedule</button>
-                  <button className="btn warn">Cancel</button>
+                <div style={{display:'flex', gap:6, alignItems:'center'}}>
+                  <span className={`badge ${a.status === 'Checked-in' ? 'badge-success' : a.status === 'Waiting' ? 'badge-warn' : ''}`} style={{fontSize:11, padding:'4px 8px'}}>
+                    {a.status}
+                  </span>
+                  <button className="btn" style={{padding:'4px 12px', fontSize:12}}>View</button>
                 </div>
               </div>
             </div>
           ))}
-          <a href="#/appointments" className="btn link">View All</a>
-        </section>
-
-        <section className="card">
-          <h3>Health Summary</h3>
-          <ul className="label" style={{marginTop:8}}>
-            <li>Last BP: 120/80 (2025-09-10)</li>
-            <li>Active prescriptions: 2</li>
-            <li>Next recommended check-up: 2025-11-01</li>
-          </ul>
-          <div className="slot" title="Vitals Trend" style={{height:120, marginTop:8}} />
-        </section>
-
-        <section className="card">
-          <h3>Financial Overview</h3>
-          <div className="grid grid-3" style={{gridTemplateColumns:'1fr 1fr 1fr'}}>
-            <div className="card"><div className="label">Outstanding</div><div style={{fontWeight:800}}>LKR 8,500</div></div>
-            <div className="card"><div className="label">Recent Payment</div><div style={{fontWeight:800}}>LKR 5,000</div></div>
-            <div className="card"><div className="label">Claims</div><div style={{fontWeight:800}}>1 pending</div></div>
+          <div style={{display:'flex', gap:8, marginTop:12}}>
+            <a href="#/appointments" className="btn link">View All Appointments</a>
+            <a href="#/patients" className="btn link">Search Patients</a>
           </div>
-          <a href="#/billing" className="btn" style={{marginTop:8}}>Make Payment</a>
+        </section>
+
+        {/* Pending Tasks */}
+        <section className="card">
+          <h3>Pending Tasks</h3>
+          <ul className="label" style={{marginTop:8, lineHeight:1.8}}>
+            <li><strong>3</strong> Insurance claims to process</li>
+            <li><strong>5</strong> Lab results to upload</li>
+            <li><strong>12</strong> Pending bill payments</li>
+            <li><strong>2</strong> Treatment plans awaiting approval</li>
+            <li><strong>4</strong> Prescription refills needed</li>
+          </ul>
+          <button className="btn primary" style={{marginTop:12, width:'100%'}}>View All Tasks</button>
+        </section>
+
+        {/* Financial Summary */}
+        <section className="card">
+          <h3>Financial Summary</h3>
+          <div style={{marginTop:12}}>
+            <div className="card" style={{marginBottom:8, padding:12}}>
+              <div className="label">Today's Revenue</div>
+              <div style={{fontWeight:800, fontSize:18, color:'var(--accent-red)'}}>LKR {stats.totalRevenue}</div>
+            </div>
+            <div className="card" style={{marginBottom:8, padding:12}}>
+              <div className="label">Pending Collections</div>
+              <div style={{fontWeight:800, fontSize:18}}>LKR {stats.outstandingBalance}</div>
+            </div>
+            <div className="card" style={{padding:12}}>
+              <div className="label">Unpaid Bills</div>
+              <div style={{fontWeight:800, fontSize:18}}>{stats.pendingBills} patients</div>
+            </div>
+          </div>
+          <a href="#/billing" className="btn" style={{marginTop:12, width:'100%'}}>Billing Management</a>
         </section>
       </div>
 
+      {/* Recent Activity and Notifications */}
       <div className="grid grid-2 section">
         <section className="card">
           <h3>Recent Activity</h3>
-          <ul className="label">
-            <li>Completed Dermatology consult — 2025-09-12</li>
-            <li>Payment of LKR 5,000 confirmed — 2025-09-12</li>
-            <li>Claim #CLM-221 approved — 2025-09-11</li>
+          <ul className="label" style={{lineHeight:1.8}}>
+            <li><strong>10:45 AM</strong> — Patient P-2401 checked-in for cardiology appointment</li>
+            <li><strong>10:30 AM</strong> — New patient P-2405 registered at reception</li>
+            <li><strong>10:15 AM</strong> — Payment of LKR 15,000 received from P-2398</li>
+            <li><strong>09:45 AM</strong> — Insurance claim CLM-445 approved</li>
+            <li><strong>09:30 AM</strong> — Dr. Silva completed appointment with P-2389</li>
           </ul>
+          <button className="btn link" style={{marginTop:8}}>View Full Activity Log</button>
         </section>
+
         <section className="card">
-          <h3>Notifications</h3>
+          <h3>Staff Notifications</h3>
           {notifications.map(n => (
-            <div key={n.id} className="slot" style={{marginBottom:8}}>
-              <div style={{display:'flex', justifyContent:'space-between'}}>
-                <div><strong>{n.type}</strong>: {n.text}</div>
-                <span className="label">{n.when}</span>
+            <div key={n.id} className="slot" style={{marginBottom:8, borderLeft: n.priority === 'high' ? '3px solid var(--accent-red)' : '3px solid transparent', paddingLeft:8}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex', alignItems:'center', gap:6}}>
+                    <strong style={{color: n.priority === 'high' ? 'var(--accent-red)' : 'inherit'}}>{n.type}</strong>
+                    {n.priority === 'high' && <span style={{color:'var(--accent-red)', fontSize:16}}>⚠</span>}
+                  </div>
+                  <div className="label" style={{marginTop:2}}>{n.text}</div>
+                </div>
+                <span className="label" style={{fontSize:11, whiteSpace:'nowrap'}}>{n.when}</span>
               </div>
             </div>
           ))}
+          <button className="btn link" style={{marginTop:8}}>View All Notifications</button>
         </section>
       </div>
 
-      <section className="card section">
-        <h3>Branch Information</h3>
-        <div className="grid grid-3">
-          <div className="card"><strong>Colombo</strong><p className="label">011-1234567 • Open now</p></div>
-          <div className="card"><strong>Kandy</strong><p className="label">081-7654321 • Open now</p></div>
-          <div className="card"><strong>Galle</strong><p className="label">091-5551234 • Open now</p></div>
-        </div>
-      </section>
+      {/* Doctor Availability & Branch Status */}
+      <div className="grid grid-2 section">
+        <section className="card">
+          <h3>Doctor Availability Today</h3>
+          <div style={{marginTop:12}}>
+            <div className="slot" style={{marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <div>
+                <strong>Dr. Perera</strong>
+                <div className="label">Cardiology • Room 201</div>
+              </div>
+              <span className="badge badge-success" style={{fontSize:11}}>Available</span>
+            </div>
+            <div className="slot" style={{marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <div>
+                <strong>Dr. Silva</strong>
+                <div className="label">Dermatology • Room 203</div>
+              </div>
+              <span className="badge badge-warn" style={{fontSize:11}}>Busy</span>
+            </div>
+            <div className="slot" style={{marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <div>
+                <strong>Dr. Fernando</strong>
+                <div className="label">ENT • Room 105</div>
+              </div>
+              <span className="badge badge-success" style={{fontSize:11}}>Available</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="card">
+          <h3>Branch Status</h3>
+          <div className="grid grid-3" style={{marginTop:12}}>
+            <div className="card" style={{textAlign:'center'}}>
+              <strong>Colombo</strong>
+              <p className="label" style={{margin:'4px 0'}}>011-1234567</p>
+              <span className="badge badge-success" style={{fontSize:10}}>Open</span>
+            </div>
+            <div className="card" style={{textAlign:'center'}}>
+              <strong>Kandy</strong>
+              <p className="label" style={{margin:'4px 0'}}>081-7654321</p>
+              <span className="badge badge-success" style={{fontSize:10}}>Open</span>
+            </div>
+            <div className="card" style={{textAlign:'center'}}>
+              <strong>Galle</strong>
+              <p className="label" style={{margin:'4px 0'}}>091-5551234</p>
+              <span className="badge badge-success" style={{fontSize:10}}>Open</span>
+            </div>
+          </div>
+          <div style={{marginTop:16, padding:12, background:'#f5f5f5', borderRadius:8}}>
+            <div className="label" style={{marginBottom:4}}>Quick Stats Across All Branches</div>
+            <div style={{fontSize:12}}>
+              <strong>68</strong> total appointments • <strong>15</strong> new patients • <strong>LKR 385,000</strong> total revenue
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

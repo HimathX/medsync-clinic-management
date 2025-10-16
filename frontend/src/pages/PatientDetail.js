@@ -267,7 +267,7 @@ const PatientDetail = () => {
                 <div className="action-icon">📋</div>
                 <span>View Records</span>
               </button>
-              <button className="action-btn">
+              <button className="action-btn" onClick={() => navigate(`/billing?patientId=${patientId}`)}>
                 <div className="action-icon">💰</div>
                 <span>Make Payment</span>
               </button>
@@ -340,7 +340,7 @@ const PatientDetail = () => {
                   <span className="transaction-amount">${transaction.amount.toFixed(2)}</span>
                 </div>
               ))}
-              <button className="btn primary full-width make-payment-btn">
+              <button className="btn primary full-width make-payment-btn" onClick={() => navigate(`/billing?patientId=${patientId}`)}>
                 💰 Make Payment
               </button>
             </div>
