@@ -1,24 +1,64 @@
 // src/pages/MyAppointments.js - Staff Appointment Management
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import appointmentService from '../services/appointmentService';
+import doctorService from '../services/doctorService';
+import branchService from '../services/branchService';
 
 export default function MyAppointments() {
   const [view, setView] = useState('list');
   const [filters, setFilters] = useState({ status:'All', branch:'All', doctor:'All', date:'today' });
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // All patient appointments that staff manage
-  const [items] = useState([
-    {id:1, patient:'John Silva', patientId:'P-2401', date:'2025-10-07', time:'10:00', doctor:'Dr. Perera', spec:'Cardiology', branch:'Colombo', status:'Checked-in', type:'Consultation', duration:30, room:'201'},
-    {id:2, patient:'Mary Fernando', patientId:'P-2398', date:'2025-10-07', time:'10:30', doctor:'Dr. Silva', spec:'Dermatology', branch:'Colombo', status:'Waiting', type:'Follow-up', duration:20, room:'203'},
-    {id:3, patient:'Kumar Raj', patientId:'P-2405', date:'2025-10-07', time:'11:00', doctor:'Dr. Fernando', spec:'ENT', branch:'Colombo', status:'Scheduled', type:'Consultation', duration:30, room:'105'},
-    {id:4, patient:'Amara Dias', patientId:'P-2392', date:'2025-10-07', time:'14:00', doctor:'Dr. Perera', spec:'Cardiology', branch:'Colombo', status:'Scheduled', type:'Procedure', duration:60, room:'201'},
-    {id:5, patient:'Sanjay Perera', patientId:'P-2388', date:'2025-10-07', time:'15:30', doctor:'Dr. Silva', spec:'Dermatology', branch:'Colombo', status:'Scheduled', type:'Consultation', duration:30, room:'203'},
-    {id:6, patient:'Nimal Gunawardena', patientId:'P-2375', date:'2025-10-06', time:'14:00', doctor:'Dr. Perera', spec:'Cardiology', branch:'Kandy', status:'Completed', type:'Follow-up', duration:20, room:'101'},
-    {id:7, patient:'Kamala Wijesinghe', patientId:'P-2361', date:'2025-10-05', time:'11:30', doctor:'Dr. Fernando', spec:'ENT', branch:'Galle', status:'Cancelled', type:'Consultation', duration:30, room:'204'},
-    {id:8, patient:'Ruwan De Silva', patientId:'P-2410', date:'2025-10-08', time:'09:00', doctor:'Dr. Perera', spec:'Cardiology', branch:'Colombo', status:'Scheduled', type:'Consultation', duration:30, room:'201'},
-  ]);
-  
-  const statuses = ['All','Scheduled','Checked-in','Waiting','In-Progress','Completed','Cancelled','No-show'];
-  const doctors = ['All', 'Dr. Perera', 'Dr. Silva', 'Dr. Fernando'];
+  const [statuses, setStatuses] = useState(['All','Scheduled','Checked-in','Waiting','In-Progress','Completed','Cancelled','No-show']);
+  const [doctors, setDoctors] = useState(['All']);
+  const [branches, setBranches] = useState(['All']);
+
+  useEffect(() => {
+    fetchAppointmentsData();
+  }, []);
+
+  const fetchAppointmentsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch appointments from backend
+      const appointmentsData = await appointmentService.getAppointments({});
+      const formattedAppointments = (appointmentsData.appointments || []).map(appt => ({
+        id: appt.appointment_id,
+        patient: appt.patient_name || `Patient ${appt.patient_id}`,
+        patientId: `P-${appt.patient_id}`,
+        date: new Date(appt.appointment_date).toISOString().split('T')[0],
+        time: new Date(appt.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}),
+        doctor: appt.doctor_name || 'Doctor',
+        spec: appt.specialty || 'General',
+        branch: appt.branch_name || 'Main',
+        status: appt.status || 'Scheduled',
+        type: appt.appointment_type || 'Consultation',
+        duration: 30,
+        room: appt.room_number || 'TBD'
+      }));
+      setItems(formattedAppointments);
+
+      // Fetch doctors for filter
+      const doctorsData = await doctorService.getAllDoctors();
+      const doctorNames = ['All', ...(doctorsData || []).map(d => d.name)];
+      setDoctors(doctorNames);
+
+      // Fetch branches for filter
+      const branchesData = await branchService.getAllBranches();
+      const branchNames = ['All', ...(branchesData || []).map(b => b.branch_name)];
+      setBranches(branchNames);
+
+    } catch (err) {
+      console.error('Error fetching appointments:', err);
+      setError('Failed to load appointments. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const filtered = items.filter(i => {
     const matchStatus = filters.status==='All' || i.status===filters.status;
@@ -37,6 +77,27 @@ export default function MyAppointments() {
     waiting: items.filter(i=>i.date==='2025-10-07' && i.status==='Waiting').length,
     scheduled: items.filter(i=>i.date==='2025-10-07' && i.status==='Scheduled').length,
   };
+
+  if (loading) {
+    return (
+      <div style={{padding: '20px', textAlign: 'center'}}>
+        <div style={{fontSize: '48px', marginBottom: '20px'}}>⏳</div>
+        <h2>Loading Appointments...</h2>
+        <p style={{color: '#64748b'}}>Please wait while we fetch the appointment data</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{padding: '20px', textAlign: 'center'}}>
+        <div style={{fontSize: '48px', marginBottom: '20px'}}>⚠️</div>
+        <h2 style={{color: 'var(--accent-red)'}}>Error Loading Appointments</h2>
+        <p style={{color: '#64748b', marginBottom: '20px'}}>{error}</p>
+        <button className="btn primary" onClick={fetchAppointmentsData}>Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -96,7 +157,7 @@ export default function MyAppointments() {
           </select>
           <strong>Branch:</strong>
           <select className="select" value={filters.branch} onChange={e=>setFilters({...filters, branch:e.target.value})}>
-            <option>All</option><option>Colombo</option><option>Kandy</option><option>Galle</option>
+            {branches.map(b => <option key={b}>{b}</option>)}
           </select>
           <button className="btn" onClick={()=>setFilters({status:'All', branch:'All', doctor:'All', date:'today'})}>Reset</button>
         </div>
