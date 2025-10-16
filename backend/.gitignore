@@ -1,0 +1,318 @@
+# ============================================
+# PYTHON
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pythonenv*
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+nosetests.xml
+
+# ============================================
+# ENVIRONMENT VARIABLES
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+*.env
+
+# ============================================
+# DATABASE
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sql.gz
+*.sql.zip
+
+# MySQL dumps
+*.sql
+!database/schema.sql
+!database/tables.sql
+!database/Procedures.sql
+
+# Database backups
+backups/
+db_backups/
+
+# ============================================
+# LOGS
+# ============================================
+*.log
+logs/
+log/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ============================================
+# IDE & EDITORS
+# ============================================
+# VSCode
+.vscode/
+*.code-workspace
+.history/
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# JetBrains
+.idea/
+*.iml
+out/
+
+# ============================================
+# OPERATING SYSTEM
+# ============================================
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================
+# TEMPORARY FILES
+# ============================================
+*.tmp
+*.temp
+*.bak
+*.swp
+*.cache
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================
+# FASTAPI / UVICORN
+# ============================================
+*.pyc
+__pycache__/
+instance/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# ============================================
+# JUPYTER NOTEBOOK
+# ============================================
+.ipynb_checkpoints/
+*.ipynb
+
+# ============================================
+# DOCUMENTATION
+# ============================================
+site/
+docs/_build/
+docs/.doctrees/
+.doc/
+
+# Sphinx documentation
+docs/_build/
+target/
+
+# ============================================
+# SECURITY & SENSITIVE DATA
+# ============================================
+# SSH keys
+*.pem
+*.key
+*.pub
+id_rsa
+id_rsa.pub
+
+# SSL certificates
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# Secrets
+secrets/
+secrets.json
+credentials.json
+
+# AWS
+.aws/
+
+# ============================================
+# COMPILED / BUILD
+# ============================================
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.dylib
+
+# ============================================
+# PACKAGE MANAGERS
+# ============================================
+# pip
+pip-wheel-metadata/
+
+# Poetry
+poetry.lock
+.poetry/
+
+# Pipenv
+Pipfile.lock
+
+# ============================================
+# TESTING
+# ============================================
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.pytest_cache/
+test-results/
+*.cover
+
+# ============================================
+# STATIC FILES (if using)
+# ============================================
+staticfiles/
+static/
+media/
+uploads/
+
+# ============================================
+# MISC
+# ============================================
+# Backup files
+*.bak
+*.backup
+*~
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Large files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+
+# Dumps
+*.dump
+*.dmp
+
+# ============================================
+# PROJECT SPECIFIC
+# ============================================
+# Add any project-specific files here
+TODO.txt
+NOTES.txt
+scratch/
+temp/

@@ -1,0 +1,245 @@
+
+create table address(
+    address_id int primary key auto_increment,
+    address_line1 varchar(50),
+    address_line2 varchar(50),
+    city varchar(50),
+    province varchar(50),
+    postal_code varchar(20),
+    country varchar(50)
+);
+
+create table contact(
+  contact_id int primary key auto_increment,
+  contact_num1 varchar(20),
+  contact_num2 varchar(20),
+is_primary bool
+
+);
+
+CREATE TABLE user (
+    user_id int auto_increment primary key,
+    address_id int,
+    user_type varchar(50) not null,
+    full_name varchar(255) not null,
+    NIC varchar(20) not null unique,
+    email varchar(255) not null unique, 
+    gender varchar(10),
+    DOB date,
+    contact_id int,
+    password_hash varchar(255),
+    created_date timestamp default current_timestamp,
+    foreign key (address_id) references address(address_id),
+    foreign key (contact_id) references contact(contact_id)
+);
+
+
+create table branches(
+	branch_id int primary key auto_increment,
+    branch_name varchar(20),
+    district  varchar(20),
+    contact_num varchar(20),
+    address varchar(50),
+    manager_id int
+);
+
+create table patient(
+	patient_id int primary key auto_increment,
+    user_id int,
+    blood_group char(5),
+    allergies text default null,
+    chronic_conditions text default null,
+    registered_branch_id int,
+    foreign key (user_id) references user(user_id),
+    foreign key (registered_branch_id) references branches(branch_id)
+);
+
+create table employee(
+	employee_id int primary key auto_increment,
+    user_id int not null,
+    branch_id int not null,
+    role ENUM('doctor', 'nurse', 'admin', 'receptionist','patient','manager'),
+    salary int,
+    joined_date date default null,
+    end_date date default null,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	foreign key (user_id) references user(user_id),
+    foreign key (branch_id) references branches(branch_id)
+);
+
+create table doctor(
+	doctor_id int primary key auto_increment,
+    employee_id int not null,
+    room_no int,
+    medical_licence_no int unique,
+    foreign key (employee_id) references employee(employee_id)
+)
+
+
+create table specialization(
+	specialization_id int primary key auto_increment,
+    specialization_title varchar(50) not null,
+	other_details varchar(200)
+);
+
+create table doctor_specialization(
+	doctor_specialization_id int primary key auto_increment,
+    doctor_id int not null,
+    specialization_id int not null,
+    foreign key (doctor_id) references doctor(doctor_id),
+	foreign key (specialization_id) references specialization(specialization_id) 
+);
+
+create table time_slot(
+	time_slot_id int primary key auto_increment,
+    doctor_id int not null,
+    branch_id int not null,
+    available_date date,
+    is_booked tinyint(1) default 0,
+    start_time time not null,
+    end_time time not null,
+    foreign key (doctor_id) references doctor(doctor_id),
+    foreign key (branch_id) references branches(branch_id),
+    UNIQUE (doctor_id, branch_id, start_time, end_time),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);	
+
+create table appointment(
+	appointment_id int primary key auto_increment,
+    patient_id int not null,
+    status enum('Scheduled','Completed','Cancelled') DEFAULT 'Scheduled',
+    time_slot_id int not null,
+    notes text,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    foreign key (patient_id) references patient(patient_id),
+    foreign key (time_slot_id) references time_slot(time_slot_id)
+);
+
+create table consultation_record(
+	consultation_rec_id int primary key auto_increment,
+    appointment_id int not null,
+	symptoms text default null,
+    diagnoses text default null,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    foreign key (appointment_id) references appointment(appointment_id)
+);
+
+create table treatment_catelogue(
+	treatment_service_code int primary key auto_increment,
+    treatment_name varchar(100),
+    base_price int,
+    duration time
+);
+
+create table treatment(
+	treatment_id int primary key auto_increment,
+    consultation_rec_id int not null,
+    treatment_service_code int,
+    foreign key (consultation_rec_id) references consultation_record(consultation_rec_id),
+    foreign key (treatment_service_code) references treatment_catelogue(treatment_service_code)
+);
+
+
+
+create table conditions_category(
+	condition_category_id int primary key auto_increment,
+    category_name varchar(50)
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+);
+
+create table conditions(
+	condition_id int primary key auto_increment,
+    condition_category_id int not null,
+    condition_name varchar(50) not null,
+    description varchar(100),
+    foreign key (condition_category_id) references conditions_category(condition_category_id),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+);
+
+create table patient_condition(
+    patient_condition_id int primary key auto_increment,
+    patient_id int not null,
+    condition_id int not null,
+    diagnosed_date date,
+    is_chronic boolean,
+    current_status text,
+    foreign key (patient_id) references patient(patient_id),
+    foreign key (condition_id) references conditions(condition_id),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+);
+
+
+create table insurance_package(
+	insurance_package_id int primary key auto_increment,
+    package_name varchar(50),
+    annual_limit int,
+    copayment_percentage int,
+    updated_date date,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+create table insurance(
+	insurance_id int primary key auto_increment,
+    patient_id int not null,
+    insurance_package_id int not null,
+    update_date date,
+    status ENUM('Active', 'Inactive', 'Expired', 'Pending') DEFAULT 'Active',
+    start_date date default null,
+    end_date date default null,
+    foreign key (patient_id) references patient(patient_id),
+    FOREIGN KEY (insurance_package_id) REFERENCES insurance_package(insurance_package_id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+create table invoice(
+	invoice_id int primary key auto_increment,
+    appointment_id int unique,
+    sub_total int  not null default 0,
+    insurance_claimed_amout int default 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    foreign key (appointment_id) references appointment(appointment_id)
+    
+);
+
+create table payments(
+	payment_id int primary key auto_increment,
+    invoice_id int not null unique,
+    patient_id int not null,
+    payment_method ENUM('Cash', 'Credit Card', 'Debit Card', 'Online', 'Other') DEFAULT NULL,
+    status ENUM('FullyPaid', 'PartiallyPaid', 'Pending') DEFAULT 'Pending',
+    payment_date date,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    foreign key (patient_id) references patient(patient_id),
+    foreign key (invoice_id) references invoice(invoice_id)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
