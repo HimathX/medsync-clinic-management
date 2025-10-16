@@ -1,21 +1,86 @@
 // src/pages/Login.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
 import '../styles/auth.css';
 
 export default function Login({ onLogin, loginType = 'staff' }) {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState(loginType === 'staff' ? 'Admin Staff' : 'Patient');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (username && password) {
-      onLogin(role, loginType);
-    } else {
+    setError('');
+    
+    if (!email || !password) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Call backend authentication API
+      const response = await authService.login(email, password);
+      
+      if (response.success) {
+        // Determine user role from user_type
+        let role = 'Staff';
+        if (response.user_type === 'patient') {
+          role = 'Patient';
+        } else if (response.user_type === 'doctor') {
+          role = 'Doctor';
+        } else if (response.user_type === 'admin') {
+          role = 'System Admin';
+        } else if (response.user_type === 'staff') {
+          role = 'Admin Staff';
+        }
+
+        // Call the parent onLogin callback if provided
+        if (onLogin) {
+          onLogin(role, response.user_type);
+        }
+
+        // Redirect based on user type
+        if (response.user_type === 'patient') {
+          navigate('/patient-dashboard');
+        } else {
+          // Staff, doctor, admin go to staff dashboard
+          navigate('/dashboard');
+        }
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      
+      // Handle different error types
+      if (err.response) {
+        // Backend returned an error response
+        if (err.response.status === 401) {
+          setError('Invalid email or password');
+        } else if (err.response.status === 500) {
+          setError('Server error. Please try again later.');
+        } else {
+          setError(err.response.data?.detail || 'Login failed. Please try again.');
+        }
+      } else if (err.request) {
+        // Request was made but no response received
+        setError('Cannot connect to server. Please check your connection.');
+      } else {
+        // Other errors
+        setError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,13 +102,15 @@ export default function Login({ onLogin, loginType = 'staff' }) {
         
         <form onSubmit={handleSubmit} className="form">
           <label className="label">
-            {isStaffLogin ? 'Staff Username' : 'Patient ID / Email'}
+            Email Address
             <input
               className="input"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder={isStaffLogin ? "Enter your staff username" : "Enter your patient ID or email"}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email address"
+              autoComplete="email"
+              disabled={loading}
               required
             />
           </label>
@@ -55,30 +122,39 @@ export default function Login({ onLogin, loginType = 'staff' }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
+              autoComplete="current-password"
+              disabled={loading}
               required
             />
           </label>
           
-          {isStaffLogin && (
-            <label className="label">
-              Role
-              <select
-                className="select"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-              >
-                <option>Admin Staff</option>
-                <option>Doctor</option>
-                <option>Billing Staff</option>
-                <option>System Admin</option>
-              </select>
-            </label>
+          {error && (
+            <div style={{
+              padding: '12px',
+              background: '#fee',
+              border: '1px solid #fcc',
+              borderRadius: '8px',
+              color: '#c33',
+              marginBottom: '1rem',
+              fontSize: '14px'
+            }}>
+              ⚠️ {error}
+            </div>
           )}
           
-          {error && <div className="error" style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
-          
-          <button type="submit" className="btn primary block" style={{marginTop:16}}>
-            {isStaffLogin ? 'Sign in to Staff Portal' : 'Sign in to Patient Portal'}
+          <button 
+            type="submit" 
+            className="btn primary block" 
+            style={{marginTop:16, position: 'relative'}}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span style={{opacity: 0.7}}>⏳</span> Signing in...
+              </>
+            ) : (
+              isStaffLogin ? 'Sign in to Staff Portal' : 'Sign in to Patient Portal'
+            )}
           </button>
         </form>
         
@@ -98,7 +174,12 @@ export default function Login({ onLogin, loginType = 'staff' }) {
             <p className="label" style={{textAlign: 'center', marginTop: 8, fontSize: 12}}>
               <a href="#forgot" style={{color: 'var(--accent-red)', textDecoration: 'none'}}>Forgot Password?</a>
               {' • '}
-              <a href="#register" style={{color: 'var(--accent-red)', textDecoration: 'none'}}>New Patient Registration</a>
+              <span 
+                onClick={() => navigate('/patient-signup')} 
+                style={{color: 'var(--accent-red)', textDecoration: 'none', cursor: 'pointer'}}
+              >
+                New Patient Registration
+              </span>
             </p>
           )}
         </div>

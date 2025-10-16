@@ -1,6 +1,9 @@
 // src/pages/patient/BookAppointment.js - Patient Appointment Booking
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import appointmentService from '../../services/appointmentService'
+import doctorService from '../../services/doctorService'
+import authService from '../../services/authService'
 import '../../styles/patientDashboard.css'
 
 export default function BookAppointment() {
@@ -8,90 +11,133 @@ export default function BookAppointment() {
   const [step, setStep] = useState(1)
   const [selectedSpecialty, setSelectedSpecialty] = useState('')
   const [selectedDoctor, setSelectedDoctor] = useState(null)
-  const [selectedDate, setSelectedDate] = useState('')
-  const [selectedTime, setSelectedTime] = useState('')
-  const [appointmentType, setAppointmentType] = useState('Consultation')
-  const [reason, setReason] = useState('')
-  const [requirements, setRequirements] = useState([])
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState(null)
+  const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  
+  // Get patient ID from auth
+  const currentUser = authService.getCurrentUser();
+  const patientId = currentUser.patientId || localStorage.getItem('patientId');
+  
+  // Dynamic data from backend
+  const [specialties, setSpecialties] = useState([])
+  const [doctors, setDoctors] = useState([])
+  const [timeSlots, setTimeSlots] = useState([])
 
-  const specialties = [
-    { id: 1, name: 'Cardiology', icon: '❤️', doctors: 8 },
-    { id: 2, name: 'Dermatology', icon: '🧴', doctors: 5 },
-    { id: 3, name: 'Orthopedics', icon: '🦴', doctors: 6 },
-    { id: 4, name: 'Neurology', icon: '🧠', doctors: 4 },
-    { id: 5, name: 'Pediatrics', icon: '👶', doctors: 7 },
-    { id: 6, name: 'General Medicine', icon: '⚕️', doctors: 10 },
-  ]
+  useEffect(() => {
+    fetchSpecialtiesAndDoctors();
+  }, []);
 
-  const doctors = [
-    {
-      id: 1,
-      name: 'Dr. Samantha Perera',
-      specialty: 'Cardiology',
-      qualifications: 'MBBS, MD (Cardiology)',
-      experience: 15,
-      rating: 4.8,
-      image: '👩‍⚕️',
-      nextAvailable: '2025-10-10',
-      languages: ['English', 'Sinhala', 'Tamil']
-    },
-    {
-      id: 2,
-      name: 'Dr. Rajitha Fernando',
-      specialty: 'Cardiology',
-      qualifications: 'MBBS, FRCP',
-      experience: 12,
-      rating: 4.7,
-      image: '👨‍⚕️',
-      nextAvailable: '2025-10-12',
-      languages: ['English', 'Sinhala']
-    },
-  ]
+  const fetchSpecialtiesAndDoctors = async () => {
+    try {
+      setLoading(true);
+      // Fetch all doctors
+      const doctorsData = await doctorService.getAllDoctors();
+      setDoctors(doctorsData || []);
+      
+      // Extract unique specialties
+      const uniqueSpecs = [...new Set(doctorsData.map(d => d.specialization))].map((spec, idx) => ({
+        id: idx + 1,
+        name: spec,
+        icon: getSpecialtyIcon(spec),
+        doctors: doctorsData.filter(d => d.specialization === spec).length
+      }));
+      setSpecialties(uniqueSpecs);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load doctors and specialties');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const timeSlots = [
-    '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM',
-    '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM'
-  ]
+  const getSpecialtyIcon = (specialty) => {
+    const iconMap = {
+      'Cardiology': '❤️',
+      'Dermatology': '🧴',
+      'Orthopedics': '🦴',
+      'Neurology': '🧠',
+      'Pediatrics': '👶',
+      'General Medicine': '⚕️',
+      'ENT': '👂'
+    };
+    return iconMap[specialty] || '🏥';
+  };
+
+  const fetchTimeSlotsForDoctor = async (doctorId) => {
+    try {
+      setLoading(true);
+      // Fetch available time slots for the doctor
+      const slots = await doctorService.getDoctorTimeSlots(doctorId);
+      setTimeSlots(slots || []);
+    } catch (err) {
+      console.error('Error fetching time slots:', err);
+      setError('Failed to load available time slots');
+      // Fallback to empty array
+      setTimeSlots([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSpecialtySelect = (specialty) => {
     setSelectedSpecialty(specialty)
     setStep(2)
   }
 
-  const handleDoctorSelect = (doctor) => {
+  const handleDoctorSelect = async (doctor) => {
     setSelectedDoctor(doctor)
+    await fetchTimeSlotsForDoctor(doctor.doctor_id)
     setStep(3)
   }
 
-  const handleDateTimeSelect = () => {
-    if (selectedDate && selectedTime) {
-      setStep(4)
-    } else {
-      alert('Please select both date and time')
+  const handleTimeSlotSelect = (slot) => {
+    setSelectedTimeSlot(slot)
+    setStep(4)
+  }
+
+  const handleConfirmBooking = async () => {
+    if (!patientId) {
+      alert('Patient ID not found. Please log in again.');
+      navigate('/patient-login');
+      return;
+    }
+
+    if (!selectedTimeSlot || !selectedTimeSlot.time_slot_id) {
+      alert('Please select a valid time slot');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Prepare booking data according to backend schema
+      const bookingData = {
+        patient_id: patientId,
+        time_slot_id: selectedTimeSlot.time_slot_id,
+        notes: notes || ''
+      };
+
+      // Call backend API to book appointment
+      const response = await appointmentService.bookAppointment(bookingData);
+
+      if (response.success) {
+        alert(`Appointment booked successfully!\nAppointment ID: ${response.appointment_id}`);
+        navigate('/patient/dashboard');
+      } else {
+        alert('Failed to book appointment: ' + response.message);
+      }
+    } catch (err) {
+      console.error('Booking error:', err);
+      alert('Failed to book appointment. Please try again.');
+      setError(err.response?.data?.detail || 'Booking failed');
+    } finally {
+      setLoading(false);
     }
   }
 
-  const handleConfirmBooking = () => {
-    const booking = {
-      doctor: selectedDoctor.name,
-      specialty: selectedSpecialty,
-      date: selectedDate,
-      time: selectedTime,
-      type: appointmentType,
-      reason
-    }
-    console.log('Booking confirmed:', booking)
-    alert('Appointment booked successfully!')
-    navigate('/patient/dashboard')
-  }
-
-  const toggleRequirement = (req) => {
-    if (requirements.includes(req)) {
-      setRequirements(requirements.filter(r => r !== req))
-    } else {
-      setRequirements([...requirements, req])
-    }
-  }
 
   return (
     <div className="patient-portal">
@@ -140,83 +186,79 @@ export default function BookAppointment() {
             <p style={{color: '#64748b', marginBottom: '30px'}}>Choose your preferred doctor</p>
             
             <div className="doctors-list">
-              {doctors.filter(d => d.specialty === selectedSpecialty).map(doctor => (
-                <div key={doctor.id} className="doctor-card">
-                  <div className="doctor-image">{doctor.image}</div>
-                  <div className="doctor-info">
-                    <h3 className="doctor-name">{doctor.name}</h3>
-                    <p className="doctor-qualifications">{doctor.qualifications}</p>
-                    <div className="doctor-meta">
-                      <span>⭐ {doctor.rating}/5</span>
-                      <span>•</span>
-                      <span>{doctor.experience} years experience</span>
-                    </div>
-                    <div className="doctor-languages">
-                      Languages: {doctor.languages.join(', ')}
-                    </div>
-                    <p className="doctor-availability">
-                      Next available: {new Date(doctor.nextAvailable).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <button className="btn-primary" onClick={() => handleDoctorSelect(doctor)}>
-                    Select Doctor
-                  </button>
+              {doctors.filter(d => d.specialization === selectedSpecialty).length === 0 ? (
+                <div style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                  <p>No doctors available for this specialty at the moment.</p>
+                  <button className="btn-secondary" onClick={() => setStep(1)}>Choose Different Specialty</button>
                 </div>
-              ))}
+              ) : (
+                doctors.filter(d => d.specialization === selectedSpecialty).map(doctor => (
+                  <div key={doctor.doctor_id} className="doctor-card">
+                    <div className="doctor-image">👨‍⚕️</div>
+                    <div className="doctor-info">
+                      <h3 className="doctor-name">{doctor.name}</h3>
+                      <p className="doctor-qualifications">{doctor.qualifications || 'MBBS'}</p>
+                      <div className="doctor-meta">
+                        <span>⭐ {doctor.rating || '4.5'}/5</span>
+                        <span>•</span>
+                        <span>{doctor.years_experience || 5} years experience</span>
+                      </div>
+                      <div className="doctor-languages">
+                        Languages: {doctor.languages?.join(', ') || 'English, Sinhala'}
+                      </div>
+                      <p className="doctor-availability">
+                        License: {doctor.license_number || 'N/A'}
+                      </p>
+                    </div>
+                    <button className="btn-primary" onClick={() => handleDoctorSelect(doctor)} disabled={loading}>
+                      {loading ? 'Loading...' : 'Select Doctor'}
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
 
-        {/* Step 3: Select Date & Time */}
+        {/* Step 3: Select Time Slot */}
         {step === 3 && selectedDoctor && (
           <div className="booking-section">
             <button className="btn-secondary" onClick={() => setStep(2)} style={{marginBottom: '20px'}}>
               ← Back to Doctors
             </button>
             
-            <h2 className="section-heading">Select Date & Time</h2>
+            <h2 className="section-heading">Select Available Time Slot</h2>
             <p style={{color: '#64748b', marginBottom: '30px'}}>
               Booking with {selectedDoctor.name}
             </p>
             
-            <div className="datetime-selection">
-              <div className="date-selection">
-                <h3>Select Date</h3>
-                <input
-                  type="date"
-                  className="date-input"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                />
+            {loading ? (
+              <div style={{textAlign: 'center', padding: '40px'}}>
+                <div style={{fontSize: '48px', marginBottom: '20px'}}>⏳</div>
+                <p>Loading available time slots...</p>
               </div>
-              
-              {selectedDate && (
-                <div className="time-selection">
-                  <h3>Available Time Slots</h3>
-                  <div className="time-slots-grid">
-                    {timeSlots.map(slot => (
-                      <button
-                        key={slot}
-                        className={`time-slot ${selectedTime === slot ? 'selected' : ''}`}
-                        onClick={() => setSelectedTime(slot)}
-                      >
-                        {slot}
-                      </button>
-                    ))}
-                  </div>
+            ) : timeSlots.length === 0 ? (
+              <div style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                <p>No available time slots for this doctor at the moment.</p>
+                <button className="btn-secondary" onClick={() => setStep(2)}>Choose Another Doctor</button>
+              </div>
+            ) : (
+              <div className="time-selection">
+                <h3>Available Time Slots</h3>
+                <div className="time-slots-grid">
+                  {timeSlots.map(slot => (
+                    <button
+                      key={slot.time_slot_id}
+                      className={`time-slot ${selectedTimeSlot?.time_slot_id === slot.time_slot_id ? 'selected' : ''}`}
+                      onClick={() => handleTimeSlotSelect(slot)}
+                    >
+                      {new Date(slot.appointment_date).toLocaleDateString()}<br/>
+                      {new Date(slot.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-            
-            <button
-              className="btn-primary"
-              style={{marginTop: '30px'}}
-              onClick={handleDateTimeSelect}
-              disabled={!selectedDate || !selectedTime}
-            >
-              Continue to Details
-            </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -240,78 +282,50 @@ export default function BookAppointment() {
                 <span className="summary-value">{selectedSpecialty}</span>
               </div>
               <div className="summary-item">
-                <span className="summary-label">Date:</span>
-                <span className="summary-value">{new Date(selectedDate).toLocaleDateString()}</span>
+                <span className="summary-label">Date & Time:</span>
+                <span className="summary-value">
+                  {selectedTimeSlot && new Date(selectedTimeSlot.appointment_date).toLocaleString()}
+                </span>
               </div>
               <div className="summary-item">
-                <span className="summary-label">Time:</span>
-                <span className="summary-value">{selectedTime}</span>
+                <span className="summary-label">Branch:</span>
+                <span className="summary-value">{selectedTimeSlot?.branch_name || 'Main Branch'}</span>
               </div>
             </div>
             
             <div className="appointment-details-form">
               <div className="form-group">
-                <label className="form-label">Appointment Type</label>
-                <select
-                  className="form-select"
-                  value={appointmentType}
-                  onChange={(e) => setAppointmentType(e.target.value)}
-                >
-                  <option value="Consultation">Consultation</option>
-                  <option value="Follow-up">Follow-up</option>
-                  <option value="Procedure">Procedure</option>
-                  <option value="Emergency">Emergency</option>
-                </select>
-              </div>
-              
-              <div className="form-group">
-                <label className="form-label">Reason for Visit</label>
+                <label className="form-label">Notes / Reason for Visit</label>
                 <textarea
                   className="form-textarea"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Please describe your symptoms or reason for the visit..."
-                  rows={4}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Please describe your symptoms, reason for visit, or any special requirements..."
+                  rows={6}
                 />
               </div>
-              
-              <div className="form-group">
-                <label className="form-label">Special Requirements</label>
-                <div className="requirements-list">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={requirements.includes('wheelchair')}
-                      onChange={() => toggleRequirement('wheelchair')}
-                    />
-                    Wheelchair access needed
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={requirements.includes('interpreter')}
-                      onChange={() => toggleRequirement('interpreter')}
-                    />
-                    Language interpreter needed
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={requirements.includes('extended')}
-                      onChange={() => toggleRequirement('extended')}
-                    />
-                    Extended appointment time
-                  </label>
-                </div>
-              </div>
             </div>
+            
+            {error && (
+              <div style={{
+                padding: '12px',
+                background: '#fee',
+                border: '1px solid #fcc',
+                borderRadius: '8px',
+                color: '#c33',
+                marginTop: '15px'
+              }}>
+                ⚠️ {error}
+              </div>
+            )}
             
             <button
               className="btn-primary"
               style={{marginTop: '30px', width: '100%'}}
               onClick={handleConfirmBooking}
+              disabled={loading}
             >
-              Confirm Booking
+              {loading ? '⏳ Booking...' : 'Confirm Booking'}
             </button>
           </div>
         )}

@@ -1,25 +1,70 @@
+// src/pages/PatientPortal.js - Patient Database Portal (Staff/Admin)
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import patientDataService from '../services/patientDataService';
+import { Link, useNavigate } from 'react-router-dom';
+import patientService from '../services/patientService';
+import branchService from '../services/branchService';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
+import ErrorMessage from '../components/shared/ErrorMessage';
+import StatCard from '../components/shared/StatCard';
 import '../styles/patientPortal.css';
 
 const PatientPortal = () => {
+  const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [branches, setBranches] = useState(['All']);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBranch, setFilterBranch] = useState('All');
   const [filterGender, setFilterGender] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [patientsPerPage] = useState(10);
-  const [sortField, setSortField] = useState('id');
+  const [sortField, setSortField] = useState('full_name');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Load patient data from service
+  // Load patient data from backend
   useEffect(() => {
-    const patientData = patientDataService.getAllPatients();
-    setPatients(patientData);
-    setFilteredPatients(patientData);
+    fetchPatientsData();
   }, []);
+
+  const fetchPatientsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch patients from backend
+      const patientsData = await patientService.getAllPatients(0, 1000);
+      const formattedPatients = (patientsData.patients || []).map(p => ({
+        id: p.patient_id,
+        firstName: p.full_name?.split(' ')[0] || 'Patient',
+        lastName: p.full_name?.split(' ').slice(1).join(' ') || '',
+        full_name: p.full_name || `Patient ${p.patient_id}`,
+        email: p.email || 'N/A',
+        phone: p.contact_num || 'N/A',
+        dob: p.DOB || '1990-01-01',
+        gender: p.gender || 'Other',
+        branch: p.registered_branch || 'Main',
+        insuranceProvider: p.insurance_provider || 'None',
+        policyNumber: p.policy_number || 'N/A',
+        registrationDate: p.registration_date || new Date().toISOString(),
+        lastVisit: p.last_visit || new Date().toISOString(),
+        emergencyName: p.emergency_contact_name || 'N/A'
+      }));
+      setPatients(formattedPatients);
+      setFilteredPatients(formattedPatients);
+
+      // Fetch branches
+      const branchesData = await branchService.getAllBranches();
+      setBranches(['All', ...(branchesData || []).map(b => b.branch_name)]);
+
+    } catch (err) {
+      console.error('Error fetching patients:', err);
+      setError('Failed to load patients. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter and search functionality
   useEffect(() => {
@@ -27,10 +72,11 @@ const PatientPortal = () => {
       const matchesSearch = 
         patient.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         patient.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         patient.phone.includes(searchTerm) ||
-        patient.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
+        patient.id.toString().includes(searchTerm);
+
       const matchesBranch = filterBranch === 'All' || patient.branch === filterBranch;
       const matchesGender = filterGender === 'All' || patient.gender === filterGender;
       
@@ -66,15 +112,30 @@ const PatientPortal = () => {
   };
 
   const calculateAge = (dob) => {
-    return patientDataService.calculateAge(dob);
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
   };
+
+  if (loading) {
+    return <LoadingSpinner message="Loading patient database..." />;
+  }
+
+  if (error) {
+    return <ErrorMessage title="Error Loading Patients" message={error} onRetry={fetchPatientsData} />;
+  }
 
   return (
     <div className="patient-portal">
       <div className="portal-header">
         <div className="header-content">
           <h1>Patient Database Portal</h1>
-          <Link to="/patients" className="btn secondary">
+          <Link to="/staff/patients" className="btn secondary">
             ← Back to Patient Management
           </Link>
         </div>
@@ -102,10 +163,7 @@ const PatientPortal = () => {
                 value={filterBranch}
                 onChange={(e) => setFilterBranch(e.target.value)}
               >
-                <option>All</option>
-                <option>Colombo</option>
-                <option>Kandy</option>
-                <option>Galle</option>
+                {branches.map(b => <option key={b}>{b}</option>)}
               </select>
             </label>
             <label className="label">
@@ -139,8 +197,8 @@ const PatientPortal = () => {
                 <th onClick={() => handleSort('id')} className="sortable">
                   Patient ID {sortField === 'id' && (sortOrder === 'asc' ? '↑' : '↓')}
                 </th>
-                <th onClick={() => handleSort('firstName')} className="sortable">
-                  Name {sortField === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
+                <th onClick={() => handleSort('full_name')} className="sortable">
+                  Name {sortField === 'full_name' && (sortOrder === 'asc' ? '↑' : '↓')}
                 </th>
                 <th>Age</th>
                 <th onClick={() => handleSort('gender')} className="sortable">
@@ -163,10 +221,10 @@ const PatientPortal = () => {
             <tbody>
               {currentPatients.map((patient) => (
                 <tr key={patient.id}>
-                  <td className="patient-id">{patient.id}</td>
+                  <td className="patient-id">P-{patient.id}</td>
                   <td className="patient-name">
                     <div>
-                      <strong>{patient.firstName} {patient.lastName}</strong>
+                      <strong>{patient.full_name}</strong>
                       <div className="email">{patient.email}</div>
                     </div>
                   </td>
@@ -199,13 +257,25 @@ const PatientPortal = () => {
                   <td>{new Date(patient.lastVisit).toLocaleDateString()}</td>
                   <td>
                     <div className="action-buttons">
-                      <Link to={`/patient/${patient.id}`} className="btn small primary" title="View Details">
+                      <button 
+                        className="btn small primary" 
+                        title="View Details"
+                        onClick={() => navigate(`/staff/patients/${patient.id}`)}
+                      >
                         👁️
-                      </Link>
-                      <button className="btn small secondary" title="Edit">
+                      </button>
+                      <button 
+                        className="btn small secondary" 
+                        title="Edit"
+                        onClick={() => navigate(`/staff/patients/${patient.id}/edit`)}
+                      >
                         ✏️
                       </button>
-                      <button className="btn small" title="Medical History">
+                      <button 
+                        className="btn small" 
+                        title="Medical History"
+                        onClick={() => navigate(`/staff/patients/${patient.id}/records`)}
+                      >
                         📋
                       </button>
                     </div>
@@ -256,31 +326,33 @@ const PatientPortal = () => {
       </section>
 
       {/* Summary Statistics */}
-      <section className="card section">
-        <h3>Database Statistics</h3>
+      <section className="section">
+        <h3 style={{marginBottom: '20px'}}>Database Statistics</h3>
         <div className="grid grid-4">
-          <div className="stat-card">
-            <div className="stat-number">{patients.length}</div>
-            <div className="stat-label">Total Patients</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">
-              {patients.filter(p => p.branch === 'Colombo').length}
-            </div>
-            <div className="stat-label">Colombo Branch</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">
-              {patients.filter(p => p.branch === 'Kandy').length}
-            </div>
-            <div className="stat-label">Kandy Branch</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">
-              {patients.filter(p => p.branch === 'Galle').length}
-            </div>
-            <div className="stat-label">Galle Branch</div>
-          </div>
+          <StatCard 
+            icon="👥"
+            title="Total Patients"
+            value={patients.length}
+            color="var(--primary-black)"
+          />
+          <StatCard 
+            icon="👨‍⚕️"
+            title="Male"
+            value={patients.filter(p => p.gender === 'Male').length}
+            color="#3b82f6"
+          />
+          <StatCard 
+            icon="👩‍⚕️"
+            title="Female"
+            value={patients.filter(p => p.gender === 'Female').length}
+            color="#ec4899"
+          />
+          <StatCard 
+            icon="🏥"
+            title="Active Today"
+            value={patients.filter(p => new Date(p.lastVisit).toDateString() === new Date().toDateString()).length}
+            color="#10b981"
+          />
         </div>
       </section>
     </div>

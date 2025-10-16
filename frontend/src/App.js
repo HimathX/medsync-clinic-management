@@ -5,6 +5,7 @@ import Header from "./components/Header";
 // Staff Pages
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
+import PatientSignup from "./pages/PatientSignup";
 import Dashboard from "./pages/Dashboard";
 import MyAppointments from "./pages/MyAppointments";
 import Billing from "./pages/Billing";
@@ -50,6 +51,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/staff-login" element={<Login onLogin={handleLogin} loginType="staff" />} />
           <Route path="/patient-login" element={<Login onLogin={handleLogin} loginType="patient" />} />
+          <Route path="/patient-signup" element={<PatientSignup />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
