@@ -1,6 +1,10 @@
 // src/pages/patient/PatientDashboard.js - Professional Patient Portal
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import dashboardService from '../../services/dashboardService'
+import appointmentService from '../../services/appointmentService'
+import patientService from '../../services/patientService'
+import billingService from '../../services/billingService'
 import '../../styles/patientDashboard.css'
 
 function formatDate(date) {
@@ -14,68 +18,100 @@ function formatTime(date) {
 export default function PatientDashboard() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   
+  // Get patient ID from localStorage or session (assuming login sets this)
+  const patientId = localStorage.getItem('patientId') || sessionStorage.getItem('patientId') || 1;
+  
   const [data, setData] = useState({
     patient: { 
-      name: 'John Silva',
-      email: 'john.silva@email.com',
-      phone: '+94 77 123 4567',
-      patientId: 'P-2401',
-      bloodType: 'A+'
+      name: 'Loading...',
+      email: '',
+      phone: '',
+      patientId: '',
+      bloodType: ''
     },
     appointments: [],
     prescriptions: [],
-    finance: { balance: 15000 },
+    finance: { balance: 0 },
     healthMetrics: {
-      lastCheckup: '2025-09-15',
-      bloodPressure: '120/80',
-      weight: '75 kg',
-      height: '175 cm'
+      lastCheckup: '',
+      bloodPressure: '',
+      weight: '',
+      height: ''
     }
   })
 
-  const fetchDashboardData = useCallback(() => {
-    setLoading(true)
-    setTimeout(() => {
-      const appointments = [
-        {
-          id: 'a1',
-          title: 'Cardiology Consultation',
-          doctor: 'Dr. Perera',
-          specialty: 'Cardiologist',
-          date: new Date(2025, 9, 12, 10, 30),
-          branch: 'Colombo',
-          room: 'Cardio-301',
-          status: 'Confirmed'
-        },
-        {
-          id: 'a2',
-          title: 'General Checkup',
-          doctor: 'Dr. Fernando',
-          specialty: 'General Physician',
-          date: new Date(2025, 9, 18, 14, 0),
-          branch: 'Colombo',
-          room: 'GP-105',
-          status: 'Confirmed'
-        }
-      ]
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
       
-      const prescriptions = [
-        { id: 'rx1', name: 'Aspirin 100mg', dosage: '1 tablet daily', refills: 2, doctor: 'Dr. Perera' },
-        { id: 'rx2', name: 'Vitamin D3', dosage: '1 capsule weekly', refills: 5, doctor: 'Dr. Fernando' }
-      ]
+      // Fetch patient dashboard data from backend
+      const dashboardData = await dashboardService.getPatientDashboardData(patientId)
       
-      setData(d => ({ ...d, appointments, prescriptions }))
+      // Format patient data
+      const patient = dashboardData.patient || {}
+      const formattedPatient = {
+        name: patient.full_name || patient.name || 'Patient',
+        email: patient.email || 'N/A',
+        phone: patient.contact_num || patient.phone || 'N/A',
+        patientId: `P-${patient.patient_id || patientId}`,
+        bloodType: patient.blood_group || patient.bloodType || 'N/A'
+      }
+      
+      // Format appointments
+      const appointments = (dashboardData.appointments || []).map(appt => ({
+        id: appt.appointment_id,
+        title: appt.specialty || 'Consultation',
+        doctor: appt.doctor_name || 'Doctor',
+        specialty: appt.specialty || 'General',
+        date: new Date(appt.appointment_date),
+        branch: appt.branch_name || 'Main',
+        room: appt.room_number || 'TBD',
+        status: appt.status || 'Scheduled'
+      }))
+      
+      // Format prescriptions
+      const prescriptions = (dashboardData.prescriptions || []).map(rx => ({
+        id: rx.prescription_id,
+        name: rx.medication_name || 'Medication',
+        dosage: rx.dosage || 'As prescribed',
+        refills: rx.refills_remaining || 0,
+        doctor: rx.prescribed_by || 'Doctor'
+      }))
+      
+      // Get health metrics from patient record
+      const healthMetrics = {
+        lastCheckup: patient.last_checkup_date || 'N/A',
+        bloodPressure: patient.blood_pressure || 'N/A',
+        weight: patient.weight ? `${patient.weight} kg` : 'N/A',
+        height: patient.height ? `${patient.height} cm` : 'N/A'
+      }
+      
+      setData({
+        patient: formattedPatient,
+        appointments,
+        prescriptions,
+        finance: dashboardData.finance || { balance: 0 },
+        healthMetrics
+      })
+      
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err)
+      setError('Failed to load dashboard data. Please try again.')
+    } finally {
       setLoading(false)
-    }, 800)
-  }, [])
+    }
+  }, [patientId])
 
   useEffect(() => {
     fetchDashboardData()
   }, [fetchDashboardData])
 
+  // Calculate upcoming appointments - MUST be before conditional returns (Hooks rules)
   const upcomingAppointments = useMemo(() => {
     const now = new Date()
     return data.appointments
@@ -83,6 +119,17 @@ export default function PatientDashboard() {
       .sort((a, b) => a.date - b.date)
       .slice(0, 3)
   }, [data.appointments])
+
+  if (error) {
+    return (
+      <div style={{padding: '20px', textAlign: 'center'}}>
+        <div style={{fontSize: '48px', marginBottom: '20px'}}>⚠️</div>
+        <h2 style={{color: 'var(--accent-red)'}}>Error Loading Dashboard</h2>
+        <p style={{color: '#64748b', marginBottom: '20px'}}>{error}</p>
+        <button className="btn-primary" onClick={fetchDashboardData}>Retry</button>
+      </div>
+    )
+  }
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {

@@ -1,36 +1,118 @@
 // src/pages/Dashboard.js - Staff/Admin Dashboard
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import dashboardService from '../services/dashboardService';
+import branchService from '../services/branchService';
+import doctorService from '../services/doctorService';
 
 export default function Dashboard({ user }) {
   const today = new Date().toLocaleDateString();
   const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
-  // Today's appointments scheduled at this branch
-  const todayAppointments = [
-    { id:1, patient:'John Silva', patientId:'P-2401', doctor:'Dr. Perera', specialty:'Cardiology', time:'10:00', status:'Checked-in' },
-    { id:2, patient:'Mary Fernando', patientId:'P-2398', doctor:'Dr. Silva', specialty:'Dermatology', time:'10:30', status:'Waiting' },
-    { id:3, patient:'Kumar Raj', patientId:'P-2405', doctor:'Dr. Fernando', specialty:'ENT', time:'11:00', status:'Scheduled' },
-    { id:4, patient:'Amara Dias', patientId:'P-2392', doctor:'Dr. Perera', specialty:'Cardiology', time:'14:00', status:'Scheduled' },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [todayAppointments, setTodayAppointments] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [stats, setStats] = useState({
+    totalAppointments: 0,
+    checkedIn: 0,
+    completed: 0,
+    cancelled: 0,
+    newPatients: 0,
+    pendingBills: 0,
+    totalRevenue: '0',
+    outstandingBalance: '0'
+  });
+  const [branches, setBranches] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
 
-  // Staff notifications and alerts
-  const notifications = [
-    {id:1, type:'Urgent', text:'Patient P-2401 requires lab results review', when:'Just now', priority:'high'},
-    {id:2, type:'Billing', text:'3 pending insurance claims need approval', when:'15 min ago', priority:'medium'},
-    {id:3, type:'System', text:'Dr. Chen running 20 minutes behind schedule', when:'1h ago', priority:'low'},
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-  // Today's statistics
-  const stats = {
-    totalAppointments: 24,
-    checkedIn: 8,
-    completed: 5,
-    cancelled: 2,
-    newPatients: 3,
-    pendingBills: 12,
-    totalRevenue: '125,000',
-    outstandingBalance: '45,000'
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch dashboard data
+      const dashboardData = await dashboardService.getStaffDashboardStats(user?.branch);
+      
+      // Set statistics
+      setStats({
+        totalAppointments: dashboardData.stats.totalAppointments,
+        checkedIn: dashboardData.stats.checkedIn,
+        completed: dashboardData.stats.completed,
+        cancelled: dashboardData.stats.cancelled,
+        newPatients: dashboardData.stats.newPatients,
+        pendingBills: dashboardData.stats.pendingBills,
+        totalRevenue: dashboardData.stats.totalRevenue.toLocaleString(),
+        outstandingBalance: dashboardData.stats.outstandingBalance.toLocaleString()
+      });
+
+      // Transform appointments for display
+      const formattedAppointments = (dashboardData.todayAppointments || []).map(appt => ({
+        id: appt.appointment_id,
+        patient: appt.patient_name || `Patient ${appt.patient_id}`,
+        patientId: `P-${appt.patient_id}`,
+        doctor: appt.doctor_name || 'Doctor',
+        specialty: appt.specialty || 'General',
+        time: new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: appt.status || 'Scheduled'
+      }));
+      setTodayAppointments(formattedAppointments);
+
+      // Fetch notifications
+      const notificationsData = await dashboardService.getNotifications();
+      setNotifications(notificationsData);
+
+      // Fetch branches
+      const branchesData = await branchService.getAllBranches();
+      setBranches(branchesData || []);
+
+      // Fetch doctors
+      const doctorsData = await doctorService.getAllDoctors();
+      const formattedDoctors = (doctorsData || []).slice(0, 5).map(doc => ({
+        id: doc.doctor_id,
+        name: doc.name || `Dr. ${doc.doctor_id}`,
+        specialty: doc.specialization || 'General',
+        room: doc.room_number || 'TBD',
+        status: 'Available'
+      }));
+      setDoctors(formattedDoctors);
+
+      // Fetch recent activity
+      const activityData = await dashboardService.getRecentActivity(5);
+      setRecentActivity(activityData);
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please refresh the page.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div style={{padding: '20px', textAlign: 'center'}}>
+        <div style={{fontSize: '48px', marginBottom: '20px'}}>⏳</div>
+        <h2>Loading Dashboard...</h2>
+        <p style={{color: '#64748b'}}>Please wait while we fetch your data</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{padding: '20px', textAlign: 'center'}}>
+        <div style={{fontSize: '48px', marginBottom: '20px'}}>⚠️</div>
+        <h2 style={{color: 'var(--accent-red)'}}>Error Loading Dashboard</h2>
+        <p style={{color: '#64748b', marginBottom: '20px'}}>{error}</p>
+        <button className="btn primary" onClick={fetchDashboardData}>Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -137,14 +219,18 @@ export default function Dashboard({ user }) {
       <div className="grid grid-2 section">
         <section className="card">
           <h3>Recent Activity</h3>
-          <ul className="label" style={{lineHeight:1.8}}>
-            <li><strong>10:45 AM</strong> — Patient P-2401 checked-in for cardiology appointment</li>
-            <li><strong>10:30 AM</strong> — New patient P-2405 registered at reception</li>
-            <li><strong>10:15 AM</strong> — Payment of LKR 15,000 received from P-2398</li>
-            <li><strong>09:45 AM</strong> — Insurance claim CLM-445 approved</li>
-            <li><strong>09:30 AM</strong> — Dr. Silva completed appointment with P-2389</li>
-          </ul>
-          <button className="btn link" style={{marginTop:8}}>View Full Activity Log</button>
+          {recentActivity.length === 0 ? (
+            <p className="label">No recent activity</p>
+          ) : (
+            <ul className="label" style={{lineHeight:1.8}}>
+              {recentActivity.map((activity, idx) => (
+                <li key={idx}>
+                  <strong>{new Date(activity.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong> — {activity.description}
+                </li>
+              ))}
+            </ul>
+          )}
+          <button className="btn link" style={{marginTop:8}} onClick={fetchDashboardData}>Refresh Activity</button>
         </section>
 
         <section className="card">
@@ -172,53 +258,41 @@ export default function Dashboard({ user }) {
         <section className="card">
           <h3>Doctor Availability Today</h3>
           <div style={{marginTop:12}}>
-            <div className="slot" style={{marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-              <div>
-                <strong>Dr. Perera</strong>
-                <div className="label">Cardiology • Room 201</div>
-              </div>
-              <span className="badge badge-success" style={{fontSize:11}}>Available</span>
-            </div>
-            <div className="slot" style={{marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-              <div>
-                <strong>Dr. Silva</strong>
-                <div className="label">Dermatology • Room 203</div>
-              </div>
-              <span className="badge badge-warn" style={{fontSize:11}}>Busy</span>
-            </div>
-            <div className="slot" style={{marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-              <div>
-                <strong>Dr. Fernando</strong>
-                <div className="label">ENT • Room 105</div>
-              </div>
-              <span className="badge badge-success" style={{fontSize:11}}>Available</span>
-            </div>
+            {doctors.length === 0 ? (
+              <p className="label">No doctors available</p>
+            ) : (
+              doctors.map(doc => (
+                <div key={doc.id} className="slot" style={{marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <div>
+                    <strong>{doc.name}</strong>
+                    <div className="label">{doc.specialty} • Room {doc.room}</div>
+                  </div>
+                  <span className="badge badge-success" style={{fontSize:11}}>{doc.status}</span>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
         <section className="card">
           <h3>Branch Status</h3>
           <div className="grid grid-3" style={{marginTop:12}}>
-            <div className="card" style={{textAlign:'center'}}>
-              <strong>Colombo</strong>
-              <p className="label" style={{margin:'4px 0'}}>011-1234567</p>
-              <span className="badge badge-success" style={{fontSize:10}}>Open</span>
-            </div>
-            <div className="card" style={{textAlign:'center'}}>
-              <strong>Kandy</strong>
-              <p className="label" style={{margin:'4px 0'}}>081-7654321</p>
-              <span className="badge badge-success" style={{fontSize:10}}>Open</span>
-            </div>
-            <div className="card" style={{textAlign:'center'}}>
-              <strong>Galle</strong>
-              <p className="label" style={{margin:'4px 0'}}>091-5551234</p>
-              <span className="badge badge-success" style={{fontSize:10}}>Open</span>
-            </div>
+            {branches.length === 0 ? (
+              <p className="label">No branch data available</p>
+            ) : (
+              branches.slice(0, 3).map(branch => (
+                <div key={branch.branch_id} className="card" style={{textAlign:'center'}}>
+                  <strong>{branch.branch_name || 'Branch'}</strong>
+                  <p className="label" style={{margin:'4px 0'}}>{branch.contact_num || 'N/A'}</p>
+                  <span className="badge badge-success" style={{fontSize:10}}>Open</span>
+                </div>
+              ))
+            )}
           </div>
           <div style={{marginTop:16, padding:12, background:'#f5f5f5', borderRadius:8}}>
             <div className="label" style={{marginBottom:4}}>Quick Stats Across All Branches</div>
             <div style={{fontSize:12}}>
-              <strong>68</strong> total appointments • <strong>15</strong> new patients • <strong>LKR 385,000</strong> total revenue
+              <strong>{stats.totalAppointments}</strong> total appointments • <strong>{stats.newPatients}</strong> new patients • <strong>LKR {stats.totalRevenue}</strong> total revenue
             </div>
           </div>
         </section>

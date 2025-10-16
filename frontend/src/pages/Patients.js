@@ -1,53 +1,124 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import patientDataService from '../services/patientDataService';
+import patientService from '../services/patientService';
 import '../styles/patientPortal.css';
 
 const Patients = ({ role }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [patientData, setPatientData] = useState([]); // Mock patients
+  const [patientData, setPatientData] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [formData, setFormData] = useState({
-    firstName: '', lastName: '', dob: '', gender: '', phone: '', email: '',
+    firstName: '', lastName: '', dob: '', gender: '', phone: '', email: '', nic: '',
     emergencyName: '', emergencyNumber: '', branch: 'Colombo', insuranceProvider: '', policyNumber: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('Personal');
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      const results = patientDataService.searchPatients(searchQuery);
-      setPatientData(results.map(p => ({ 
-        id: p.id, 
-        name: `${p.firstName} ${p.lastName}`, 
-        phone: p.phone,
-        patient: p 
-      })));
-    } else {
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
       setPatientData([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Try searching by NIC first
+      if (searchQuery.length === 10 || searchQuery.length === 12) {
+        try {
+          const result = await patientService.searchByNIC(searchQuery);
+          if (result && result.user) {
+            setPatientData([{
+              id: result.user.user_id,
+              name: result.user.full_name,
+              phone: result.user.contact_id || 'N/A',
+              patient: result
+            }]);
+            return;
+          }
+        } catch (nicError) {
+          // NIC not found, continue to general search
+        }
+      }
+
+      // Fall back to getting all patients and filtering locally
+      const data = await patientService.getAllPatients(0, 100);
+      const filtered = (data.patients || []).filter(p => {
+        const searchLower = searchQuery.toLowerCase();
+        return (
+          p.patient_id?.toString().includes(searchLower) ||
+          p.user_id?.toString().includes(searchLower)
+        );
+      });
+      
+      setPatientData(filtered.map(p => ({
+        id: p.patient_id,
+        name: p.user_id || 'Unknown',
+        phone: 'N/A',
+        patient: p
+      })));
+    } catch (err) {
+      setError(err.message || 'Failed to search patients');
+      console.error('Search error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     if (!formData.firstName || !formData.lastName || !formData.dob) {
       setError('First Name, Last Name, and Date of Birth are required');
       return;
     }
     
+    if (!formData.nic) {
+      setError('NIC is required for registration');
+      return;
+    }
+
     try {
-      const newPatient = patientDataService.addPatient(formData);
-      alert(`Patient Registered Successfully! Patient ID: ${newPatient.id}`);
-      
-      // Reset form
-      setFormData({
-        firstName: '', lastName: '', dob: '', gender: 'Male', phone: '', email: '',
-        emergencyName: '', emergencyNumber: '', branch: 'Colombo', 
-        insuranceProvider: '', policyNumber: ''
-      });
+      setLoading(true);
       setError('');
+      
+      const registrationData = {
+        full_name: `${formData.firstName} ${formData.lastName}`,
+        NIC: formData.nic,
+        email: formData.email || `${formData.firstName.toLowerCase()}@temp.com`,
+        gender: formData.gender,
+        DOB: formData.dob,
+        password: 'defaultPassword123', // You may want to generate this or ask for it
+        contact_num1: formData.phone,
+        contact_num2: formData.emergencyNumber || '',
+        address_line1: '',
+        address_line2: '',
+        city: formData.branch,
+        province: 'Western',
+        postal_code: '00000',
+        country: 'Sri Lanka',
+        blood_group: 'O+',
+        registered_branch_name: formData.branch
+      };
+
+      const result = await patientService.registerPatient(registrationData);
+      
+      if (result.success) {
+        alert(`Patient Registered Successfully! Patient ID: ${result.patient_id}`);
+        
+        // Reset form
+        setFormData({
+          firstName: '', lastName: '', dob: '', gender: 'Male', phone: '', email: '', nic: '',
+          emergencyName: '', emergencyNumber: '', branch: 'Colombo', 
+          insuranceProvider: '', policyNumber: ''
+        });
+      }
     } catch (err) {
-      setError('Failed to register patient. Please try again.');
+      setError(err.message || 'Failed to register patient. Please try again.');
+      console.error('Registration error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,6 +167,11 @@ const Patients = ({ role }) => {
               <input className="input" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} placeholder="Last Name" required />
             </label>
           </div>
+          <div className="grid">
+            <label className="label">NIC (National Identity Card)
+              <input className="input" value={formData.nic} onChange={(e) => setFormData({...formData, nic: e.target.value})} placeholder="NIC Number" required />
+            </label>
+          </div>
           <div className="grid grid-3" style={{gridTemplateColumns:"1fr 1fr 1fr"}}>
             <label className="label">Date of Birth
               <input className="input" type="date" value={formData.dob} onChange={(e) => setFormData({...formData, dob: e.target.value})} placeholder="DOB" required />
@@ -139,10 +215,13 @@ const Patients = ({ role }) => {
               <input className="input" value={formData.policyNumber} onChange={(e) => setFormData({...formData, policyNumber: e.target.value})} placeholder="Policy Number" />
             </label>
           </div>
-          {error && <div className="error">{error}</div>}
+          {error && <div className="error" style={{padding: '10px', background: '#fee', border: '1px solid red', borderRadius: '4px', marginTop: '10px'}}>{error}</div>}
+          {loading && <div style={{padding: '10px', background: '#e3f2fd', borderRadius: '4px', marginTop: '10px'}}>Processing...</div>}
           <div className="grid" style={{gridTemplateColumns:"1fr auto"}}>
             <div></div>
-            <button type="submit" className="btn primary">Register</button>
+            <button type="submit" className="btn primary" disabled={loading}>
+              {loading ? 'Registering...' : 'Register'}
+            </button>
           </div>
         </form>
       </section>

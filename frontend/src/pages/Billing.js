@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import patientDataService from '../services/patientDataService';
+import patientService from '../services/patientService';
+import billingService from '../services/billingService';
+import treatmentService from '../services/treatmentService';
 import '../styles/billing.css';
 
 export default function Billing() {
@@ -20,119 +23,20 @@ export default function Billing() {
   const [patientSearchQuery, setPatientSearchQuery] = useState('');
   const [selectedServices, setSelectedServices] = useState([]);
   const [showServiceSelector, setShowServiceSelector] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Service/Appointment Types with Pricing
-  const serviceTypes = [
-    { id: 'GEN_CONSULT', name: 'General Consultation', category: 'Consultation', price: 2500, icon: '👨‍⚕️' },
-    { id: 'SPEC_CONSULT', name: 'Specialist Consultation', category: 'Consultation', price: 5000, icon: '🩺' },
-    { id: 'CARDIO_CONSULT', name: 'Cardiology Consultation', category: 'Consultation', price: 7500, icon: '❤️' },
-    { id: 'DENTAL_CONSULT', name: 'Dental Consultation', category: 'Consultation', price: 3000, icon: '🦷' },
-    { id: 'PEDIATRIC_CONSULT', name: 'Pediatric Consultation', category: 'Consultation', price: 3500, icon: '👶' },
-    { id: 'BLOOD_TEST', name: 'Blood Test - Full Panel', category: 'Lab Tests', price: 4500, icon: '💉' },
-    { id: 'BLOOD_TEST_BASIC', name: 'Blood Test - Basic', category: 'Lab Tests', price: 2000, icon: '💉' },
-    { id: 'XRAY_CHEST', name: 'X-Ray - Chest', category: 'Imaging', price: 3500, icon: '📷' },
-    { id: 'XRAY_FULL', name: 'X-Ray - Full Body', category: 'Imaging', price: 8000, icon: '📷' },
-    { id: 'CT_SCAN', name: 'CT Scan', category: 'Imaging', price: 15000, icon: '🔬' },
-    { id: 'MRI_SCAN', name: 'MRI Scan', category: 'Imaging', price: 25000, icon: '🔬' },
-    { id: 'ULTRASOUND', name: 'Ultrasound Scan', category: 'Imaging', price: 4000, icon: '📡' },
-    { id: 'ECG', name: 'ECG Test', category: 'Diagnostic', price: 2500, icon: '📊' },
-    { id: 'ECHO', name: 'Echocardiogram', category: 'Diagnostic', price: 8500, icon: '❤️' },
-    { id: 'VACCINATION', name: 'Vaccination', category: 'Treatment', price: 1500, icon: '💊' },
-    { id: 'PHYSIOTHERAPY', name: 'Physiotherapy Session', category: 'Treatment', price: 3000, icon: '🏃' },
-    { id: 'MINOR_SURGERY', name: 'Minor Surgery', category: 'Surgery', price: 25000, icon: '⚕️' },
-    { id: 'EMERGENCY', name: 'Emergency Room Visit', category: 'Emergency', price: 10000, icon: '🚑' },
-  ];
+  // Service/Appointment Types - Fetched from backend
+  const [serviceTypes, setServiceTypes] = useState([]);
   
-  // Mock invoices data - in real app, this would come from API
-  const [invoices] = useState([
-    { 
-      id: 'INV-1023', 
-      patientId: 'P005',
-      patientName: 'Kamal Perera',
-      date: '2025-09-12', 
-      dueDate: '2025-10-12',
-      description: 'General Consultation - Dr. Silva',
-      total: 8500,
-      paid: 0,
-      status: 'Pending'
-    },
-    { 
-      id: 'INV-1022', 
-      patientId: 'P005',
-      patientName: 'Kamal Perera',
-      date: '2025-09-05', 
-      dueDate: '2025-10-05',
-      description: 'Lab Tests - Blood Panel',
-      total: 6500,
-      paid: 0,
-      status: 'Pending'
-    },
-    { 
-      id: 'INV-1020', 
-      patientId: 'P005',
-      patientName: 'Kamal Perera',
-      date: '2025-08-20', 
-      dueDate: '2025-09-20',
-      description: 'Cardiology Consultation',
-      total: 12000,
-      paid: 12000,
-      status: 'Paid'
-    },
-    { 
-      id: 'INV-1024', 
-      patientId: 'P001',
-      patientName: 'Nimal Silva',
-      date: '2025-09-18', 
-      dueDate: '2025-10-18',
-      description: 'X-Ray Scan - Chest',
-      total: 4500,
-      paid: 0,
-      status: 'Pending'
-    },
-    { 
-      id: 'INV-1025', 
-      patientId: 'P003',
-      patientName: 'Saman Fernando',
-      date: '2025-09-20', 
-      dueDate: '2025-10-20',
-      description: 'Dental Check-up',
-      total: 3500,
-      paid: 0,
-      status: 'Pending'
-    }
-  ]);
+  // Invoices data - Fetched from backend
+  const [invoices, setInvoices] = useState([]);
 
-  const [paymentHistory] = useState([
-    {
-      id: 'PAY-345',
-      date: '2025-08-22',
-      invoice: 'INV-1020',
-      patientId: 'P005',
-      patientName: 'Kamal Perera',
-      amount: 12000,
-      method: 'Credit Card',
-      processedBy: 'Staff - Sarah Williams'
-    },
-    {
-      id: 'PAY-322',
-      date: '2025-07-15',
-      invoice: 'INV-1015',
-      patientId: 'P002',
-      patientName: 'Sunil Jayawardena',
-      amount: 5500,
-      method: 'Insurance Claim',
-      processedBy: 'Staff - Michael Brown'
-    }
-  ]);
+  // Payment history - Fetched from backend
+  const [paymentHistory, setPaymentHistory] = useState([]);
 
-  // Get all patients for search
-  const allPatients = [
-    { id: 'P001', name: 'Nimal Silva', phone: '071-2345678', email: 'nimal@email.com' },
-    { id: 'P002', name: 'Sunil Jayawardena', phone: '077-8765432', email: 'sunil@email.com' },
-    { id: 'P003', name: 'Saman Fernando', phone: '075-9876543', email: 'saman@email.com' },
-    { id: 'P004', name: 'Ruwan Perera', phone: '070-1234567', email: 'ruwan@email.com' },
-    { id: 'P005', name: 'Kamal Perera', phone: '076-5432109', email: 'kamal@email.com' },
-  ];
+  // All patients for search - Fetched from backend
+  const [allPatients, setAllPatients] = useState([]);
 
   const filteredPatients = allPatients.filter(p => 
     p.name.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
@@ -141,12 +45,91 @@ export default function Billing() {
   );
 
   useEffect(() => {
-    if (patientId) {
-      // Fetch patient data
-      const fetchedPatient = patientDataService.getPatientById(patientId);
-      setPatient(fetchedPatient);
-    }
+    fetchBillingData();
   }, [patientId]);
+
+  const fetchBillingData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch service types from treatment catalogue
+      const treatments = await treatmentService.getAllTreatments();
+      const formattedServices = (treatments || []).map(t => ({
+        id: t.treatment_id,
+        name: t.treatment_name || 'Service',
+        category: t.category || 'General',
+        price: parseFloat(t.cost) || 0,
+        icon: getCategoryIcon(t.category)
+      }));
+      setServiceTypes(formattedServices);
+
+      // Fetch invoices
+      const invoicesData = await billingService.getPendingInvoices();
+      const formattedInvoices = (invoicesData || []).map(inv => ({
+        id: `INV-${inv.invoice_id}`,
+        patientId: `P${inv.patient_id}`,
+        patientName: inv.patient_name || 'Patient',
+        date: new Date(inv.invoice_date).toLocaleDateString(),
+        dueDate: inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A',
+        description: inv.description || 'Medical Services',
+        total: parseFloat(inv.total_amount) || 0,
+        paid: parseFloat(inv.paid_amount) || 0,
+        status: inv.status || 'Pending'
+      }));
+      setInvoices(formattedInvoices);
+
+      // Fetch payment history
+      const paymentsData = await billingService.getRecentPayments(50);
+      const formattedPayments = (paymentsData || []).map(pay => ({
+        id: `PAY-${pay.payment_id}`,
+        date: new Date(pay.payment_date).toLocaleDateString(),
+        invoice: `INV-${pay.invoice_id}`,
+        patientId: `P${pay.patient_id}`,
+        patientName: pay.patient_name || 'Patient',
+        amount: parseFloat(pay.amount) || 0,
+        method: pay.payment_method || 'Cash',
+        processedBy: pay.processed_by || 'Staff'
+      }));
+      setPaymentHistory(formattedPayments);
+
+      // Fetch all patients
+      const patientsData = await patientService.getAllPatients(0, 100);
+      const formattedPatients = (patientsData.patients || []).map(p => ({
+        id: `P${p.patient_id}`,
+        name: p.full_name || `Patient ${p.patient_id}`,
+        phone: p.contact_num || 'N/A',
+        email: p.email || 'N/A'
+      }));
+      setAllPatients(formattedPatients);
+
+      // If patientId is provided, fetch patient data
+      if (patientId) {
+        const fetchedPatient = patientDataService.getPatientById(patientId);
+        setPatient(fetchedPatient);
+      }
+
+    } catch (err) {
+      console.error('Error fetching billing data:', err);
+      setError('Failed to load billing data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to get icon based on category
+  const getCategoryIcon = (category) => {
+    const iconMap = {
+      'Consultation': '👨‍⚕️',
+      'Lab Tests': '💉',
+      'Imaging': '📷',
+      'Diagnostic': '📊',
+      'Treatment': '💊',
+      'Surgery': '⚕️',
+      'Emergency': '🚑'
+    };
+    return iconMap[category] || '🏥';
+  };
 
   const handleSelectPatient = (selectedPatient) => {
     setPatient(selectedPatient);
@@ -181,7 +164,7 @@ export default function Billing() {
   
   const totalOutstanding = outstandingInvoices.reduce((sum, inv) => sum + (inv.total - inv.paid), 0);
 
-  const handleProcessPayment = () => {
+  const handleProcessPayment = async () => {
     const totalAmount = calculateTotal();
     
     if (selectedServices.length === 0 || totalAmount <= 0) {
@@ -189,24 +172,29 @@ export default function Billing() {
       return;
     }
     
-    const paymentData = {
-      patientId: patient?.id || patientId,
-      patientName: patient?.name || 'Unknown',
-      amount: totalAmount,
-      services: selectedServices,
-      method: paymentMethod,
-      description: selectedServices.map(s => `${s.name} (x${s.quantity})`).join(', '),
-      date: new Date().toLocaleDateString(),
-      processedBy: 'Current Staff User'
-    };
-    
-    console.log('Processing payment:', paymentData);
-    alert(`Payment of LKR ${totalAmount.toLocaleString()} processed successfully for ${paymentData.patientName}!\n\nServices: ${paymentData.description}`);
-    
-    // Reset form
-    setSelectedServices([]);
-    setDescription('');
-    setShowPaymentModal(false);
+    try {
+      const paymentData = {
+        patient_id: parseInt(patient?.id.replace('P', '')) || parseInt(patientId),
+        amount: totalAmount,
+        payment_method: paymentMethod,
+        description: selectedServices.map(s => `${s.name} (x${s.quantity})`).join(', '),
+        payment_date: new Date().toISOString()
+      };
+      
+      // Process payment through backend
+      await billingService.processPayment(paymentData);
+      
+      alert(`Payment of LKR ${totalAmount.toLocaleString()} processed successfully!\n\nServices: ${paymentData.description}`);
+      
+      // Reset form and refresh data
+      setSelectedServices([]);
+      setDescription('');
+      setShowPaymentModal(false);
+      fetchBillingData();
+    } catch (err) {
+      console.error('Error processing payment:', err);
+      alert('Failed to process payment. Please try again.');
+    }
   };
 
   const handlePayInvoice = (invoice) => {
@@ -215,6 +203,27 @@ export default function Billing() {
     setDescription(`Payment for ${invoice.description}`);
     setShowPaymentModal(true);
   };
+
+  if (loading) {
+    return (
+      <div style={{padding: '20px', textAlign: 'center'}}>
+        <div style={{fontSize: '48px', marginBottom: '20px'}}>⏳</div>
+        <h2>Loading Billing Data...</h2>
+        <p style={{color: '#64748b'}}>Please wait while we fetch the information</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{padding: '20px', textAlign: 'center'}}>
+        <div style={{fontSize: '48px', marginBottom: '20px'}}>⚠️</div>
+        <h2 style={{color: 'var(--accent-red)'}}>Error Loading Billing Data</h2>
+        <p style={{color: '#64748b', marginBottom: '20px'}}>{error}</p>
+        <button className="btn primary" onClick={fetchBillingData}>Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div style={{padding: '20px', maxWidth: '1400px', margin: '0 auto', background: 'var(--surface-secondary)', minHeight: '100vh'}}>
