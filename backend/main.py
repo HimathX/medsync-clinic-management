@@ -7,7 +7,7 @@ from core.database import test_database_connection, get_database_info
 from routers import (
     doctor, appointment, branch, patient, conditions, 
     staff, timeslot, insurance, medication, prescription, 
-    consultation, treatment_catalogue
+    consultation, treatment_catalogue, treatment, payment, invoice, claims
 )
 
 @asynccontextmanager
@@ -55,7 +55,11 @@ app.include_router(insurance.router, prefix="/insurance")
 app.include_router(medication.router, prefix="/medications")
 app.include_router(prescription.router, prefix="/prescriptions")
 app.include_router(consultation.router, prefix="/consultations")
-app.include_router(treatment_catalogue.router, prefix="/treatments")
+app.include_router(treatment_catalogue.router, prefix="/treatment-catalogue")
+app.include_router(treatment.router, prefix="/treatment-records")
+app.include_router(payment.router, prefix="/payments")
+app.include_router(invoice.router, prefix="/invoices")
+app.include_router(claims.router, prefix="/claims")
 
 @app.get("/")
 def read_root():

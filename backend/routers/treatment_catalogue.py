@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Path
 from typing import Optional, List
 from pydantic import BaseModel, Field, validator
 from core.database import get_db
@@ -624,10 +624,12 @@ def get_treatment_statistics(
 # GET TREATMENTS BY PRICE RANGE
 # ============================================
 
+from fastapi import Path
+
 @router.get("/price-range/{min_price}/{max_price}", status_code=status.HTTP_200_OK)
 def get_treatments_by_price_range(
-    min_price: float = Query(..., ge=0),
-    max_price: float = Query(..., ge=0)
+    min_price: float = Path(..., ge=0, description="Minimum price"),
+    max_price: float = Path(..., ge=0, description="Maximum price")
 ):
     """Get all treatments within a price range"""
     if max_price < min_price:
