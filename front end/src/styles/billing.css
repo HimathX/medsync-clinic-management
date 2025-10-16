@@ -1,0 +1,252 @@
+/* Billing Page - Staff Theme (Black/White/Red) */
+/* This stylesheet applies the minimal staff theme to the billing page */
+
+/* Override blue gradients with red accents */
+.billing-page {
+  background: var(--surface-secondary);
+  min-height: 100vh;
+}
+
+/* Tab buttons */
+.billing-tab-active {
+  background: var(--accent-red) !important;
+  color: var(--primary-white) !important;
+  border-bottom: 3px solid var(--accent-red) !important;
+}
+
+.billing-tab-inactive {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-bottom: 3px solid transparent !important;
+}
+
+/* Primary buttons */
+.billing-btn-primary {
+  background: var(--accent-red) !important;
+  color: var(--primary-white) !important;
+  border: 2px solid var(--accent-red) !important;
+}
+
+.billing-btn-primary:hover {
+  background: var(--accent-red-light) !important;
+  border-color: var(--accent-red-light) !important;
+}
+
+.billing-btn-primary:disabled {
+  background: var(--neutral-300) !important;
+  border-color: var(--neutral-300) !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+
+/* Secondary buttons */
+.billing-btn-secondary {
+  background: var(--primary-white) !important;
+  color: var(--primary-black) !important;
+  border: 2px solid var(--border-default) !important;
+}
+
+.billing-btn-secondary:hover {
+  background: var(--surface-secondary) !important;
+  border-color: var(--border-strong) !important;
+}
+
+/* Cards */
+.billing-card {
+  background: var(--primary-white) !important;
+  border: 2px solid var(--border-default) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+.billing-card-accent {
+  background: var(--primary-white) !important;
+  border: 2px solid var(--accent-red) !important;
+  border-radius: 12px !important;
+}
+
+/* Patient avatar */
+.billing-avatar {
+  background: var(--accent-red) !important;
+  color: var(--primary-white) !important;
+  box-shadow: 0 4px 12px rgba(197, 48, 48, 0.3) !important;
+}
+
+/* Service selector hover */
+.billing-service-card {
+  background: var(--primary-white);
+  border: 2px solid var(--border-default);
+  transition: all 0.2s ease;
+}
+
+.billing-service-card:hover {
+  border-color: var(--accent-red) !important;
+  background: var(--accent-red-subtle) !important;
+  transform: translateY(-2px);
+}
+
+/* Patient selector hover */
+.billing-patient-card:hover {
+  border-color: var(--accent-red) !important;
+  background: var(--accent-red-subtle) !important;
+}
+
+/* Success banner */
+.billing-success-banner {
+  background: var(--surface-secondary) !important;
+  border: 2px solid var(--border-default) !important;
+  border-left: 4px solid var(--accent-red) !important;
+}
+
+/* Service price highlight */
+.billing-price-highlight {
+  color: var(--accent-red) !important;
+  font-weight: 700 !important;
+}
+
+/* Total amount display */
+.billing-total {
+  color: var(--primary-black) !important;
+  font-weight: 800 !important;
+}
+
+/* Input focus states */
+.billing-input:focus {
+  border-color: var(--accent-red) !important;
+  box-shadow: 0 0 0 3px rgba(197, 48, 48, 0.2) !important;
+}
+
+/* Table styles */
+.billing-table {
+  border: 2px solid var(--border-default);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.billing-table thead {
+  background: var(--surface-secondary);
+  border-bottom: 2px solid var(--border-default);
+}
+
+.billing-table tbody tr {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.billing-table tbody tr:hover {
+  background: var(--surface-secondary);
+}
+
+/* Quantity controls */
+.billing-qty-minus {
+  border: 2px solid var(--border-default) !important;
+  background: var(--primary-white) !important;
+  color: var(--text-secondary) !important;
+}
+
+.billing-qty-plus {
+  border: 2px solid var(--accent-red) !important;
+  background: var(--accent-red) !important;
+  color: var(--primary-white) !important;
+}
+
+/* Remove button */
+.billing-remove-btn {
+  background: var(--accent-red-subtle) !important;
+  border: 2px solid var(--accent-red) !important;
+  color: var(--accent-red-dark) !important;
+}
+
+/* Empty state */
+.billing-empty-state {
+  background: var(--surface-secondary);
+  border: 2px dashed var(--border-default);
+  color: var(--text-secondary);
+}
+
+/* Invoice status badges */
+.billing-status-pending {
+  background: var(--accent-red-subtle);
+  color: var(--accent-red-dark);
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.billing-status-paid {
+  background: var(--surface-tertiary);
+  color: var(--primary-black);
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Financial summary cards */
+.billing-summary-card {
+  background: var(--primary-white);
+  border: 2px solid var(--border-default);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.billing-summary-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.billing-summary-card-danger {
+  border: 2px solid var(--accent-red);
+}
+
+/* Modal overlay */
+.billing-modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.billing-modal-content {
+  background: var(--primary-white);
+  border: 2px solid var(--border-default);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Change patient button */
+.billing-change-patient-btn {
+  background: var(--accent-red) !important;
+  color: var(--primary-white) !important;
+  border: 2px solid var(--accent-red) !important;
+}
+
+/* Service selector dropdown */
+.billing-service-selector {
+  background: var(--surface-secondary);
+  border: 2px solid var(--border-default);
+  border-radius: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Category headers */
+.billing-category-header {
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .billing-summary-card {
+    padding: 15px;
+  }
+  
+  .billing-modal-content {
+    width: 95vw;
+    max-width: none;
+  }
+}
