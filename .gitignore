@@ -23,3 +23,10 @@ yarn-debug.log*
 yarn-error.log*
 
 pycanche/
+
+
+node_modules/
+.npm
+.node_repl_history
+*.tgz
+.yarn-integrity

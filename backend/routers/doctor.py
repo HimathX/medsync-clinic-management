@@ -1,18 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import text
+from fastapi import APIRouter, HTTPException, status
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 from datetime import date
 from decimal import Decimal
 from core.database import get_db
-from models.employee import Doctor, Employee, DoctorSpecialization, Specialization
-from models.user import User
-from models.appointment import TimeSlot
 import hashlib
 import json
+import logging
 
-router = APIRouter(tags=["doctors"])
+router = APIRouter(tags=["doctor"])
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Password hashing helper
 def hash_password(password: str) -> str:
@@ -23,9 +23,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password against hash"""
     return hash_password(plain_password) == hashed_password
 
-# ============================================
-# PYDANTIC SCHEMAS
-# ============================================
 
 class DoctorRegistrationRequest(BaseModel):
     # Address
@@ -76,7 +73,7 @@ class DoctorRegistrationRequest(BaseModel):
                 "gender": "Male",
                 "DOB": "1975-05-15",
                 "password": "SecureDoc123!",
-                "branch_name": "MedSync Colombo",
+                "branch_name": "Main Branch",
                 "salary": 120000.00,
                 "joined_date": "2025-01-01",
                 "room_no": "R101",
@@ -124,15 +121,9 @@ class AddSpecializationResponse(BaseModel):
             }
         }
 
-# ============================================
-# DOCTOR REGISTRATION ENDPOINT
-# ============================================
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=DoctorRegistrationResponse)
-def register_doctor(
-    doctor_data: DoctorRegistrationRequest,
-    db: Session = Depends(get_db)
-):
+def register_doctor(doctor_data: DoctorRegistrationRequest):
     """
     Register a new doctor using stored procedure
     
@@ -142,77 +133,76 @@ def register_doctor(
     - Associates specializations
     """
     try:
-        # Hash the password using SHA-256
-        password_hash = hash_password(doctor_data.password)
-        
-        # Convert specialization IDs to JSON array for MySQL
-        specialization_json = json.dumps(doctor_data.specialization_ids) if doctor_data.specialization_ids else None
-        
-        # Call the stored procedure
-        result = db.execute(
-            text("""
+        with get_db() as (cursor, connection):
+            # Hash the password using SHA-256
+            password_hash = hash_password(doctor_data.password)
+            
+            # Convert specialization IDs to JSON array for MySQL
+            specialization_json = json.dumps(doctor_data.specialization_ids) if doctor_data.specialization_ids else None
+            
+            # Set session variables for OUT parameters
+            cursor.execute("SET @p_user_id = NULL")
+            cursor.execute("SET @p_error_message = NULL")
+            cursor.execute("SET @p_success = NULL")
+            
+            # Call stored procedure
+            call_sql = """
                 CALL RegisterDoctor(
-                    :p_address_line1, :p_address_line2, :p_city, :p_province, 
-                    :p_postal_code, :p_country,
-                    :p_contact_num1, :p_contact_num2,
-                    :p_full_name, :p_NIC, :p_email, :p_gender, :p_DOB, :p_password_hash,
-                    :p_branch_name, :p_salary, :p_joined_date,
-                    :p_room_no, :p_medical_licence_no, :p_consultation_fee, :p_specialization_ids,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                     @p_user_id, @p_error_message, @p_success
                 )
-            """),
-            {
-                "p_address_line1": doctor_data.address_line1,
-                "p_address_line2": doctor_data.address_line2,
-                "p_city": doctor_data.city,
-                "p_province": doctor_data.province,
-                "p_postal_code": doctor_data.postal_code,
-                "p_country": doctor_data.country,
-                "p_contact_num1": doctor_data.contact_num1,
-                "p_contact_num2": doctor_data.contact_num2,
-                "p_full_name": doctor_data.full_name,
-                "p_NIC": doctor_data.NIC,
-                "p_email": doctor_data.email,
-                "p_gender": doctor_data.gender,
-                "p_DOB": doctor_data.DOB,
-                "p_password_hash": password_hash,
-                "p_branch_name": doctor_data.branch_name,
-                "p_salary": float(doctor_data.salary),
-                "p_joined_date": doctor_data.joined_date,
-                "p_room_no": doctor_data.room_no,
-                "p_medical_licence_no": doctor_data.medical_licence_no,
-                "p_consultation_fee": float(doctor_data.consultation_fee),
-                "p_specialization_ids": specialization_json
-            }
-        )
-        
-        # Get output parameters
-        output = db.execute(text("SELECT @p_user_id, @p_error_message, @p_success")).fetchone()
-        
-        user_id = output[0]  # type: ignore
-        error_message = output[1]  # type: ignore
-        success = bool(output[2])  # type: ignore
-        
-        # Commit the transaction
-        db.commit()
-        
-        if success:
-            return DoctorRegistrationResponse(
-                success=True,
-                message=error_message or "Doctor registered successfully",
-                doctor_id=user_id
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=error_message or "Failed to register doctor"
-            )
+            """
             
+            cursor.execute(call_sql, (
+                doctor_data.address_line1,
+                doctor_data.address_line2 or '',
+                doctor_data.city,
+                doctor_data.province,
+                doctor_data.postal_code,
+                doctor_data.country or 'Sri Lanka',
+                doctor_data.contact_num1,
+                doctor_data.contact_num2 or '',
+                doctor_data.full_name,
+                doctor_data.NIC,
+                doctor_data.email,
+                doctor_data.gender,
+                doctor_data.DOB,
+                password_hash,
+                doctor_data.branch_name,
+                float(doctor_data.salary),
+                doctor_data.joined_date,
+                doctor_data.room_no,
+                doctor_data.medical_licence_no,
+                float(doctor_data.consultation_fee),
+                specialization_json
+            ))
+            
+            # Get OUT parameters
+            cursor.execute("SELECT @p_user_id as user_id, @p_error_message as error_message, @p_success as success")
+            result = cursor.fetchone()
+            
+            user_id = result['user_id']
+            error_message = result['error_message']
+            success = result['success']
+            
+            logger.info(f"Doctor registration result - Success: {success}, User ID: {user_id}, Error: {error_message}")
+            
+            if success == 1 or success is True:
+                return DoctorRegistrationResponse(
+                    success=True,
+                    message=error_message or "Doctor registered successfully",
+                    doctor_id=user_id
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=error_message or "Failed to register doctor"
+                )
+                
     except HTTPException:
-        db.rollback()
         raise
     except Exception as e:
-        db.rollback()
+        logger.error(f"Error during doctor registration: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during registration: {str(e)}"
@@ -223,105 +213,170 @@ def register_doctor(
 # ============================================
 
 @router.get("/", status_code=status.HTTP_200_OK)
-def get_all_doctors(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
+def get_all_doctors(skip: int = 0, limit: int = 100):
     """Get all doctors with pagination"""
-    doctors = db.query(Doctor).offset(skip).limit(limit).all()
-    return {
-        "total": db.query(Doctor).count(),
-        "doctors": doctors
-    }
+    try:
+        with get_db() as (cursor, connection):
+            # Get total count
+            cursor.execute("SELECT COUNT(*) as total FROM doctor")
+            total_result = cursor.fetchone()
+            total = total_result['total'] if total_result else 0
+            
+            # Get doctors with pagination
+            cursor.execute(
+                """SELECT d.*, e.*, u.full_name, u.email, u.contact_id
+                   FROM doctor d
+                   JOIN employee e ON d.doctor_id = e.employee_id
+                   JOIN user u ON d.doctor_id = u.user_id
+                   WHERE e.is_active = TRUE
+                   LIMIT %s OFFSET %s""",
+                (limit, skip)
+            )
+            doctors = cursor.fetchall()
+            
+            return {
+                "total": total,
+                "doctors": doctors or []
+            }
+    except Exception as e:
+        logger.error(f"Error fetching doctors: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
 
 @router.get("/{doctor_id}", status_code=status.HTTP_200_OK)
-def get_doctor_by_id(
-    doctor_id: str,
-    db: Session = Depends(get_db)
-):
+def get_doctor_by_id(doctor_id: str):
     """Get doctor details by ID"""
-    doctor = db.query(Doctor).filter(Doctor.doctor_id == doctor_id).first()
-    
-    if not doctor:
+    try:
+        with get_db() as (cursor, connection):
+            # Get doctor details
+            cursor.execute(
+                """SELECT d.*, e.*, u.full_name, u.email, u.NIC, u.gender, u.DOB
+                   FROM doctor d
+                   JOIN employee e ON d.doctor_id = e.employee_id
+                   JOIN user u ON d.doctor_id = u.user_id
+                   WHERE d.doctor_id = %s""",
+                (doctor_id,)
+            )
+            doctor = cursor.fetchone()
+            
+            if not doctor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Get specializations
+            cursor.execute(
+                """SELECT s.*, ds.certification_date
+                   FROM specialization s
+                   JOIN doctor_specialization ds ON s.specialization_id = ds.specialization_id
+                   WHERE ds.doctor_id = %s""",
+                (doctor_id,)
+            )
+            specializations = cursor.fetchall()
+            
+            return {
+                "doctor": doctor,
+                "specializations": specializations or []
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching doctor {doctor_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Doctor with ID {doctor_id} not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
         )
-    
-    # Get user and employee details
-    user = db.query(User).filter(User.user_id == doctor_id).first()
-    employee = db.query(Employee).filter(Employee.employee_id == doctor_id).first()
-    
-    # Get specializations
-    specializations = db.query(Specialization).join(
-        DoctorSpecialization,
-        Specialization.specialization_id == DoctorSpecialization.specialization_id
-    ).filter(
-        DoctorSpecialization.doctor_id == doctor_id
-    ).all()
-    
-    return {
-        "doctor": doctor,
-        "user": user,
-        "employee": employee,
-        "specializations": specializations
-    }
 
 @router.get("/{doctor_id}/time-slots", status_code=status.HTTP_200_OK)
-def get_doctor_time_slots(
-    doctor_id: str,
-    available_only: bool = True,
-    db: Session = Depends(get_db)
-):
+def get_doctor_time_slots(doctor_id: str, available_only: bool = True):
     """Get all time slots for a doctor"""
-    # Check if doctor exists
-    doctor = db.query(Doctor).filter(Doctor.doctor_id == doctor_id).first()
-    if not doctor:
+    try:
+        with get_db() as (cursor, connection):
+            # Check if doctor exists
+            cursor.execute("SELECT doctor_id FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            doctor = cursor.fetchone()
+            
+            if not doctor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Build query
+            query = "SELECT * FROM time_slot WHERE doctor_id = %s"
+            params = [doctor_id]
+            
+            if available_only:
+                query += " AND is_booked = FALSE AND available_date >= CURDATE()"
+            
+            query += " ORDER BY available_date, start_time"
+            
+            cursor.execute(query, params)
+            time_slots = cursor.fetchall()
+            
+            return {
+                "doctor_id": doctor_id,
+                "total": len(time_slots),
+                "time_slots": time_slots or []
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching time slots for doctor {doctor_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Doctor with ID {doctor_id} not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
         )
-    
-    query = db.query(TimeSlot).filter(TimeSlot.doctor_id == doctor_id)
-    
-    if available_only:
-        query = query.filter(
-            TimeSlot.is_booked == False,
-            TimeSlot.available_date >= date.today()
-        )
-    
-    time_slots = query.all()
-    
-    return {
-        "doctor_id": doctor_id,
-        "time_slots": time_slots
-    }
 
 @router.get("/specialization/{specialization_id}", status_code=status.HTTP_200_OK)
-def get_doctors_by_specialization(
-    specialization_id: str,
-    db: Session = Depends(get_db)
-):
+def get_doctors_by_specialization(specialization_id: str):
     """Get all doctors with a specific specialization"""
-    doctors = db.query(Doctor).join(
-        DoctorSpecialization,
-        Doctor.doctor_id == DoctorSpecialization.doctor_id
-    ).filter(
-        DoctorSpecialization.specialization_id == specialization_id
-    ).all()
-    
-    return {
-        "specialization_id": specialization_id,
-        "doctors": doctors
-    }
+    try:
+        with get_db() as (cursor, connection):
+            # Check if specialization exists
+            cursor.execute(
+                "SELECT * FROM specialization WHERE specialization_id = %s",
+                (specialization_id,)
+            )
+            specialization = cursor.fetchone()
+            
+            if not specialization:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Specialization with ID {specialization_id} not found"
+                )
+            
+            # Get doctors with this specialization
+            cursor.execute(
+                """SELECT d.*, e.*, u.full_name, u.email
+                   FROM doctor d
+                   JOIN employee e ON d.doctor_id = e.employee_id
+                   JOIN user u ON d.doctor_id = u.user_id
+                   JOIN doctor_specialization ds ON d.doctor_id = ds.doctor_id
+                   WHERE ds.specialization_id = %s AND e.is_active = TRUE""",
+                (specialization_id,)
+            )
+            doctors = cursor.fetchall()
+            
+            return {
+                "specialization": specialization,
+                "total": len(doctors),
+                "doctors": doctors or []
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching doctors by specialization {specialization_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
 
 @router.post("/{doctor_id}/specializations", status_code=status.HTTP_201_CREATED, response_model=AddSpecializationResponse)
-def add_doctor_specialization(
-    doctor_id: str,
-    specialization_data: AddSpecializationRequest,
-    db: Session = Depends(get_db)
-):
+def add_doctor_specialization(doctor_id: str, specialization_data: AddSpecializationRequest):
     """
     Add a new specialization to a doctor
     
@@ -330,127 +385,131 @@ def add_doctor_specialization(
     - Associates specialization with certification date
     """
     try:
-        # Call the stored procedure
-        result = db.execute(
-            text("""
-                CALL AddDoctorSpecialization(
-                    :p_doctor_id,
-                    :p_specialization_id,
-                    :p_certification_date,
-                    @p_error_message,
-                    @p_success
-                )
-            """),
-            {
-                "p_doctor_id": doctor_id,
-                "p_specialization_id": specialization_data.specialization_id,
-                "p_certification_date": specialization_data.certification_date
-            }
-        )
-        
-        # Get output parameters
-        output = db.execute(text("SELECT @p_error_message, @p_success")).fetchone()
-        
-        error_message = output[0]  # type: ignore
-        success = bool(output[1])  # type: ignore
-        
-        # Commit the transaction
-        db.commit()
-        
-        if success:
-            return AddSpecializationResponse(
-                success=True,
-                message=error_message or "Doctor specialization added successfully"
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=error_message or "Failed to add specialization"
-            )
+        with get_db() as (cursor, connection):
+            # Set session variables for OUT parameters
+            cursor.execute("SET @p_error_message = NULL")
+            cursor.execute("SET @p_success = NULL")
             
+            # Call stored procedure
+            call_sql = """
+                CALL AddDoctorSpecialization(
+                    %s, %s, %s,
+                    @p_error_message, @p_success
+                )
+            """
+            
+            cursor.execute(call_sql, (
+                doctor_id,
+                specialization_data.specialization_id,
+                specialization_data.certification_date
+            ))
+            
+            # Get OUT parameters
+            cursor.execute("SELECT @p_error_message as error_message, @p_success as success")
+            result = cursor.fetchone()
+            
+            error_message = result['error_message']
+            success = result['success']
+            
+            if success == 1 or success is True:
+                logger.info(f"Specialization added to doctor {doctor_id}")
+                return AddSpecializationResponse(
+                    success=True,
+                    message=error_message or "Doctor specialization added successfully"
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=error_message or "Failed to add specialization"
+                )
+                
     except HTTPException:
-        db.rollback()
         raise
     except Exception as e:
-        db.rollback()
+        logger.error(f"Error adding specialization to doctor {doctor_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while adding specialization: {str(e)}"
         )
 
 @router.get("/{doctor_id}/specializations", status_code=status.HTTP_200_OK)
-def get_doctor_specializations(
-    doctor_id: str,
-    db: Session = Depends(get_db)
-):
+def get_doctor_specializations(doctor_id: str):
     """Get all specializations for a specific doctor"""
-    # Check if doctor exists
-    doctor = db.query(Doctor).filter(Doctor.doctor_id == doctor_id).first()
-    if not doctor:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Doctor with ID {doctor_id} not found"
-        )
-    
-    # Get specializations with certification dates
-    specializations = db.query(
-        Specialization,
-        DoctorSpecialization.certification_date
-    ).join(
-        DoctorSpecialization,
-        Specialization.specialization_id == DoctorSpecialization.specialization_id
-    ).filter(
-        DoctorSpecialization.doctor_id == doctor_id
-    ).all()
-    
-    return {
-        "doctor_id": doctor_id,
-        "total": len(specializations),
-        "specializations": [
-            {
-                "specialization_id": spec.specialization_id,
-                "specialization_title": spec.specialization_title,
-                "other_details": spec.other_details,
-                "certification_date": cert_date
-            }
-            for spec, cert_date in specializations
-        ]
-    }
-
-@router.delete("/{doctor_id}/specializations/{specialization_id}", status_code=status.HTTP_200_OK)
-def remove_doctor_specialization(
-    doctor_id: str,
-    specialization_id: str,
-    db: Session = Depends(get_db)
-):
-    """Remove a specialization from a doctor"""
     try:
-        # Check if the association exists
-        specialization = db.query(DoctorSpecialization).filter(
-            DoctorSpecialization.doctor_id == doctor_id,
-            DoctorSpecialization.specialization_id == specialization_id
-        ).first()
-        
-        if not specialization:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Specialization not found for this doctor"
+        with get_db() as (cursor, connection):
+            # Check if doctor exists
+            cursor.execute("SELECT doctor_id FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            doctor = cursor.fetchone()
+            
+            if not doctor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Get specializations with certification dates
+            cursor.execute(
+                """SELECT s.*, ds.certification_date
+                   FROM specialization s
+                   JOIN doctor_specialization ds ON s.specialization_id = ds.specialization_id
+                   WHERE ds.doctor_id = %s""",
+                (doctor_id,)
             )
-        
-        # Delete the association
-        db.delete(specialization)
-        db.commit()
-        
-        return {
-            "success": True,
-            "message": "Specialization removed successfully"
-        }
-        
+            specializations = cursor.fetchall()
+            
+            return {
+                "doctor_id": doctor_id,
+                "total": len(specializations),
+                "specializations": specializations or []
+            }
     except HTTPException:
-        db.rollback()
         raise
     except Exception as e:
-        db.rollback()
+        logger.error(f"Error fetching specializations for doctor {doctor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
+
+@router.delete("/{doctor_id}/specializations/{specialization_id}", status_code=status.HTTP_200_OK)
+def remove_doctor_specialization(doctor_id: str, specialization_id: str):
+    """Remove a specialization from a doctor"""
+    try:
+        with get_db() as (cursor, connection):
+            # Check if the association exists
+            cursor.execute(
+                """SELECT * FROM doctor_specialization 
+                   WHERE doctor_id = %s AND specialization_id = %s""",
+                (doctor_id, specialization_id)
+            )
+            specialization = cursor.fetchone()
+            
+            if not specialization:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Specialization not found for this doctor"
+                )
+            
+            # Delete the association
+            cursor.execute(
+                """DELETE FROM doctor_specialization 
+                   WHERE doctor_id = %s AND specialization_id = %s""",
+                (doctor_id, specialization_id)
+            )
+            
+            connection.commit()
+            
+            logger.info(f"Specialization {specialization_id} removed from doctor {doctor_id}")
+            
+            return {
+                "success": True,
+                "message": "Specialization removed successfully"
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing specialization from doctor {doctor_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while removing specialization: {str(e)}"

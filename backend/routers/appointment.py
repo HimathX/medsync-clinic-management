@@ -1,31 +1,63 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from typing import Optional, List
+from fastapi import APIRouter, HTTPException, status, Query
+from typing import Optional
 from datetime import date, time
 from pydantic import BaseModel, Field
 from core.database import get_db
-from models.appointment import Appointment, TimeSlot
-from models.patient import Patient
-from models.employee import Doctor
-from schemas.appointment import (
-    AppointmentBookingRequest,
-    AppointmentBookingResponse,
-    AppointmentUpdateRequest
-)
+import logging
 
 router = APIRouter(tags=["appointments"])
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ============================================
 # PYDANTIC SCHEMAS
 # ============================================
 
+class AppointmentBookingRequest(BaseModel):
+    patient_id: str = Field(..., description="Patient ID (UUID)")
+    time_slot_id: str = Field(..., description="Time slot ID (UUID)")
+    notes: Optional[str] = Field(None, description="Additional notes")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "patient_id": "patient-uuid-here",
+                "time_slot_id": "timeslot-uuid-here",
+                "notes": "Patient prefers morning appointments"
+            }
+        }
+
+class AppointmentBookingResponse(BaseModel):
+    success: bool
+    message: str
+    appointment_id: Optional[str] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Appointment booked successfully",
+                "appointment_id": "appointment-uuid-here"
+            }
+        }
+
+class AppointmentUpdateRequest(BaseModel):
+    status: Optional[str] = Field(None, pattern="^(Scheduled|Completed|Cancelled|No-Show)$")
+    notes: Optional[str] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "Completed",
+                "notes": "Patient completed consultation"
+            }
+        }
+
 
 @router.post("/book", status_code=status.HTTP_201_CREATED, response_model=AppointmentBookingResponse)
-def book_appointment(
-    booking_data: AppointmentBookingRequest,
-    db: Session = Depends(get_db)
-):
+def book_appointment(booking_data: AppointmentBookingRequest):
     """
     Book a new appointment using stored procedure
     
@@ -34,196 +66,490 @@ def book_appointment(
     - Creates appointment record
     """
     try:
-        # Call the stored procedure
-        result = db.execute(
-            text("""
-                CALL BookAppointment(
-                    :p_patient_id,
-                    :p_time_slot_id,
-                    :p_notes,
-                    @p_appointment_id,
-                    @p_error_message,
-                    @p_success
+        logger.info(f"Attempting to book appointment - Patient: {booking_data.patient_id}, Time Slot: {booking_data.time_slot_id}")
+        
+        with get_db() as (cursor, connection):
+            # Pre-validation: Check if patient exists
+            try:
+                cursor.execute(
+                    "SELECT patient_id FROM patient WHERE patient_id = %s",
+                    (booking_data.patient_id,)
                 )
-            """),
-            {
-                "p_patient_id": booking_data.patient_id,
-                "p_time_slot_id": booking_data.time_slot_id,
-                "p_notes": booking_data.notes
-            }
-        )
-        
-        # Get output parameters
-        output = db.execute(text("SELECT @p_appointment_id, @p_error_message, @p_success")).fetchone()
-        
-        appointment_id = output[0]  # type: ignore
-        error_message = output[1]  # type: ignore
-        success = bool(output[2])  # type: ignore
-        
-        # Commit the transaction
-        db.commit()
-        
-        if success:
-            return AppointmentBookingResponse(
-                success=True,
-                message=error_message or "Appointment booked successfully",
-                appointment_id=appointment_id
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=error_message or "Failed to book appointment"
-            )
+                if not cursor.fetchone():
+                    logger.warning(f"Patient not found: {booking_data.patient_id}")
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Patient with ID {booking_data.patient_id} not found"
+                    )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error checking patient: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Error validating patient"
+                )
             
+            # Pre-validation: Check time slot details
+            try:
+                cursor.execute(
+                    """SELECT 
+                        ts.time_slot_id, 
+                        ts.is_booked, 
+                        ts.available_date,
+                        ts.start_time,
+                        ts.end_time,
+                        u.full_name as doctor_name,
+                        b.branch_name
+                    FROM time_slot ts
+                    JOIN doctor d ON ts.doctor_id = d.doctor_id
+                    JOIN user u ON d.doctor_id = u.user_id
+                    JOIN branch b ON ts.branch_id = b.branch_id
+                    WHERE ts.time_slot_id = %s""",
+                    (booking_data.time_slot_id,)
+                )
+                slot = cursor.fetchone()
+                
+                if not slot:
+                    logger.warning(f"Time slot not found: {booking_data.time_slot_id}")
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Time slot with ID {booking_data.time_slot_id} not found"
+                    )
+                
+                # Check if already booked
+                if slot['is_booked'] == 1 or slot['is_booked'] is True:
+                    logger.warning(f"Time slot already booked: {booking_data.time_slot_id}")
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail={
+                            "error": "Time slot already booked",
+                            "slot_details": {
+                                "date": str(slot['available_date']),
+                                "time": f"{slot['start_time']} - {slot['end_time']}",
+                                "doctor": slot['doctor_name'],
+                                "branch": slot['branch_name']
+                            }
+                        }
+                    )
+                
+                # Check if in the past
+                if slot['available_date'] < date.today():
+                    logger.warning(f"Time slot in the past: {booking_data.time_slot_id}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Cannot book time slot in the past (Date: {slot['available_date']})"
+                    )
+                
+                logger.info(f"Pre-validation passed - Slot available on {slot['available_date']} at {slot['start_time']}")
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error checking time slot: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Error validating time slot"
+                )
+            
+            # Set session variables for OUT parameters
+            try:
+                cursor.execute("SET @p_appointment_id = NULL")
+                cursor.execute("SET @p_error_message = NULL")
+                cursor.execute("SET @p_success = NULL")
+            except Exception as e:
+                logger.error(f"Error setting session variables: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Database session error"
+                )
+            
+            # Call stored procedure
+            try:
+                call_sql = """
+                    CALL BookAppointment(
+                        %s, %s, %s,
+                        @p_appointment_id, @p_error_message, @p_success
+                    )
+                """
+                
+                cursor.execute(call_sql, (
+                    booking_data.patient_id,
+                    booking_data.time_slot_id,
+                    booking_data.notes
+                ))
+                
+                logger.info("Stored procedure executed successfully")
+                
+            except Exception as e:
+                logger.error(f"Error calling stored procedure: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error executing booking procedure: {str(e)}"
+                )
+            
+            # Get OUT parameters
+            try:
+                cursor.execute("""
+                    SELECT 
+                        @p_appointment_id as appointment_id,
+                        @p_error_message as error_message,
+                        @p_success as success
+                """)
+                result = cursor.fetchone()
+                
+                if not result:
+                    logger.error("No result from stored procedure")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="No response from booking procedure"
+                    )
+                
+                appointment_id = result['appointment_id']
+                error_message = result['error_message']
+                success = result['success']
+                
+                logger.info(f"Stored procedure result - Success: {success}, ID: {appointment_id}, Message: {error_message}")
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error reading procedure output: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Error processing booking result"
+                )
+            
+            # Process result
+            if success == 1 or success is True:
+                logger.info(f"✅ Appointment booked successfully: {appointment_id}")
+                return AppointmentBookingResponse(
+                    success=True,
+                    message=error_message or "Appointment booked successfully",
+                    appointment_id=appointment_id
+                )
+            else:
+                logger.warning(f"❌ Booking failed: {error_message}")
+                
+                # Map specific error messages to appropriate status codes
+                if error_message:
+                    if "already booked" in error_message.lower():
+                        status_code = status.HTTP_409_CONFLICT
+                    elif "not found" in error_message.lower():
+                        status_code = status.HTTP_404_NOT_FOUND
+                    elif "past" in error_message.lower():
+                        status_code = status.HTTP_400_BAD_REQUEST
+                    else:
+                        status_code = status.HTTP_400_BAD_REQUEST
+                else:
+                    status_code = status.HTTP_400_BAD_REQUEST
+                    error_message = "Failed to book appointment"
+                
+                raise HTTPException(
+                    status_code=status_code,
+                    detail=error_message
+                )
+                
     except HTTPException:
-        db.rollback()
         raise
+    except ValueError as e:
+        logger.error(f"Validation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
     except Exception as e:
-        db.rollback()
+        logger.error(f"Unexpected error booking appointment: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while booking appointment: {str(e)}"
+            detail=f"An unexpected error occurred: {str(e)}"
         )
 
-# ============================================
-# GET ENDPOINTS
-# ============================================
 
 @router.get("/", status_code=status.HTTP_200_OK)
 def get_all_appointments(
-    skip: int = 0,
-    limit: int = 100,
-    status_filter: Optional[str] = None,
-    date_filter: Optional[date] = None,
-    db: Session = Depends(get_db)
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    status_filter: Optional[str] = Query(None, pattern="^(Scheduled|Completed|Cancelled|No-Show)$"),
+    date_filter: Optional[date] = None
 ):
     """Get all appointments with optional filters"""
-    query = db.query(Appointment)
-    
-    if status_filter:
-        query = query.filter(Appointment.status == status_filter)
-    
-    if date_filter:
-        query = query.join(TimeSlot).filter(TimeSlot.available_date == date_filter)
-    
-    appointments = query.offset(skip).limit(limit).all()
-    
-    return {
-        "total": query.count(),
-        "appointments": appointments
-    }
+    try:
+        with get_db() as (cursor, connection):
+            # Build the WHERE clause
+            where_conditions = []
+            params = []
+            
+            if status_filter:
+                where_conditions.append("a.status = %s")
+                params.append(status_filter)
+            
+            if date_filter:
+                where_conditions.append("ts.available_date = %s")
+                params.append(date_filter)
+            
+            where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+            
+            # Get total count with a separate query
+            count_query = f"""
+                SELECT COUNT(*) as total
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN user u_patient ON p.patient_id = u_patient.user_id
+                JOIN doctor d ON ts.doctor_id = d.doctor_id
+                JOIN user u_doctor ON d.doctor_id = u_doctor.user_id
+                JOIN branch b ON ts.branch_id = b.branch_id
+                WHERE {where_clause}
+            """
+            
+            cursor.execute(count_query, params)
+            total_result = cursor.fetchone()
+            total = total_result['total'] if total_result else 0
+            
+            # Main query with all fields
+            query = f"""
+                SELECT 
+                    a.*,
+                    ts.available_date, ts.start_time, ts.end_time, ts.branch_id,
+                    u_patient.full_name as patient_name,
+                    u_doctor.full_name as doctor_name,
+                    b.branch_name
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN user u_patient ON p.patient_id = u_patient.user_id
+                JOIN doctor d ON ts.doctor_id = d.doctor_id
+                JOIN user u_doctor ON d.doctor_id = u_doctor.user_id
+                JOIN branch b ON ts.branch_id = b.branch_id
+                WHERE {where_clause}
+                ORDER BY ts.available_date DESC, ts.start_time DESC 
+                LIMIT %s OFFSET %s
+            """
+            
+            # Add pagination parameters
+            params_with_pagination = params + [limit, skip]
+            
+            cursor.execute(query, params_with_pagination)
+            appointments = cursor.fetchall()
+            
+            return {
+                "total": total,
+                "returned": len(appointments),
+                "appointments": appointments or []
+            }
+    except Exception as e:
+        logger.error(f"Error fetching appointments: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
+
 
 @router.get("/{appointment_id}", status_code=status.HTTP_200_OK)
-def get_appointment_by_id(
-    appointment_id: str,
-    db: Session = Depends(get_db)
-):
-    """Get appointment details by ID"""
-    appointment = db.query(Appointment).filter(
-        Appointment.appointment_id == appointment_id
-    ).first()
-    
-    if not appointment:
+def get_appointment_by_id(appointment_id: str):
+    """Get appointment details by ID with all related information"""
+    try:
+        with get_db() as (cursor, connection):
+            cursor.execute(
+                """SELECT 
+                    a.*,
+                    ts.available_date, ts.start_time, ts.end_time, ts.branch_id, ts.doctor_id,
+                    u_patient.full_name as patient_name, u_patient.email as patient_email,
+                    p.blood_group,
+                    u_doctor.full_name as doctor_name, u_doctor.email as doctor_email,
+                    d.medical_licence_no, d.consultation_fee,
+                    b.branch_name
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN user u_patient ON p.patient_id = u_patient.user_id
+                JOIN doctor d ON ts.doctor_id = d.doctor_id
+                JOIN user u_doctor ON d.doctor_id = u_doctor.user_id
+                JOIN branch b ON ts.branch_id = b.branch_id
+                WHERE a.appointment_id = %s""",
+                (appointment_id,)
+            )
+            appointment = cursor.fetchone()
+            
+            if not appointment:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Appointment with ID {appointment_id} not found"
+                )
+            
+            # Check if consultation record exists
+            cursor.execute(
+                "SELECT * FROM consultation_record WHERE appointment_id = %s",
+                (appointment_id,)
+            )
+            consultation = cursor.fetchone()
+            
+            return {
+                "appointment": appointment,
+                "consultation_record": consultation
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching appointment {appointment_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Appointment with ID {appointment_id} not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
         )
-    
-    # Get related data
-    time_slot = db.query(TimeSlot).filter(
-        TimeSlot.time_slot_id == appointment.time_slot_id
-    ).first()
-    
-    patient = db.query(Patient).filter(
-        Patient.patient_id == appointment.patient_id
-    ).first()
-    
-    doctor = None
-    if time_slot:
-        doctor = db.query(Doctor).filter(
-            Doctor.doctor_id == time_slot.doctor_id
-        ).first()
-    
-    return {
-        "appointment": appointment,
-        "time_slot": time_slot,
-        "patient": patient,
-        "doctor": doctor
-    }
+
 
 @router.get("/patient/{patient_id}", status_code=status.HTTP_200_OK)
 def get_appointments_by_patient(
     patient_id: str,
-    include_past: bool = False,
-    db: Session = Depends(get_db)
+    include_past: bool = False
 ):
     """Get all appointments for a specific patient"""
-    # Check if patient exists
-    patient = db.query(Patient).filter(Patient.patient_id == patient_id).first()
-    if not patient:
+    try:
+        with get_db() as (cursor, connection):
+            # Check if patient exists
+            cursor.execute("SELECT * FROM patient WHERE patient_id = %s", (patient_id,))
+            patient = cursor.fetchone()
+            
+            if not patient:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Patient with ID {patient_id} not found"
+                )
+            
+            query = """
+                SELECT 
+                    a.*,
+                    ts.available_date, ts.start_time, ts.end_time,
+                    u_doctor.full_name as doctor_name,
+                    b.branch_name
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN doctor d ON ts.doctor_id = d.doctor_id
+                JOIN user u_doctor ON d.doctor_id = u_doctor.user_id
+                JOIN branch b ON ts.branch_id = b.branch_id
+                WHERE a.patient_id = %s
+            """
+            
+            params = [patient_id]
+            
+            if not include_past:
+                query += " AND ts.available_date >= CURDATE()"
+            
+            query += " ORDER BY ts.available_date DESC, ts.start_time DESC"
+            
+            cursor.execute(query, params)
+            appointments = cursor.fetchall()
+            
+            return {
+                "patient_id": patient_id,
+                "total": len(appointments),
+                "appointments": appointments or []
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching appointments for patient {patient_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Patient with ID {patient_id} not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
         )
-    
-    query = db.query(Appointment).filter(Appointment.patient_id == patient_id)
-    
-    if not include_past:
-        query = query.join(TimeSlot).filter(TimeSlot.available_date >= date.today())
-    
-    appointments = query.all()
-    
-    return {
-        "patient_id": patient_id,
-        "appointments": appointments
-    }
+
 
 @router.get("/doctor/{doctor_id}", status_code=status.HTTP_200_OK)
 def get_appointments_by_doctor(
     doctor_id: str,
-    include_past: bool = False,
-    db: Session = Depends(get_db)
+    include_past: bool = False
 ):
     """Get all appointments for a specific doctor"""
-    # Check if doctor exists
-    doctor = db.query(Doctor).filter(Doctor.doctor_id == doctor_id).first()
-    if not doctor:
+    try:
+        with get_db() as (cursor, connection):
+            # Check if doctor exists
+            cursor.execute("SELECT * FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            doctor = cursor.fetchone()
+            
+            if not doctor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            query = """
+                SELECT 
+                    a.*,
+                    ts.available_date, ts.start_time, ts.end_time,
+                    u_patient.full_name as patient_name,
+                    b.branch_name
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN user u_patient ON p.patient_id = u_patient.user_id
+                JOIN branch b ON ts.branch_id = b.branch_id
+                WHERE ts.doctor_id = %s
+            """
+            
+            params = [doctor_id]
+            
+            if not include_past:
+                query += " AND ts.available_date >= CURDATE()"
+            
+            query += " ORDER BY ts.available_date DESC, ts.start_time DESC"
+            
+            cursor.execute(query, params)
+            appointments = cursor.fetchall()
+            
+            return {
+                "doctor_id": doctor_id,
+                "total": len(appointments),
+                "appointments": appointments or []
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching appointments for doctor {doctor_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Doctor with ID {doctor_id} not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
         )
-    
-    query = db.query(Appointment).join(
-        TimeSlot,
-        Appointment.time_slot_id == TimeSlot.time_slot_id
-    ).filter(TimeSlot.doctor_id == doctor_id)
-    
-    if not include_past:
-        query = query.filter(TimeSlot.available_date >= date.today())
-    
-    appointments = query.all()
-    
-    return {
-        "doctor_id": doctor_id,
-        "appointments": appointments
-    }
+
 
 @router.get("/date/{appointment_date}", status_code=status.HTTP_200_OK)
-def get_appointments_by_date(
-    appointment_date: date,
-    db: Session = Depends(get_db)
-):
+def get_appointments_by_date(appointment_date: date):
     """Get all appointments for a specific date"""
-    appointments = db.query(Appointment).join(
-        TimeSlot,
-        Appointment.time_slot_id == TimeSlot.time_slot_id
-    ).filter(TimeSlot.available_date == appointment_date).all()
-    
-    return {
-        "date": appointment_date,
-        "total": len(appointments),
-        "appointments": appointments
-    }
+    try:
+        with get_db() as (cursor, connection):
+            cursor.execute(
+                """SELECT 
+                    a.*,
+                    ts.available_date, ts.start_time, ts.end_time,
+                    u_patient.full_name as patient_name,
+                    u_doctor.full_name as doctor_name,
+                    b.branch_name
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN user u_patient ON p.patient_id = u_patient.user_id
+                JOIN doctor d ON ts.doctor_id = d.doctor_id
+                JOIN user u_doctor ON d.doctor_id = u_doctor.user_id
+                JOIN branch b ON ts.branch_id = b.branch_id
+                WHERE ts.available_date = %s
+                ORDER BY ts.start_time""",
+                (appointment_date,)
+            )
+            appointments = cursor.fetchall()
+            
+            return {
+                "date": str(appointment_date),
+                "total": len(appointments),
+                "appointments": appointments or []
+            }
+    except Exception as e:
+        logger.error(f"Error fetching appointments for date {appointment_date}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
+
 
 # ============================================
 # UPDATE/CANCEL ENDPOINTS
@@ -232,101 +558,133 @@ def get_appointments_by_date(
 @router.patch("/{appointment_id}", status_code=status.HTTP_200_OK)
 def update_appointment(
     appointment_id: str,
-    update_data: AppointmentUpdateRequest,
-    db: Session = Depends(get_db)
+    update_data: AppointmentUpdateRequest
 ):
-    """Update appointment details (status, diagnosis, prescription, notes)"""
+    """Update appointment details (status, notes)"""
     try:
-        appointment = db.query(Appointment).filter(
-            Appointment.appointment_id == appointment_id
-        ).first()
-        
-        if not appointment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Appointment with ID {appointment_id} not found"
+        with get_db() as (cursor, connection):
+            # Check if appointment exists
+            cursor.execute(
+                "SELECT * FROM appointment WHERE appointment_id = %s",
+                (appointment_id,)
             )
-        
-        # Update fields if provided
-        if update_data.status:
-            appointment.status = update_data.status
-        if update_data.diagnosis:
-            appointment.diagnosis = update_data.diagnosis
-        if update_data.prescription:
-            appointment.prescription = update_data.prescription
-        if update_data.notes:
-            appointment.notes = update_data.notes
-        
-        db.commit()
-        db.refresh(appointment)
-        
-        return {
-            "success": True,
-            "message": "Appointment updated successfully",
-            "appointment": appointment
-        }
-        
+            appointment = cursor.fetchone()
+            
+            if not appointment:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Appointment with ID {appointment_id} not found"
+                )
+            
+            # Build update query
+            updates = []
+            params = []
+            
+            if update_data.status:
+                updates.append("status = %s")
+                params.append(update_data.status)
+            
+            if update_data.notes is not None:
+                updates.append("notes = %s")
+                params.append(update_data.notes)
+            
+            if not updates:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No fields to update"
+                )
+            
+            params.append(appointment_id)
+            
+            update_query = f"""
+                UPDATE appointment 
+                SET {', '.join(updates)}
+                WHERE appointment_id = %s
+            """
+            
+            cursor.execute(update_query, params)
+            connection.commit()
+            
+            # Fetch updated record
+            cursor.execute(
+                "SELECT * FROM appointment WHERE appointment_id = %s",
+                (appointment_id,)
+            )
+            updated_appointment = cursor.fetchone()
+            
+            logger.info(f"Appointment {appointment_id} updated successfully")
+            
+            return {
+                "success": True,
+                "message": "Appointment updated successfully",
+                "appointment": updated_appointment
+            }
+            
     except HTTPException:
-        db.rollback()
         raise
     except Exception as e:
-        db.rollback()
+        logger.error(f"Error updating appointment {appointment_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while updating appointment: {str(e)}"
         )
 
+
 @router.delete("/{appointment_id}", status_code=status.HTTP_200_OK)
-def cancel_appointment(
-    appointment_id: str,
-    db: Session = Depends(get_db)
-):
+def cancel_appointment(appointment_id: str):
     """Cancel an appointment and free up the time slot"""
     try:
-        appointment = db.query(Appointment).filter(
-            Appointment.appointment_id == appointment_id
-        ).first()
-        
-        if not appointment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Appointment with ID {appointment_id} not found"
+        with get_db() as (cursor, connection):
+            # Get appointment details
+            cursor.execute(
+                "SELECT * FROM appointment WHERE appointment_id = %s",
+                (appointment_id,)
             )
-        
-        if appointment.status in ['Completed', 'Cancelled']:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot cancel appointment with status: {appointment.status}"
+            appointment = cursor.fetchone()
+            
+            if not appointment:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Appointment with ID {appointment_id} not found"
+                )
+            
+            if appointment['status'] in ['Completed', 'Cancelled']:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Cannot cancel appointment with status: {appointment['status']}"
+                )
+            
+            # Update appointment status
+            cursor.execute(
+                "UPDATE appointment SET status = 'Cancelled' WHERE appointment_id = %s",
+                (appointment_id,)
             )
-        
-        # Update appointment status
-        appointment.status = 'Cancelled'
-        
-        # Free up the time slot
-        time_slot = db.query(TimeSlot).filter(
-            TimeSlot.time_slot_id == appointment.time_slot_id
-        ).first()
-        
-        if time_slot:
-            time_slot.is_booked = False
-        
-        db.commit()
-        
-        return {
-            "success": True,
-            "message": "Appointment cancelled successfully",
-            "appointment_id": appointment_id
-        }
-        
+            
+            # Free up the time slot
+            cursor.execute(
+                "UPDATE time_slot SET is_booked = FALSE WHERE time_slot_id = %s",
+                (appointment['time_slot_id'],)
+            )
+            
+            connection.commit()
+            
+            logger.info(f"Appointment {appointment_id} cancelled successfully")
+            
+            return {
+                "success": True,
+                "message": "Appointment cancelled successfully",
+                "appointment_id": appointment_id
+            }
+            
     except HTTPException:
-        db.rollback()
         raise
     except Exception as e:
-        db.rollback()
+        logger.error(f"Error cancelling appointment {appointment_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while cancelling appointment: {str(e)}"
         )
+
 
 # ============================================
 # TIME SLOT MANAGEMENT
@@ -336,37 +694,114 @@ def cancel_appointment(
 def get_available_time_slots(
     doctor_id: str,
     date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
-    db: Session = Depends(get_db)
+    date_to: Optional[date] = None
 ):
     """Get available time slots for a doctor within a date range"""
-    # Check if doctor exists
-    doctor = db.query(Doctor).filter(Doctor.doctor_id == doctor_id).first()
-    if not doctor:
+    try:
+        with get_db() as (cursor, connection):
+            # Check if doctor exists
+            cursor.execute("SELECT * FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            doctor = cursor.fetchone()
+            
+            if not doctor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            query = """
+                SELECT ts.*, b.branch_name
+                FROM time_slot ts
+                JOIN branch b ON ts.branch_id = b.branch_id
+                WHERE ts.doctor_id = %s 
+                AND ts.is_booked = FALSE 
+                AND ts.available_date >= CURDATE()
+            """
+            
+            params = [doctor_id]
+            
+            if date_from:
+                query += " AND ts.available_date >= %s"
+                params.append(date_from) # type: ignore
+            
+            if date_to:
+                query += " AND ts.available_date <= %s"
+                params.append(date_to)   # type: ignore
+            
+            query += " ORDER BY ts.available_date, ts.start_time"
+            
+            cursor.execute(query, params)
+            time_slots = cursor.fetchall()
+            
+            return {
+                "doctor_id": doctor_id,
+                "total_available": len(time_slots),
+                "time_slots": time_slots or []
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching time slots for doctor {doctor_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Doctor with ID {doctor_id} not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
         )
-    
-    query = db.query(TimeSlot).filter(
-        TimeSlot.doctor_id == doctor_id,
-        TimeSlot.is_booked == False,
-        TimeSlot.available_date >= date.today()
-    )
-    
-    if date_from:
-        query = query.filter(TimeSlot.available_date >= date_from)
-    if date_to:
-        query = query.filter(TimeSlot.available_date <= date_to)
-    
-    time_slots = query.order_by(
-        TimeSlot.available_date,
-        TimeSlot.start_time
-    ).all()
-    
-    return {
-        "doctor_id": doctor_id,
-        "total_available": len(time_slots),
-        "time_slots": time_slots
-    }
+
+
+@router.get("/available-slots/branch/{branch_id}", status_code=status.HTTP_200_OK)
+def get_available_time_slots_by_branch(
+    branch_id: str,
+    date_filter: Optional[date] = None
+):
+    """Get all available time slots for a specific branch"""
+    try:
+        with get_db() as (cursor, connection):
+            # Check if branch exists
+            cursor.execute("SELECT * FROM branch WHERE branch_id = %s", (branch_id,))
+            branch = cursor.fetchone()
+            
+            if not branch:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Branch with ID {branch_id} not found"
+                )
+            
+            query = """
+                SELECT 
+                    ts.*,
+                    u.full_name as doctor_name,
+                    d.consultation_fee
+                FROM time_slot ts
+                JOIN doctor d ON ts.doctor_id = d.doctor_id
+                JOIN user u ON d.doctor_id = u.user_id
+                WHERE ts.branch_id = %s 
+                AND ts.is_booked = FALSE 
+                AND ts.available_date >= CURDATE()
+            """
+            
+            params = [branch_id]
+            
+            if date_filter:
+                query += " AND ts.available_date = %s"
+                params.append(date_filter) # type: ignore
+            
+            query += " ORDER BY ts.available_date, ts.start_time"
+            
+            cursor.execute(query, params)
+            time_slots = cursor.fetchall()
+            
+            return {
+                "branch_id": branch_id,
+                "branch_name": branch['branch_name'],
+                "total_available": len(time_slots),
+                "time_slots": time_slots or []
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching time slots for branch {branch_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
 
