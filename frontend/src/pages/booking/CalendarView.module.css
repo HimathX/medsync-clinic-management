@@ -1,9 +1,0 @@
-.wrapper{border:1px solid #e2e8f0;border-radius:12px;background:#fff;padding:12px}
-.header{font-weight:600;margin-bottom:8px;color:#0f172a}
-.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
-.day{border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#fff;cursor:pointer}
-.day:disabled{opacity:.4;cursor:not-allowed}
-.selected{box-shadow:0 0 0 3px rgba(37,99,235,.15);border-color:#2563eb}
-.dow{font-size:12px;color:#64748b}
-.num{font-weight:600;color:#0f172a}
-

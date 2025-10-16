@@ -1,8 +1,0 @@
-.wrapper{display:flex;gap:16px;margin-bottom:16px;align-items:center}
-.step{position:relative;display:flex;align-items:center;gap:10px}
-.dot{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;border:2px solid #cbd5e1;color:#334155;background:#fff}
-.active .dot{border-color:#2563eb;color:#2563eb}
-.label{color:#334155}
-.bar{width:120px;height:2px;background:#e2e8f0;margin-left:8px;margin-right:8px}
-.filled{background:#2563eb}
-
