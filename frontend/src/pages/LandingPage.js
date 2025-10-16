@@ -66,85 +66,418 @@ export default function LandingPage() {
       </section>
 
       {/* Main Headline Section */}
-      <section className="headline-section">
-        <div className="container">
-          <h2 className="main-headline">
-            Channelling the <span className="highlight-blue">Best Doctor</span> Has Never Been This Easy!
+      <section className="headline-section" style={{padding: '80px 0', background: 'linear-gradient(180deg, #ffffff 0%, #f9fafb 100%)'}}>
+        <div className="container" style={{textAlign: 'center'}}>
+          <div style={{
+            display: 'inline-block',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            padding: '8px 20px',
+            borderRadius: '30px',
+            fontSize: '14px',
+            fontWeight: '600',
+            marginBottom: '20px'
+          }}>
+            ✨ Welcome to MedSync Healthcare
+          </div>
+          <h2 style={{
+            fontSize: '48px',
+            fontWeight: '800',
+            color: '#1a2332',
+            marginBottom: '20px',
+            lineHeight: '1.2'
+          }}>
+            Your Health, <span style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>Our Priority</span>
           </h2>
-          <p className="headline-subtitle">
-            Book appointments with our highly qualified specialists through our easy-to-use patient portal
+          <p style={{
+            fontSize: '20px',
+            color: '#64748b',
+            maxWidth: '700px',
+            margin: '0 auto 40px',
+            lineHeight: '1.6'
+          }}>
+            Experience world-class healthcare with cutting-edge technology, expert medical professionals, and compassionate care. Your journey to better health starts here.
           </p>
+          <div style={{display: 'flex', gap: '40px', justifyContent: 'center', marginTop: '50px'}}>
+            <div style={{textAlign: 'center'}}>
+              <div style={{fontSize: '42px', fontWeight: '800', color: '#667eea'}}>50K+</div>
+              <div style={{fontSize: '14px', color: '#64748b'}}>Patients Served</div>
+            </div>
+            <div style={{textAlign: 'center'}}>
+              <div style={{fontSize: '42px', fontWeight: '800', color: '#10b981'}}>200+</div>
+              <div style={{fontSize: '14px', color: '#64748b'}}>Medical Experts</div>
+            </div>
+            <div style={{textAlign: 'center'}}>
+              <div style={{fontSize: '42px', fontWeight: '800', color: '#f59e0b'}}>15+</div>
+              <div style={{fontSize: '14px', color: '#64748b'}}>Years Excellence</div>
+            </div>
+            <div style={{textAlign: 'center'}}>
+              <div style={{fontSize: '42px', fontWeight: '800', color: '#ef4444'}}>24/7</div>
+              <div style={{fontSize: '14px', color: '#64748b'}}>Emergency Care</div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Portal Selection Section */}
-      <section className="portal-selection-section">
+      <section className="portal-selection-section" style={{padding: '100px 0', background: 'white'}}>
         <div className="container">
-          <div className="portal-grid">
-            {/* Staff Portal Card */}
-            <div className="portal-card-modern staff-portal-card" onClick={() => navigate('/staff-login')}>
-              <div className="portal-image-wrapper">
-                <div className="portal-image staff-image">
-                  <div className="image-placeholder">
-                    <span className="placeholder-icon">👨‍⚕️</span>
-                    <p className="placeholder-text">Medical Professional</p>
-                  </div>
+          <div className="section-header" style={{textAlign: 'center', marginBottom: '60px'}}>
+            <div style={{
+              display: 'inline-block',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              padding: '6px 16px',
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: '600',
+              marginBottom: '16px'
+            }}>
+              SELECT YOUR PORTAL
+            </div>
+            <h2 style={{fontSize: '42px', fontWeight: '800', color: '#1a2332', marginBottom: '16px'}}>
+              Access Your Dashboard
+            </h2>
+            <p style={{fontSize: '18px', color: '#64748b', maxWidth: '600px', margin: '0 auto'}}>
+              Choose the portal that matches your role to access personalized features and services
+            </p>
+          </div>
+          
+          <div className="portal-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '30px',
+            maxWidth: '1200px',
+            margin: '0 auto'
+          }}>
+            
+            {/* Patient Portal Card */}
+            <div className="portal-card-modern patient-portal-card" style={{
+              background: 'white',
+              borderRadius: '24px',
+              padding: '40px 30px',
+              border: '2px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-8px)';
+              e.currentTarget.style.boxShadow = '0 20px 60px rgba(102, 126, 234, 0.2)';
+              e.currentTarget.style.borderColor = '#667eea';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+            }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '150px',
+                height: '150px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                opacity: 0.05,
+                borderRadius: '0 24px 0 100%'
+              }}></div>
+              <div style={{position: 'relative', zIndex: 1}}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '40px',
+                  marginBottom: '24px'
+                }}>
+                  👨‍👩‍👧‍👦
                 </div>
-                <div className="portal-badge">
-                  <span className="badge-icon">🏥</span>
-                  <span className="badge-text">Staff Portal</span>
+                <h3 style={{fontSize: '28px', fontWeight: '700', marginBottom: '8px', color: '#1a2332'}}>
+                  Patient Portal
+                </h3>
+                <p style={{fontSize: '15px', color: '#64748b', marginBottom: '24px'}}>
+                  For Patients & Families
+                </p>
+                <ul style={{listStyle: 'none', padding: 0, marginBottom: '30px'}}>
+                  {['Book & Manage Appointments', 'View Medical Records', 'Online Bill Payment', 'Prescription Management', 'Lab Results Access'].map((item, idx) => (
+                    <li key={idx} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      marginBottom: '12px',
+                      color: '#475569',
+                      fontSize: '15px'
+                    }}>
+                      <span style={{
+                        width: '24px',
+                        height: '24px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '12px',
+                        flexShrink: 0
+                      }}>✓</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div style={{display: 'flex', gap: '10px'}}>
+                  <button 
+                  onClick={() => navigate('/patient-login')}
+                  style={{
+                    flex: 1,
+                    padding: '14px 24px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => navigate('/patient-signup')}
+                  style={{
+                    flex: 1,
+                    padding: '14px 24px',
+                    background: 'white',
+                    color: '#667eea',
+                    border: '2px solid #667eea',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#667eea';
+                    e.target.style.color = 'white';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'white';
+                    e.target.style.color = '#667eea';
+                  }}
+                >
+                  Register
+                </button>
                 </div>
               </div>
-              <div className="portal-content">
-                <h3 className="portal-heading">Staff & Admin Access</h3>
-                <div className="quote-mark">"</div>
-                <p className="portal-quote">
-                  Our highly skilled and compassionate medical team is committed to providing excellence in healthcare management and patient care.
+            </div>
+            
+            {/* Doctor Portal Card */}
+            <div style={{
+              background: 'white',
+              borderRadius: '24px',
+              padding: '40px 30px',
+              border: '2px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-8px)';
+              e.currentTarget.style.boxShadow = '0 20px 60px rgba(16, 185, 129, 0.2)';
+              e.currentTarget.style.borderColor = '#10b981';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+            }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '150px',
+                height: '150px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                opacity: 0.05,
+                borderRadius: '0 24px 0 100%'
+              }}></div>
+              <div style={{position: 'relative', zIndex: 1}}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '40px',
+                  marginBottom: '24px'
+                }}>
+                  👨‍⚕️
+                </div>
+                <h3 style={{fontSize: '28px', fontWeight: '700', marginBottom: '8px', color: '#1a2332'}}>
+                  Doctor Portal
+                </h3>
+                <p style={{fontSize: '15px', color: '#64748b', marginBottom: '24px'}}>
+                  For Medical Professionals
                 </p>
-                <ul className="portal-features-list">
-                  <li>✓ Patient Database Management</li>
-                  <li>✓ Appointment Scheduling System</li>
-                  <li>✓ Billing & Insurance Processing</li>
-                  <li>✓ Medical Records Management</li>
-                  <li>✓ Analytics & Reporting</li>
+                <ul style={{listStyle: 'none', padding: 0, marginBottom: '30px'}}>
+                  {['Patient Consultation Records', 'Appointment Schedule', 'Prescription Management', 'Treatment History', 'Lab Results Review'].map((item, idx) => (
+                    <li key={idx} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      marginBottom: '12px',
+                      color: '#475569',
+                      fontSize: '15px'
+                    }}>
+                      <span style={{
+                        width: '24px',
+                        height: '24px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '12px',
+                        flexShrink: 0
+                      }}>✓</span>
+                      {item}
+                    </li>
+                  ))}
                 </ul>
-                <button className="portal-cta-btn staff-cta">
-                  <span>Enter Staff Portal</span>
-                  <span className="btn-arrow">→</span>
+                <button 
+                  onClick={() => navigate('/staff-login')}
+                  style={{
+                    width: '100%',
+                    padding: '14px 24px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  Doctor Login →
                 </button>
               </div>
             </div>
-
-            {/* Patient Portal Card */}
-            <div className="portal-card-modern patient-portal-card" onClick={() => navigate('/patient-login')}>
-              <div className="portal-image-wrapper">
-                <div className="portal-image patient-image">
-                  <div className="image-placeholder">
-                    <span className="placeholder-icon">🧑‍🤝‍🧑</span>
-                    <p className="placeholder-text">Patient Care</p>
-                  </div>
+            
+            {/* Staff Portal Card */}
+            <div style={{
+              background: 'white',
+              borderRadius: '24px',
+              padding: '40px 30px',
+              border: '2px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-8px)';
+              e.currentTarget.style.boxShadow = '0 20px 60px rgba(59, 130, 246, 0.2)';
+              e.currentTarget.style.borderColor = '#3b82f6';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+            }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '150px',
+                height: '150px',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                opacity: 0.05,
+                borderRadius: '0 24px 0 100%'
+              }}></div>
+              <div style={{position: 'relative', zIndex: 1}}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '40px',
+                  marginBottom: '24px'
+                }}>
+                  🏥
                 </div>
-                <div className="portal-badge patient-badge">
-                  <span className="badge-icon">❤️</span>
-                  <span className="badge-text">Patient Portal</span>
-                </div>
-              </div>
-              <div className="portal-content">
-                <h3 className="portal-heading">Patient Access</h3>
-                <div className="quote-mark">"</div>
-                <p className="portal-quote">
-                  Enjoy personalized consultations in our spacious and comfortable consultation rooms, designed for your privacy and comfort.
+                <h3 style={{fontSize: '28px', fontWeight: '700', marginBottom: '8px', color: '#1a2332'}}>
+                  Staff Portal
+                </h3>
+                <p style={{fontSize: '15px', color: '#64748b', marginBottom: '24px'}}>
+                  For Admin & Support Staff
                 </p>
-                <ul className="portal-features-list">
-                  <li>✓ Book & Manage Appointments</li>
-                  <li>✓ View Medical Records & Results</li>
-                  <li>✓ Online Bill Payment</li>
-                  <li>✓ Prescription Management</li>
-                  <li>✓ Direct Doctor Communication</li>
+                <ul style={{listStyle: 'none', padding: 0, marginBottom: '30px'}}>
+                  {['Patient Database Management', 'Appointment Scheduling', 'Billing & Insurance', 'Inventory Management', 'Reports & Analytics'].map((item, idx) => (
+                    <li key={idx} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      marginBottom: '12px',
+                      color: '#475569',
+                      fontSize: '15px'
+                    }}>
+                      <span style={{
+                        width: '24px',
+                        height: '24px',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '12px',
+                        flexShrink: 0
+                      }}>✓</span>
+                      {item}
+                    </li>
+                  ))}
                 </ul>
-                <button className="portal-cta-btn patient-cta">
-                  <span>Enter Patient Portal</span>
-                  <span className="btn-arrow">→</span>
+                <button 
+                  onClick={() => navigate('/staff-login')}
+                  style={{
+                    width: '100%',
+                    padding: '14px 24px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  Staff Login →
                 </button>
               </div>
             </div>

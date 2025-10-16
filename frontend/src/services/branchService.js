@@ -11,8 +11,8 @@ class BranchService {
    * @returns {Promise} List of all branches
    */
   async getAllBranches() {
-    const response = await api.get('/branch/all');
-    return response.data;
+    const response = await api.get('/branches/?limit=100');
+    return response.data.branches || []; // Extract branches array from response
   }
 
   /**
@@ -21,7 +21,7 @@ class BranchService {
    * @returns {Promise} Branch details
    */
   async getBranchById(branchId) {
-    const response = await api.get(`/branch/${branchId}`);
+    const response = await api.get(`/branches/${branchId}`);
     return response.data;
   }
 
@@ -31,7 +31,7 @@ class BranchService {
    * @returns {Promise} Branch details
    */
   async getBranchByName(branchName) {
-    const response = await api.get(`/branch/name/${branchName}`);
+    const response = await api.get(`/branches/name/${branchName}`);
     return response.data;
   }
 
@@ -41,7 +41,7 @@ class BranchService {
    * @returns {Promise} Created branch
    */
   async createBranch(branchData) {
-    const response = await api.post('/branch/create', branchData);
+    const response = await api.post('/branches/create', branchData);
     return response.data;
   }
 
@@ -52,7 +52,7 @@ class BranchService {
    * @returns {Promise} Updated branch
    */
   async updateBranch(branchId, branchData) {
-    const response = await api.put(`/branch/update/${branchId}`, branchData);
+    const response = await api.put(`/branches/update/${branchId}`, branchData);
     return response.data;
   }
 
@@ -62,7 +62,7 @@ class BranchService {
    * @returns {Promise} Deletion confirmation
    */
   async deleteBranch(branchId) {
-    const response = await api.delete(`/branch/delete/${branchId}`);
+    const response = await api.delete(`/branches/delete/${branchId}`);
     return response.data;
   }
 }

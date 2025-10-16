@@ -1,12 +1,16 @@
-// src/pages/Profile.js
-import React, { useState } from 'react';
+// src/pages/Profile.js - User Profile Management
+import React, { useState, useEffect } from 'react';
+import authService from '../services/authService';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
 
-export default function Profile({ user }) {
+export default function Profile() {
+  const currentUser = authService.getCurrentUser();
   const [tab, setTab] = useState('Personal');
   const [photo, setPhoto] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    name: user.name, gender:'Male', nationality:'Sri Lankan',
-    phone:'+94', phone2:'', email:'you@example.com',
+    name: currentUser?.fullName || '', gender:'Male', nationality:'Sri Lankan',
+    phone:'+94', phone2:'', email: currentUser?.email || '',
     address:'', mailingSame:true,
     e1:{name:'', relation:'Spouse', phone:'', alt:'', email:'', address:''},
     e2:{name:'', relation:'Parent', phone:'', alt:'', email:'', address:''},
@@ -14,11 +18,32 @@ export default function Profile({ user }) {
     twoFA:true
   });
 
+  const handleSave = () => {
+    setLoading(true);
+    // TODO: Implement API call to save profile
+    setTimeout(() => {
+      alert('Profile updated successfully!');
+      setLoading(false);
+    }, 1000);
+  };
+
   const TabBtn = ({name}) => <button className={'btn'+(tab===name?' primary':'')} onClick={()=>setTab(name)}>{name}</button>;
 
   return (
     <div>
-      <h1>Profile Management</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <h1 style={{ margin: 0 }}>Profile Management</h1>
+          <p className="label" style={{ fontSize: '14px', marginTop: '4px' }}>
+            Manage your personal information and preferences
+          </p>
+        </div>
+        <div>
+          <span className="badge" style={{ padding: '8px 16px', fontSize: '13px' }}>
+            {currentUser?.userType?.toUpperCase() || 'USER'}
+          </span>
+        </div>
+      </div>
       <nav className="section" style={{display:'flex', gap:8, flexWrap:'wrap'}}>
         {['Personal','Emergency','Insurance','Medical','Security'].map(t => <TabBtn key={t} name={t} />)}
       </nav>

@@ -174,7 +174,12 @@ export default function Login({ onLogin, loginType = 'staff' }) {
             <p className="label" style={{textAlign: 'center', marginTop: 8, fontSize: 12}}>
               <a href="#forgot" style={{color: 'var(--accent-red)', textDecoration: 'none'}}>Forgot Password?</a>
               {' • '}
-              <a href="#register" style={{color: 'var(--accent-red)', textDecoration: 'none'}}>New Patient Registration</a>
+              <span 
+                onClick={() => navigate('/patient-signup')} 
+                style={{color: 'var(--accent-red)', textDecoration: 'none', cursor: 'pointer'}}
+              >
+                New Patient Registration
+              </span>
             </p>
           )}
         </div>

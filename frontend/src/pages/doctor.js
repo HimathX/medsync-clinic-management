@@ -1,9 +1,14 @@
-// src/pages/Doctors.js
+// src/pages/Doctors.js - Doctor Directory (Staff/Admin View)
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import doctorService from '../services/doctorService';
 import branchService from '../services/branchService';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
+import ErrorMessage from '../components/shared/ErrorMessage';
+import EmptyState from '../components/shared/EmptyState';
 
 export default function Doctors() {
+  const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [spec, setSpec] = useState('All');
   const [branch, setBranch] = useState('All');
@@ -58,25 +63,13 @@ export default function Doctors() {
     (spec === 'All' || d.spec === spec) &&
     (branch === 'All' || d.branches.includes(branch) || d.branches.includes('All'))
   );
+
   if (loading) {
-    return (
-      <div style={{padding: '20px', textAlign: 'center'}}>
-        <div style={{fontSize: '48px', marginBottom: '20px'}}>⏳</div>
-        <h2>Loading Doctors...</h2>
-        <p style={{color: '#64748b'}}>Please wait while we fetch the doctor directory</p>
-      </div>
-    );
+    return <LoadingSpinner message="Loading doctor directory..." />;
   }
 
   if (error) {
-    return (
-      <div style={{padding: '20px', textAlign: 'center'}}>
-        <div style={{fontSize: '48px', marginBottom: '20px'}}>⚠️</div>
-        <h2 style={{color: 'var(--accent-red)'}}>Error Loading Doctors</h2>
-        <p style={{color: '#64748b', marginBottom: '20px'}}>{error}</p>
-        <button className="btn primary" onClick={fetchDoctorsData}>Retry</button>
-      </div>
-    );
+    return <ErrorMessage title="Error Loading Doctors" message={error} onRetry={fetchDoctorsData} />;
   }
 
   return (
@@ -96,9 +89,12 @@ export default function Doctors() {
       </section>
       <section className="grid grid-2 section">
         {filtered.length === 0 ? (
-          <div style={{gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: '#64748b'}}>
-            <div style={{fontSize: '48px', marginBottom: '10px'}}>🔍</div>
-            <p>No doctors found matching your criteria</p>
+          <div style={{gridColumn: '1 / -1'}}>
+            <EmptyState 
+              icon="🔍"
+              title="No Doctors Found"
+              message="No doctors match your search criteria. Try adjusting your filters."
+            />
           </div>
         ) : (
           filtered.map(d => (
@@ -114,8 +110,8 @@ export default function Doctors() {
                 <div className="slot" style={{width:48,height:48,borderRadius:24,display:'grid',placeItems:'center'}}>👨‍⚕️</div>
               </div>
               <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:8}}>
-                <button className="btn" onClick={() => alert(`Doctor Details:\n${d.name}\n${d.spec}\n${d.exp} years experience\nRating: ${d.rating}/5`)}>View Profile</button>
-                <a className="btn primary" href="#/book">Book Appointment</a>
+                <button className="btn" onClick={() => navigate(`/staff/doctor/${d.id}`)}>View Profile</button>
+                <button className="btn primary" onClick={() => navigate(`/staff/appointments?doctor=${d.id}`)}>View Schedule</button>
               </div>
             </div>
           ))
