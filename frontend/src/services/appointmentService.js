@@ -27,12 +27,21 @@ class AppointmentService {
       if (filters.branch_id) params.append('branch_id', filters.branch_id);
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
+      if (filters.date) params.append('date_filter', filters.date);
       
       const response = await apiClient.get(`/appointments/?${params.toString()}`);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch appointments'));
     }
+  }
+
+  /**
+   * Alias for getAllAppointments - for backward compatibility
+   * @param {Object} filters - Filter parameters
+   */
+  async getAppointments(filters = {}) {
+    return this.getAllAppointments(filters);
   }
 
   /**
@@ -85,6 +94,71 @@ class AppointmentService {
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch appointment details'));
+    }
+  }
+
+  /**
+   * Get all appointments for a specific patient
+   * @param {string} patientId - Patient ID
+   * @param {boolean} includePast - Include past appointments (default: false)
+   */
+  async getPatientAppointments(patientId, includePast = false) {
+    try {
+      const response = await apiClient.get(`/appointments/patient/${patientId}?include_past=${includePast}`);
+      return response.data.appointments || [];
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch patient appointments'));
+    }
+  }
+
+  /**
+   * Get all appointments for a specific doctor
+   * @param {string} doctorId - Doctor ID
+   * @param {boolean} includePast - Include past appointments (default: false)
+   */
+  async getDoctorAppointments(doctorId, includePast = false) {
+    try {
+      const response = await apiClient.get(`/appointments/doctor/${doctorId}?include_past=${includePast}`);
+      return response.data.appointments || [];
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch doctor appointments'));
+    }
+  }
+
+  /**
+   * Get all appointments for a specific date
+   * @param {string} date - Date in YYYY-MM-DD format
+   */
+  async getAppointmentsByDate(date) {
+    try {
+      const response = await apiClient.get(`/appointments/date/${date}`);
+      return response.data.appointments || [];
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch appointments for date'));
+    }
+  }
+
+  /**
+   * Get available time slots for a doctor
+   * @param {string} doctorId - Doctor ID
+   * @param {string} dateFrom - Start date (YYYY-MM-DD) - optional
+   * @param {string} dateTo - End date (YYYY-MM-DD) - optional
+   */
+  async getAvailableSlots(doctorId, dateFrom = null, dateTo = null) {
+    try {
+      let url = `/appointments/available-slots/${doctorId}`;
+      const params = new URLSearchParams();
+      if (dateFrom) params.append('date_from', dateFrom);
+      if (dateTo) params.append('date_to', dateTo);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data.time_slots || [];
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch available time slots'));
     }
   }
 }
