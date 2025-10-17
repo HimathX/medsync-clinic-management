@@ -18,10 +18,13 @@ import PatientDetail from "./pages/PatientDetail";
 // Patient Portal Pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import BookAppointment from "./pages/patient/BookAppointment";
+import PatientMyAppointments from "./pages/patient/MyAppointments";
 import PatientBilling from "./pages/patient/Billing";
 import PatientMedicalRecords from "./pages/patient/MedicalRecords";
 import PatientPrescriptions from "./pages/patient/Prescriptions";
 import PatientLabResults from "./pages/patient/LabResults";
+import HealthConditions from "./pages/patient/HealthConditions";
+import Insurance from "./pages/patient/Insurance";
 
 // Styles
 import "./styles/auth.css";
@@ -66,7 +69,9 @@ function App() {
           <Route path="/" element={<PatientDashboard />} />
           <Route path="/patient/dashboard" element={<PatientDashboard />} />
           <Route path="/patient/book" element={<BookAppointment />} />
-          <Route path="/patient/appointments" element={<PatientDashboard />} />
+          <Route path="/patient/appointments" element={<PatientMyAppointments />} />
+          <Route path="/patient/health-conditions" element={<HealthConditions />} />
+          <Route path="/patient/insurance" element={<Insurance />} />
           <Route path="/patient/billing" element={<PatientBilling />} />
           <Route path="/patient/records" element={<PatientMedicalRecords />} />
           <Route path="/patient/prescriptions" element={<PatientPrescriptions />} />

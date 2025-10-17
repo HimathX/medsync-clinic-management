@@ -1,14 +1,25 @@
 import apiClient, { handleApiError } from './api';
 
 class InsuranceService {
-  // ============ INSURANCE PACKAGES ============
+  // ============================================
+  // INSURANCE PACKAGES
+  // ============================================
   
   /**
    * Get all insurance packages
+   * @param {number} skip - Pagination offset (default: 0)
+   * @param {number} limit - Number of records (default: 100)
+   * @param {boolean|null} isActive - Filter by active status
+   * @returns {Promise} Insurance packages list
    */
-  async getAllPackages() {
+  async getAllPackages(skip = 0, limit = 100, isActive = null) {
     try {
-      const response = await apiClient.get('/insurance/packages');
+      const params = new URLSearchParams();
+      params.append('skip', skip);
+      params.append('limit', limit);
+      if (isActive !== null) params.append('is_active', isActive);
+      
+      const response = await apiClient.get(`/insurance/packages?${params.toString()}`);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch insurance packages'));
@@ -18,6 +29,7 @@ class InsuranceService {
   /**
    * Get insurance package by ID
    * @param {string} packageId - Insurance package ID
+   * @returns {Promise} Package details with active insurance count
    */
   async getPackageById(packageId) {
     try {
@@ -28,87 +40,173 @@ class InsuranceService {
     }
   }
 
-  // ============ PATIENT INSURANCE ============
+  /**
+   * Create new insurance package (Admin only)
+   * @param {Object} packageData - { package_name, annual_limit, copayment_percentage, description, is_active }
+   * @returns {Promise} Created package
+   */
+  async createPackage(packageData) {
+    try {
+      const response = await apiClient.post('/insurance/packages', packageData);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to create insurance package'));
+    }
+  }
+
+  /**
+   * Update insurance package (Admin only)
+   * @param {string} packageId - Package ID
+   * @param {Object} updateData - Fields to update
+   * @returns {Promise} Updated package
+   */
+  async updatePackage(packageId, updateData) {
+    try {
+      const response = await apiClient.patch(`/insurance/packages/${packageId}`, updateData);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to update insurance package'));
+    }
+  }
+
+  /**
+   * Delete (deactivate) insurance package (Admin only)
+   * @param {string} packageId - Package ID
+   * @returns {Promise} Success response
+   */
+  async deletePackage(packageId) {
+    try {
+      const response = await apiClient.delete(`/insurance/packages/${packageId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to delete insurance package'));
+    }
+  }
+
+  // ============================================
+  // PATIENT INSURANCE
+  // ============================================
   
   /**
-   * Get patient insurance
+   * Get all insurances for a specific patient
    * @param {string} patientId - Patient ID
+   * @returns {Promise} Patient's insurance list
    */
-  async getPatientInsurance(patientId) {
+  async getPatientInsurances(patientId) {
     try {
-      const response = await apiClient.get(`/insurance/patient/${patientId}`);
+      const response = await apiClient.get(`/insurance/patient/${patientId}/insurances`);
       return response.data;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch patient insurance'));
+      throw new Error(handleApiError(error, 'Failed to fetch patient insurances'));
     }
   }
 
   /**
-   * Enroll patient in insurance
-   * @param {Object} enrollmentData - { patient_id, insurance_package_id, start_date, end_date }
+   * Get all patient insurances with filters
+   * @param {number} skip - Pagination offset
+   * @param {number} limit - Number of records
+   * @param {string|null} statusFilter - Filter by status (Active, Inactive, Expired, Pending)
+   * @returns {Promise} All patient insurances
    */
-  async enrollPatient(enrollmentData) {
+  async getAllPatientInsurances(skip = 0, limit = 100, statusFilter = null) {
     try {
-      const response = await apiClient.post('/insurance/enroll', enrollmentData);
+      const params = new URLSearchParams();
+      params.append('skip', skip);
+      params.append('limit', limit);
+      if (statusFilter) params.append('status_filter', statusFilter);
+      
+      const response = await apiClient.get(`/insurance/patient-insurance?${params.toString()}`);
       return response.data;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to enroll patient'));
-    }
-  }
-
-  // ============ CLAIMS ============
-  
-  /**
-   * Submit insurance claim
-   * @param {Object} claimData - Claim submission data
-   */
-  async submitClaim(claimData) {
-    try {
-      const response = await apiClient.post('/claims/', claimData);
-      return response.data;
-    } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to submit claim'));
+      throw new Error(handleApiError(error, 'Failed to fetch patient insurances'));
     }
   }
 
   /**
-   * Get all claims
-   * @param {string|null} patientId - Optional patient ID filter
+   * Get patient insurance by ID
+   * @param {string} insuranceId - Insurance ID
+   * @returns {Promise} Insurance details with patient and package info
    */
-  async getAllClaims(patientId = null) {
+  async getPatientInsuranceById(insuranceId) {
     try {
-      const url = patientId ? `/claims/patient/${patientId}` : '/claims/';
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(`/insurance/patient-insurance/${insuranceId}`);
       return response.data;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch claims'));
+      throw new Error(handleApiError(error, 'Failed to fetch insurance details'));
     }
   }
 
   /**
-   * Get claim by ID
-   * @param {string} claimId - Claim ID
+   * Get all insurances for a specific package
+   * @param {string} packageId - Package ID
+   * @returns {Promise} Insurances using this package
    */
-  async getClaimById(claimId) {
+  async getInsurancesByPackage(packageId) {
     try {
-      const response = await apiClient.get(`/claims/${claimId}`);
+      const response = await apiClient.get(`/insurance/package/${packageId}/insurances`);
       return response.data;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch claim'));
+      throw new Error(handleApiError(error, 'Failed to fetch package insurances'));
     }
   }
 
   /**
-   * Update claim status
-   * @param {string} claimId - Claim ID
-   * @param {string} status - New status (Approved, Rejected, Pending)
+   * Add insurance to a patient
+   * @param {Object} insuranceData - { patient_id, insurance_package_id, start_date, end_date, status }
+   * @returns {Promise} Created insurance
    */
-  async updateClaimStatus(claimId, status) {
+  async addPatientInsurance(insuranceData) {
     try {
-      const response = await apiClient.put(`/claims/${claimId}/status`, { status });
+      const response = await apiClient.post('/insurance/patient-insurance', insuranceData);
       return response.data;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to update claim status'));
+      throw new Error(handleApiError(error, 'Failed to add patient insurance'));
+    }
+  }
+
+  /**
+   * Update patient insurance
+   * @param {string} insuranceId - Insurance ID
+   * @param {Object} updateData - { status, end_date }
+   * @returns {Promise} Updated insurance
+   */
+  async updatePatientInsurance(insuranceId, updateData) {
+    try {
+      const response = await apiClient.patch(`/insurance/patient-insurance/${insuranceId}`, updateData);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to update insurance'));
+    }
+  }
+
+  /**
+   * Delete (deactivate) patient insurance
+   * @param {string} insuranceId - Insurance ID
+   * @returns {Promise} Success response
+   */
+  async deletePatientInsurance(insuranceId) {
+    try {
+      const response = await apiClient.delete(`/insurance/patient-insurance/${insuranceId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to delete insurance'));
+    }
+  }
+
+  // ============================================
+  // STATISTICS
+  // ============================================
+
+  /**
+   * Get insurance statistics summary
+   * @returns {Promise} Statistics including package counts, status breakdown, expiring soon
+   */
+  async getInsuranceStatistics() {
+    try {
+      const response = await apiClient.get('/insurance/statistics/summary');
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch insurance statistics'));
     }
   }
 }

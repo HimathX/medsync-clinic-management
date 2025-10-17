@@ -1,3 +1,3 @@
-from . import patient, doctor, appointment, branch, staff, timeslot, insurance, medication, consultation, treatment_catalogue, prescription, treatment, conditions, payment, invoice, claims
+from . import dashboard_patient, patient, doctor, appointment, branch, staff, timeslot, insurance, medication, consultation, treatment_catalogue, prescription, treatment, conditions, payment, invoice, claims, profile_patient , dashboard_doctor, dashboard_staff
 
-__all__ = ["patient", "doctor", "appointment", "branch", "staff", "timeslot", "insurance", "medication", "consultation", "treatment_catalogue", "prescription", "treatment", "conditions", "payment", "invoice", "claims"]
+__all__ = ["patient", "doctor", "appointment", "branch", "staff", "timeslot", "insurance", "medication", "consultation", "treatment_catalogue", "prescription", "treatment", "conditions", "payment", "invoice", "claims", "profile_patient", "dashboard_patient", "dashboard_doctor", "dashboard_staff"]
