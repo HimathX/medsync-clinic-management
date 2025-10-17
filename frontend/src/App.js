@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
+import authService from "./services/authService";
 
 // Staff Pages
 import LandingPage from "./pages/LandingPage";
@@ -14,6 +15,7 @@ import ReportsHistory from "./pages/reportshistory";
 import Patients from "./pages/Patients";
 import PatientPortal from "./pages/PatientPortal";
 import PatientDetail from "./pages/PatientDetail";
+import Profile from "./pages/profile";
 
 // Patient Portal Pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
@@ -32,16 +34,37 @@ import "./styles/auth.css";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
-  const [userType, setUserType] = useState(null); // 'staff' or 'patient'
+  const [userType, setUserType] = useState(null); // 'patient', 'doctor', 'employee', etc.
   const [branch, setBranch] = useState("Colombo");
 
-  const handleLogin = (role, type = 'staff') => {
+  // Load authentication state from localStorage on component mount
+  useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser && currentUser.isAuthenticated) {
+      setIsAuthenticated(true);
+      setUserType(currentUser.userType);
+      
+      // Set role based on userType
+      if (currentUser.userType === 'patient') {
+        setUserRole('Patient');
+      } else if (currentUser.userType === 'doctor') {
+        setUserRole('Doctor');
+      } else if (currentUser.userType === 'admin') {
+        setUserRole('System Admin');
+      } else if (currentUser.userType === 'employee' || currentUser.userType === 'staff') {
+        setUserRole('Admin Staff');
+      }
+    }
+  }, []);
+
+  const handleLogin = (role, type) => {
     setIsAuthenticated(true);
     setUserRole(role);
     setUserType(type);
   };
 
   const handleLogout = () => {
+    authService.logout();
     setIsAuthenticated(false);
     setUserRole(null);
     setUserType(null);
@@ -76,10 +99,12 @@ function App() {
           <Route path="/patient/records" element={<PatientMedicalRecords />} />
           <Route path="/patient/prescriptions" element={<PatientPrescriptions />} />
           <Route path="/patient/lab-results" element={<PatientLabResults />} />
+          <Route path="/patient/profile" element={<Profile />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
         </Routes>
-      ) : (
-        // Staff Portal Layout (with header)
+      ) : (userType === 'doctor' || userType === 'employee' || userType === 'admin' || userType === 'staff') ? (
+        // Staff/Doctor/Employee Portal Layout (with header)
         <div className="authenticated-layout">
           <Header
             role={userRole}
@@ -120,9 +145,18 @@ function App() {
                 <Route path="/reporting" element={<ReportsHistory />} />
               )}
               
+              {/* Profile page available to all staff users */}
+              <Route path="/profile" element={<Profile />} />
+              
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
+        </div>
+      ) : (
+        // Fallback for unknown user types
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          <h2>Unknown user type</h2>
+          <button onClick={handleLogout}>Logout</button>
         </div>
       )}
     </div>

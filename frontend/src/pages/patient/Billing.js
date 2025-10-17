@@ -41,12 +41,28 @@ export default function PatientBilling() {
 
       console.log('💰 Fetching billing data for patient:', patientId);
 
-      // Fetch invoices, payments, and claims in parallel
-      const [invoicesData, paymentsData, claimsData] = await Promise.all([
-        billingService.getInvoicesByPatient(patientId),
-        billingService.getPaymentsByPatient(patientId),
-        billingService.getClaimsByPatient(patientId)
-      ]);
+      // Fetch invoices, payments, and claims separately to handle individual failures
+      let invoicesData = [];
+      let paymentsData = { payments: [] };
+      let claimsData = { claims: [] };
+
+      try {
+        invoicesData = await billingService.getInvoicesByPatient(patientId);
+      } catch (err) {
+        console.warn('Could not fetch invoices:', err);
+      }
+
+      try {
+        paymentsData = await billingService.getPaymentsByPatient(patientId);
+      } catch (err) {
+        console.warn('Could not fetch payments:', err);
+      }
+
+      try {
+        claimsData = await billingService.getClaimsByPatient(patientId);
+      } catch (err) {
+        console.warn('Could not fetch claims:', err);
+      }
 
       console.log('✅ Billing data fetched:', { invoicesData, paymentsData, claimsData });
 
@@ -350,15 +366,15 @@ export default function PatientBilling() {
                 <h4>Bill Summary</h4>
                 <div className="summary-item">
                   <span>Invoice:</span>
-                  <span>{selectedBill.id}</span>
+                  <span>#{selectedBill.invoice_id.slice(0, 8)}</span>
                 </div>
                 <div className="summary-item">
                   <span>Description:</span>
-                  <span>{selectedBill.description}</span>
+                  <span>{selectedBill.doctor_name ? `Consultation with ${selectedBill.doctor_name}` : 'Medical Services'}</span>
                 </div>
                 <div className="summary-item total">
                   <span>Total Amount:</span>
-                  <span>LKR {selectedBill.amount.toLocaleString()}</span>
+                  <span>LKR {parseFloat(selectedBill.total_amount).toLocaleString()}</span>
                 </div>
               </div>
               
@@ -366,27 +382,27 @@ export default function PatientBilling() {
                 <h4>Payment Method</h4>
                 <div className="payment-methods">
                   <button
-                    className={`payment-method-btn ${paymentMethod === 'credit-card' ? 'active' : ''}`}
-                    onClick={() => setPaymentMethod('credit-card')}
+                    className={`payment-method-btn ${paymentMethod === 'Credit Card' ? 'active' : ''}`}
+                    onClick={() => setPaymentMethod('Credit Card')}
                   >
                     💳 Credit/Debit Card
                   </button>
                   <button
-                    className={`payment-method-btn ${paymentMethod === 'bank' ? 'active' : ''}`}
-                    onClick={() => setPaymentMethod('bank')}
+                    className={`payment-method-btn ${paymentMethod === 'Cash' ? 'active' : ''}`}
+                    onClick={() => setPaymentMethod('Cash')}
                   >
-                    🏦 Bank Transfer
+                    💵 Cash
                   </button>
                   <button
-                    className={`payment-method-btn ${paymentMethod === 'mobile' ? 'active' : ''}`}
-                    onClick={() => setPaymentMethod('mobile')}
+                    className={`payment-method-btn ${paymentMethod === 'Online' ? 'active' : ''}`}
+                    onClick={() => setPaymentMethod('Online')}
                   >
-                    📱 Mobile Payment
+                    📱 Online Payment
                   </button>
                 </div>
               </div>
               
-              {paymentMethod === 'credit-card' && (
+              {paymentMethod === 'Credit Card' && (
                 <div className="card-details-form">
                   <div className="form-group">
                     <label className="form-label">Card Number</label>
@@ -428,19 +444,18 @@ export default function PatientBilling() {
                 </div>
               )}
               
-              {paymentMethod === 'bank' && (
+              {paymentMethod === 'Cash' && (
                 <div className="bank-transfer-info">
-                  <p><strong>Bank:</strong> Commercial Bank</p>
-                  <p><strong>Account Name:</strong> MedSync Medical Center</p>
-                  <p><strong>Account Number:</strong> 1234567890</p>
-                  <p><strong>Reference:</strong> {selectedBill.id}</p>
+                  <p><strong>Payment Method:</strong> Cash</p>
+                  <p>Please visit the billing counter to complete your cash payment.</p>
+                  <p><strong>Reference:</strong> #{selectedBill.invoice_id.slice(0, 8)}</p>
                 </div>
               )}
               
-              {paymentMethod === 'mobile' && (
+              {paymentMethod === 'Online' && (
                 <div className="mobile-payment-info">
-                  <p>Scan the QR code or use mobile payment app</p>
-                  <div className="qr-placeholder">📱 QR Code</div>
+                  <p>You will be redirected to the payment gateway</p>
+                  <div className="qr-placeholder">💳 Secure Payment</div>
                 </div>
               )}
             </div>
@@ -449,8 +464,12 @@ export default function PatientBilling() {
               <button className="btn-secondary" onClick={() => setSelectedBill(null)}>
                 Cancel
               </button>
-              <button className="btn-primary" onClick={handleConfirmPayment}>
-                Pay LKR {selectedBill.amount.toLocaleString()}
+              <button 
+                className="btn-primary" 
+                onClick={handleConfirmPayment}
+                disabled={processingPayment}
+              >
+                {processingPayment ? 'Processing...' : `Pay LKR ${parseFloat(selectedBill.total_amount).toLocaleString()}`}
               </button>
             </div>
           </div>
@@ -605,6 +624,21 @@ export default function PatientBilling() {
         
         .bill-status-badge.approved {
           background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+          color: white;
+        }
+        
+        .bill-status-badge.completed {
+          background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+          color: white;
+        }
+        
+        .bill-status-badge.failed {
+          background: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
+          color: white;
+        }
+        
+        .bill-status-badge.refunded {
+          background: linear-gradient(135deg, #6366F1 0%, #818CF8 100%);
           color: white;
         }
         

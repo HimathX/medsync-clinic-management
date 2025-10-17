@@ -1,8 +1,10 @@
 // src/components/Header.js
 import React from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 
 const Header = ({ role, branch, setBranch, onLogout }) => {
+  const navigate = useNavigate();
+  
   const navLinks = {
     "Admin Staff": [
       { to: "/", label: "Dashboard" },
@@ -58,6 +60,9 @@ const Header = ({ role, branch, setBranch, onLogout }) => {
             </select>
           </label>
 
+          <button className="ms-logout" onClick={() => navigate('/profile')} style={{marginRight: '10px'}}>
+            Profile
+          </button>
           <button className="ms-logout" onClick={onLogout}>Logout</button>
         </div>
       </div>

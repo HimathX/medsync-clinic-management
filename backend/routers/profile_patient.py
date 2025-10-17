@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
-from datetime import date
+from datetime import date, datetime
 from core.database import get_db
 import logging
 
@@ -76,7 +76,7 @@ class PatientProfileResponse(BaseModel):
     insurance_provider: Optional[str] = None
     insurance_policy_number: Optional[str] = None
     registered_branch: str
-    registration_date: date
+    registration_date: datetime  # CHANGED: datetime instead of date
 
 # ============================================
 # ENDPOINTS
@@ -87,36 +87,39 @@ def get_patient_profile(patient_id: str):
     """Get complete patient profile information"""
     try:
         with get_db() as (cursor, connection):
+            # FIXED: Changed p.registered_branch to p.registered_branch_id in the JOIN
             query = """
                 SELECT 
                     p.patient_id,
                     u.full_name,
                     u.email,
-                    p.NIC,
-                    p.gender,
-                    p.DOB,
+                    u.NIC,
+                    u.gender,
+                    u.DOB,
                     p.blood_group,
-                    p.contact_num1,
-                    p.contact_num2,
-                    p.address_line1,
-                    p.address_line2,
-                    p.city,
-                    p.province,
-                    p.postal_code,
-                    p.country,
-                    p.emergency_contact_name,
-                    p.emergency_contact_relationship,
-                    p.emergency_contact_phone,
+                    c.contact_num1,
+                    c.contact_num2,
+                    a.address_line1,
+                    a.address_line2,
+                    a.city,
+                    a.province,
+                    a.postal_code,
+                    a.country,
+                    NULL as emergency_contact_name,
+                    NULL as emergency_contact_relationship,
+                    NULL as emergency_contact_phone,
                     p.allergies,
                     p.chronic_conditions,
-                    p.current_medications,
-                    p.insurance_provider,
-                    p.insurance_policy_number,
+                    NULL as current_medications,
+                    NULL as insurance_provider,
+                    NULL as insurance_policy_number,
                     b.branch_name as registered_branch,
-                    p.registration_date
+                    p.created_at as registration_date
                 FROM patient p
                 JOIN user u ON p.patient_id = u.user_id
-                LEFT JOIN branch b ON p.registered_branch = b.branch_id
+                JOIN contact c ON u.contact_id = c.contact_id
+                JOIN address a ON u.address_id = a.address_id
+                JOIN branch b ON p.registered_branch_id = b.branch_id
                 WHERE p.patient_id = %s
             """
             
@@ -157,17 +160,58 @@ def update_patient_profile(patient_id: str, profile_data: PatientProfileUpdate):
                     detail=f"Patient with ID {patient_id} not found"
                 )
             
-            # Build dynamic update query for patient table
+            # Get user's contact_id and address_id
+            cursor.execute("""
+                SELECT contact_id, address_id 
+                FROM user 
+                WHERE user_id = %s
+            """, (patient_id,))
+            user_info = cursor.fetchone()
+            
+            if not user_info:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"User information not found for patient {patient_id}"
+                )
+            
+            # Update contact table
+            contact_updates = []
+            contact_values = []
+            
+            if profile_data.contact_num1 is not None:
+                contact_updates.append("contact_num1 = %s")
+                contact_values.append(profile_data.contact_num1)
+            
+            if profile_data.contact_num2 is not None:
+                contact_updates.append("contact_num2 = %s")
+                contact_values.append(profile_data.contact_num2)
+            
+            if contact_updates:
+                contact_values.append(user_info['contact_id'])
+                contact_query = f"UPDATE contact SET {', '.join(contact_updates)} WHERE contact_id = %s"
+                cursor.execute(contact_query, contact_values)
+            
+            # Update address table
+            address_updates = []
+            address_values = []
+            
+            address_fields = ['address_line1', 'address_line2', 'city', 'province', 'postal_code', 'country']
+            for field in address_fields:
+                value = getattr(profile_data, field, None)
+                if value is not None:
+                    address_updates.append(f"{field} = %s")
+                    address_values.append(value)
+            
+            if address_updates:
+                address_values.append(user_info['address_id'])
+                address_query = f"UPDATE address SET {', '.join(address_updates)} WHERE address_id = %s"
+                cursor.execute(address_query, address_values)
+            
+            # Update patient table
             patient_updates = []
             patient_values = []
             
-            patient_fields = [
-                'contact_num1', 'contact_num2', 'address_line1', 'address_line2',
-                'city', 'province', 'postal_code', 'country',
-                'emergency_contact_name', 'emergency_contact_relationship', 
-                'emergency_contact_phone', 'allergies', 'chronic_conditions',
-                'current_medications', 'insurance_provider', 'insurance_policy_number'
-            ]
+            patient_fields = ['allergies', 'chronic_conditions']
             
             for field in patient_fields:
                 value = getattr(profile_data, field, None)
@@ -180,7 +224,7 @@ def update_patient_profile(patient_id: str, profile_data: PatientProfileUpdate):
                 patient_query = f"UPDATE patient SET {', '.join(patient_updates)} WHERE patient_id = %s"
                 cursor.execute(patient_query, patient_values)
             
-            # Update user table if needed
+            # Update user table
             user_updates = []
             user_values = []
             
@@ -209,6 +253,7 @@ def update_patient_profile(patient_id: str, profile_data: PatientProfileUpdate):
     except HTTPException:
         raise
     except Exception as e:
+        connection.rollback()
         logger.error(f"Error updating patient profile {patient_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -245,25 +290,19 @@ def get_patient_statistics(patient_id: str):
             cursor.execute(appointment_stats, (patient_id,))
             appt_stats = cursor.fetchone()
             
-            # Get prescription count
+            # FIXED: Get prescription count from prescription_item through consultation_record
             prescription_count = """
-                SELECT COUNT(DISTINCT p.prescription_id) as prescription_count
-                FROM prescription p
-                JOIN appointment a ON p.appointment_id = a.appointment_id
+                SELECT COUNT(DISTINCT pi.consultation_rec_id) as prescription_count
+                FROM prescription_item pi
+                JOIN consultation_record cr ON pi.consultation_rec_id = cr.consultation_rec_id
+                JOIN appointment a ON cr.appointment_id = a.appointment_id
                 WHERE a.patient_id = %s
             """
             cursor.execute(prescription_count, (patient_id,))
             rx_count = cursor.fetchone()
             
-            # Get lab results count
-            lab_count = """
-                SELECT COUNT(DISTINCT lr.result_id) as lab_result_count
-                FROM lab_result lr
-                JOIN appointment a ON lr.appointment_id = a.appointment_id
-                WHERE a.patient_id = %s
-            """
-            cursor.execute(lab_count, (patient_id,))
-            lab_stats = cursor.fetchone()
+            # FIXED: Lab results don't exist in schema - set to 0
+            lab_count_value = 0
             
             logger.info(f"Retrieved statistics for patient {patient_id}")
             
@@ -274,7 +313,7 @@ def get_patient_statistics(patient_id: str):
                 "completed_appointments": int(appt_stats['completed']) if appt_stats['completed'] else 0,
                 "last_visit": str(appt_stats['last_visit']) if appt_stats['last_visit'] else None,
                 "prescriptions": int(rx_count['prescription_count']) if rx_count['prescription_count'] else 0,
-                "lab_results": int(lab_stats['lab_result_count']) if lab_stats['lab_result_count'] else 0
+                "lab_results": lab_count_value
             }
             
     except HTTPException:
@@ -284,38 +323,6 @@ def get_patient_statistics(patient_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {str(e)}"
-        )
-
-
-@router.post("/{patient_id}/profile-photo", status_code=status.HTTP_200_OK)
-async def upload_profile_photo(patient_id: str, file: UploadFile = File(...)):
-    """Upload patient profile photo"""
-    try:
-        # Validate file type
-        if not file.content_type.startswith('image/'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="File must be an image"
-            )
-        
-        # TODO: Implement file storage (local, S3, etc.)
-        # For now, just return success
-        
-        logger.info(f"Uploaded profile photo for patient {patient_id}")
-        
-        return {
-            "message": "Profile photo uploaded successfully",
-            "patient_id": patient_id,
-            "filename": file.filename
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading photo for patient {patient_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Upload error: {str(e)}"
         )
 
 
@@ -337,43 +344,75 @@ def get_medical_summary(patient_id: str):
             # Get medical information
             medical_query = """
                 SELECT 
-                    allergies,
-                    chronic_conditions,
-                    current_medications,
-                    blood_group
-                FROM patient
-                WHERE patient_id = %s
+                    p.allergies,
+                    p.chronic_conditions,
+                    p.blood_group
+                FROM patient p
+                WHERE p.patient_id = %s
             """
             cursor.execute(medical_query, (patient_id,))
             medical_data = cursor.fetchone()
             
-            # Get recent diagnoses
             diagnoses_query = """
                 SELECT 
-                    t.diagnosis,
-                    ts.available_date as diagnosis_date,
+                    cr.diagnoses as diagnosis,
+                    cr.created_at as diagnosis_date,
                     u.full_name as doctor_name
-                FROM treatment t
-                JOIN appointment a ON t.appointment_id = a.appointment_id
+                FROM consultation_record cr
+                JOIN appointment a ON cr.appointment_id = a.appointment_id
                 JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
                 JOIN doctor d ON ts.doctor_id = d.doctor_id
                 JOIN user u ON d.doctor_id = u.user_id
                 WHERE a.patient_id = %s
-                AND t.diagnosis IS NOT NULL
-                ORDER BY ts.available_date DESC
+                ORDER BY cr.created_at DESC
                 LIMIT 5
             """
             cursor.execute(diagnoses_query, (patient_id,))
             recent_diagnoses = cursor.fetchall()
             
+            # Get patient allergies from patient_allergy table
+            allergies_query = """
+                SELECT 
+                    allergy_name,
+                    severity,
+                    reaction_description,
+                    diagnosed_date
+                FROM patient_allergy
+                WHERE patient_id = %s
+                AND is_active = TRUE
+                ORDER BY diagnosed_date DESC
+            """
+            cursor.execute(allergies_query, (patient_id,))
+            detailed_allergies = cursor.fetchall()
+            
+            # Get patient conditions from patient_condition table
+            conditions_query = """
+                SELECT 
+                    c.condition_name,
+                    pc.diagnosed_date,
+                    pc.is_chronic,
+                    pc.current_status,
+                    pc.notes,
+                    cc.category_name
+                FROM patient_condition pc
+                JOIN conditions c ON pc.condition_id = c.condition_id
+                JOIN conditions_category cc ON c.condition_category_id = cc.condition_category_id
+                WHERE pc.patient_id = %s
+                ORDER BY pc.diagnosed_date DESC
+            """
+            cursor.execute(conditions_query, (patient_id,))
+            detailed_conditions = cursor.fetchall()
+            
             logger.info(f"Retrieved medical summary for patient {patient_id}")
             
             return {
                 "patient_id": patient_id,
-                "blood_group": medical_data['blood_group'],
-                "allergies": medical_data['allergies'],
-                "chronic_conditions": medical_data['chronic_conditions'],
-                "current_medications": medical_data['current_medications'],
+                "blood_group": medical_data['blood_group'] if medical_data else None,
+                "allergies": medical_data['allergies'] if medical_data else None,
+                "chronic_conditions": medical_data['chronic_conditions'] if medical_data else None,
+                "detailed_allergies": detailed_allergies or [],
+                "detailed_conditions": detailed_conditions or [],
+                "current_medications": None,
                 "recent_diagnoses": recent_diagnoses or []
             }
             

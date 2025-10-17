@@ -533,3 +533,134 @@ def get_medications_by_form(form: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {str(e)}"
         )
+
+
+# ============================================
+# SEARCH MEDICATIONS
+# ============================================
+
+@router.get("/search/advanced", status_code=status.HTTP_200_OK)
+def search_medications(
+    query: str = Query(..., min_length=1, description="Search term for medication name or manufacturer"),
+    form: Optional[str] = Query(None, pattern="^(Tablet|Capsule|Injection|Syrup|Other)$", description="Filter by medication form"),
+    limit: int = Query(50, ge=1, le=200, description="Maximum results to return"),
+    include_stats: bool = Query(False, description="Include usage statistics")
+):
+    """
+    Advanced search for medications
+    
+    - Searches generic_name and manufacturer
+    - Case-insensitive partial matching
+    - Optional filtering by form
+    - Optional usage statistics
+    - Returns sorted by relevance (exact matches first)
+    
+    **Example queries:**
+    - `?query=paracetamol` - Find all paracetamol medications
+    - `?query=pharma&form=Tablet` - Find tablets from PharmaCorp
+    - `?query=ibu&include_stats=true` - Search with usage statistics
+    """
+    try:
+        logger.info(f"Searching medications with query: '{query}', form: {form}")
+        
+        with get_db() as (cursor, connection):
+            # Build search query
+            search_pattern = f"%{query}%"
+            
+            base_query = """
+                SELECT 
+                    m.*,
+                    CASE 
+                        WHEN LOWER(m.generic_name) = LOWER(%s) THEN 1
+                        WHEN LOWER(m.generic_name) LIKE LOWER(%s) THEN 2
+                        WHEN LOWER(m.manufacturer) = LOWER(%s) THEN 3
+                        WHEN LOWER(m.manufacturer) LIKE LOWER(%s) THEN 4
+                        ELSE 5
+                    END as relevance_score
+                FROM medication m
+                WHERE (
+                    LOWER(m.generic_name) LIKE LOWER(%s) OR 
+                    LOWER(m.manufacturer) LIKE LOWER(%s)
+                )
+            """
+            
+            params = [query, f"{query}%", query, f"{query}%", search_pattern, search_pattern]
+            
+            # Add form filter if provided
+            if form:
+                base_query += " AND m.form = %s"
+                params.append(form)
+            
+            # Order by relevance and limit
+            base_query += """
+                ORDER BY relevance_score ASC, m.generic_name ASC
+                LIMIT %s
+            """
+            params.append(limit)
+            
+            cursor.execute(base_query, params)
+            medications = cursor.fetchall()
+            
+            # Add usage statistics if requested
+            if include_stats and medications:
+                medication_ids = [med['medication_id'] for med in medications]
+                placeholders = ','.join(['%s'] * len(medication_ids))
+                
+                stats_query = f"""
+                    SELECT 
+                        medication_id,
+                        COUNT(*) as prescription_count,
+                        COUNT(DISTINCT pi.prescription_id) as unique_prescriptions
+                    FROM prescription_item pi
+                    WHERE medication_id IN ({placeholders})
+                    GROUP BY medication_id
+                """
+                
+                cursor.execute(stats_query, medication_ids)
+                stats_data = {row['medication_id']: row for row in cursor.fetchall()}
+                
+                # Merge stats with medications
+                for med in medications:
+                    med_id = med['medication_id']
+                    if med_id in stats_data:
+                        med['usage_stats'] = {
+                            'prescription_count': stats_data[med_id]['prescription_count'],
+                            'unique_prescriptions': stats_data[med_id]['unique_prescriptions']
+                        }
+                    else:
+                        med['usage_stats'] = {
+                            'prescription_count': 0,
+                            'unique_prescriptions': 0
+                        }
+                    
+                    # Remove relevance_score from response
+                    if 'relevance_score' in med:
+                        del med['relevance_score']
+            else:
+                # Remove relevance_score from response
+                for med in medications:
+                    if 'relevance_score' in med:
+                        del med['relevance_score']
+            
+            logger.info(f"Found {len(medications)} medications for query '{query}'")
+            
+            return {
+                "query": query,
+                "form_filter": form,
+                "total_found": len(medications),
+                "medications": medications or [],
+                "search_tips": {
+                    "tip1": "Use partial names for broader results (e.g., 'para' for 'Paracetamol')",
+                    "tip2": "Add form filter to narrow down results",
+                    "tip3": "Set include_stats=true to see prescription counts"
+                } if len(medications) == 0 else None
+            }
+            
+    except Exception as e:
+        logger.error(f"Error searching medications with query '{query}': {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Search error: {str(e)}"
+        )
+
+

@@ -334,13 +334,19 @@ class BillingService {
    */
   async getInvoicesByPatient(patientId) {
     try {
-      // Note: This is a workaround since the backend doesn't have a direct patient endpoint
-      // We'll get all invoices and filter, or implement server-side filtering
+      // Note: Backend doesn't have a direct patient invoice endpoint
+      // We'll get all invoices and filter client-side
+      // If no invoices exist, return empty array instead of throwing error
       const data = await this.getAllInvoices(0, 1000);
-      const patientInvoices = data.invoices?.filter(inv => inv.patient_id === patientId) || [];
+      if (!data || !data.invoices) {
+        return [];
+      }
+      const patientInvoices = data.invoices.filter(inv => inv.patient_id === patientId) || [];
       return patientInvoices;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch patient invoices'));
+      // Return empty array instead of throwing error if no invoices found
+      console.warn('Could not fetch invoices:', error.message);
+      return [];
     }
   }
 
