@@ -51,6 +51,25 @@ export default function BookAppointment() {
     }
   };
 
+  // Helper function to format time (handles both string "HH:MM:SS" and integer seconds)
+  const formatTime = (time) => {
+    if (!time) return '';
+    
+    // If time is a number (seconds since midnight)
+    if (typeof time === 'number') {
+      const hours = Math.floor(time / 3600);
+      const minutes = Math.floor((time % 3600) / 60);
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+    
+    // If time is already a string like "09:00:00", extract HH:MM
+    if (typeof time === 'string') {
+      return time.substring(0, 5); // Returns "HH:MM" from "HH:MM:SS"
+    }
+    
+    return time;
+  };
+
   const getSpecialtyIcon = (specialty) => {
     const iconMap = {
       'Cardiology': '❤️',
@@ -281,8 +300,8 @@ export default function BookAppointment() {
                       className={`time-slot ${selectedTimeSlot?.time_slot_id === slot.time_slot_id ? 'selected' : ''}`}
                       onClick={() => handleTimeSlotSelect(slot)}
                     >
-                      {new Date(slot.appointment_date).toLocaleDateString()}<br/>
-                      {new Date(slot.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                      {new Date(slot.available_date).toLocaleDateString()}<br/>
+                      {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                     </button>
                   ))}
                 </div>
@@ -313,7 +332,7 @@ export default function BookAppointment() {
               <div className="summary-item">
                 <span className="summary-label">Date & Time:</span>
                 <span className="summary-value">
-                  {selectedTimeSlot && new Date(selectedTimeSlot.appointment_date).toLocaleString()}
+                  {selectedTimeSlot && `${new Date(selectedTimeSlot.available_date).toLocaleDateString()} at ${formatTime(selectedTimeSlot.start_time)} - ${formatTime(selectedTimeSlot.end_time)}`}
                 </span>
               </div>
               <div className="summary-item">

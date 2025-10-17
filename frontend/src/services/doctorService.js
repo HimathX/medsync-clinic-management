@@ -55,11 +55,11 @@ class DoctorService {
   /**
    * Get available time slots for doctor
    * @param {string} doctorId - Doctor ID
-   * @param {string} date - Date in YYYY-MM-DD format
+   * @param {boolean} availableOnly - Only return available (unbooked) slots
    */
-  async getDoctorTimeSlots(doctorId, date) {
+  async getDoctorTimeSlots(doctorId, availableOnly = true) {
     try {
-      const response = await apiClient.get(`/timeslots/doctor/${doctorId}?date=${date}`);
+      const response = await apiClient.get(`/doctors/${doctorId}/time-slots?available_only=${availableOnly}`);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch time slots'));
