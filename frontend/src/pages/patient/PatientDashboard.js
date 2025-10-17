@@ -399,7 +399,7 @@ export default function PatientDashboard() {
             {/* Upcoming Appointments */}
             <div className="dashboard-card appointments-card">
               <div className="card-header">
-                <h3 className="card-title">Appointments</h3>
+                <h3 className="card-title">Upcoming Appointments</h3>
                 <button className="view-all-link" onClick={() => navigate('/patient/appointments')}>
                   View All →
                 </button>
@@ -422,10 +422,10 @@ export default function PatientDashboard() {
                       </div>
                     </div>
                     <h3 className="empty-title">Appointments</h3>
-                    {/* <p className="empty-description">
+                    <p className="empty-description">
                       You don't have any scheduled appointments at the moment. 
                       Book a consultation with our experienced doctors.
-                    </p> */}
+                    </p>
                     <div className="empty-actions">
                       <button className="btn-primary-large" onClick={() => navigate('/patient/book')}>
                         📅 Book New Appointment
@@ -433,6 +433,20 @@ export default function PatientDashboard() {
                       <button className="btn-secondary-outline" onClick={() => navigate('/patient/appointments')}>
                         📋 View All Appointments
                       </button>
+                    </div>
+                    <div className="quick-info-grid">
+                      <div className="quick-info-item">
+                        <span className="info-icon">🏥</span>
+                        <span className="info-text">Multiple Specialties</span>
+                      </div>
+                      <div className="quick-info-item">
+                        <span className="info-icon">⚡</span>
+                        <span className="info-text">Quick Booking</span>
+                      </div>
+                      <div className="quick-info-item">
+                        <span className="info-icon">👨‍⚕️</span>
+                        <span className="info-text">Expert Doctors</span>
+                      </div>
                     </div>
                   </div>
                 ) : (

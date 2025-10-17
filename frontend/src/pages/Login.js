@@ -34,29 +34,46 @@ export default function Login({ onLogin, loginType = 'staff' }) {
       const response = await authService.login(email, password);
       
       if (response.success) {
+        // ACCESS CONTROL: Check if user is trying to login from the correct portal
+        const userType = response.user_type.toLowerCase();
+        
+        // Patient trying to login from staff portal - BLOCK
+        if (loginType === 'staff' && userType === 'patient') {
+          setError('Patients cannot access the staff portal. Please use the Patient Portal.');
+          setLoading(false);
+          return;
+        }
+        
+        // Staff/Doctor/Employee trying to login from patient portal - BLOCK
+        if (loginType === 'patient' && (userType === 'doctor' || userType === 'employee' || userType === 'admin' || userType === 'staff')) {
+          setError('Staff members cannot access the patient portal. Please use the Staff Portal.');
+          setLoading(false);
+          return;
+        }
+        
         // Determine user role from user_type
         let role = 'Staff';
-        if (response.user_type === 'patient') {
+        if (userType === 'patient') {
           role = 'Patient';
-        } else if (response.user_type === 'doctor') {
+        } else if (userType === 'doctor') {
           role = 'Doctor';
-        } else if (response.user_type === 'admin') {
+        } else if (userType === 'admin') {
           role = 'System Admin';
-        } else if (response.user_type === 'staff') {
+        } else if (userType === 'employee' || userType === 'staff') {
           role = 'Admin Staff';
         }
 
         // Call the parent onLogin callback if provided
         if (onLogin) {
-          onLogin(role, response.user_type);
+          onLogin(role, userType);
         }
 
         // Redirect based on user type
-        if (response.user_type === 'patient') {
-          navigate('/patient-dashboard');
-        } else {
-          // Staff, doctor, admin go to staff dashboard
-          navigate('/dashboard');
+        if (userType === 'patient') {
+          navigate('/patient/dashboard');
+        } else if (userType === 'doctor' || userType === 'employee' || userType === 'admin' || userType === 'staff') {
+          // Staff, doctor, admin, employee go to staff dashboard
+          navigate('/');
         }
       }
     } catch (err) {
