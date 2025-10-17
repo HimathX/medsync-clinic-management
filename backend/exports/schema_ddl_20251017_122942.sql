@@ -1,6 +1,6 @@
 -- ============================================
 -- MedSync Schema (DDL) Export
--- Generated: 2025-10-16 13:12:00
+-- Generated: 2025-10-17 12:29:42
 -- ============================================
 
 CREATE DATABASE IF NOT EXISTS `medsync_db`;

@@ -9,7 +9,7 @@ import '../../styles/patientDashboard.css'
 export default function BookAppointment() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
-  const [selectedSpecialty, setSelectedSpecialty] = useState('')
+  const [selectedSpecialty, setSelectedSpecialty] = useState(null) // Changed to object
   const [selectedDoctor, setSelectedDoctor] = useState(null)
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null)
   const [notes, setNotes] = useState('')
@@ -21,35 +21,53 @@ export default function BookAppointment() {
   const patientId = currentUser.patientId || localStorage.getItem('patientId');
   
   // Dynamic data from backend
-  const [specialties, setSpecialties] = useState([])
+  const [specializations, setSpecializations] = useState([])
   const [doctors, setDoctors] = useState([])
   const [timeSlots, setTimeSlots] = useState([])
 
   useEffect(() => {
-    fetchSpecialtiesAndDoctors();
+    fetchSpecializations();
   }, []);
 
-  const fetchSpecialtiesAndDoctors = async () => {
+  const fetchSpecializations = async () => {
     try {
       setLoading(true);
-      // Fetch all doctors
-      const doctorsData = await doctorService.getAllDoctors();
-      setDoctors(doctorsData || []);
+      // Fetch specializations from backend
+      const specs = await doctorService.getAllSpecializations(true); // active_only = true
       
-      // Extract unique specialties
-      const uniqueSpecs = [...new Set(doctorsData.map(d => d.specialization))].map((spec, idx) => ({
-        id: idx + 1,
-        name: spec,
-        icon: getSpecialtyIcon(spec),
-        doctors: doctorsData.filter(d => d.specialization === spec).length
+      // Map specializations with icons
+      const mappedSpecs = specs.map(spec => ({
+        ...spec,
+        icon: getSpecialtyIcon(spec.specialization_title),
+        name: spec.specialization_title
       }));
-      setSpecialties(uniqueSpecs);
+      
+      setSpecializations(mappedSpecs);
     } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Failed to load doctors and specialties');
+      console.error('Error fetching specializations:', err);
+      setError('Failed to load specializations');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to format time (handles both string "HH:MM:SS" and integer seconds)
+  const formatTime = (time) => {
+    if (!time) return '';
+    
+    // If time is a number (seconds since midnight)
+    if (typeof time === 'number') {
+      const hours = Math.floor(time / 3600);
+      const minutes = Math.floor((time % 3600) / 60);
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+    
+    // If time is already a string like "09:00:00", extract HH:MM
+    if (typeof time === 'string') {
+      return time.substring(0, 5); // Returns "HH:MM" from "HH:MM:SS"
+    }
+    
+    return time;
   };
 
   const getSpecialtyIcon = (specialty) => {
@@ -69,8 +87,9 @@ export default function BookAppointment() {
     try {
       setLoading(true);
       // Fetch available time slots for the doctor
-      const slots = await doctorService.getDoctorTimeSlots(doctorId);
-      setTimeSlots(slots || []);
+      const response = await doctorService.getDoctorTimeSlots(doctorId);
+      // Backend returns { doctor_id, total, time_slots: [] }
+      setTimeSlots(response.time_slots || []);
     } catch (err) {
       console.error('Error fetching time slots:', err);
       setError('Failed to load available time slots');
@@ -81,9 +100,21 @@ export default function BookAppointment() {
     }
   };
 
-  const handleSpecialtySelect = (specialty) => {
+  const handleSpecialtySelect = async (specialty) => {
     setSelectedSpecialty(specialty)
-    setStep(2)
+    
+    // Fetch doctors for this specialization
+    try {
+      setLoading(true);
+      const doctorsData = await doctorService.getDoctorsBySpecialization(specialty.specialization_id);
+      setDoctors(doctorsData || []);
+      setStep(2)
+    } catch (err) {
+      console.error('Error fetching doctors:', err);
+      setError('Failed to load doctors for this specialization');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const handleDoctorSelect = async (doctor) => {
@@ -159,19 +190,31 @@ export default function BookAppointment() {
             <h2 className="section-heading">Select Specialty</h2>
             <p style={{color: '#64748b', marginBottom: '30px'}}>Choose the medical specialty you need</p>
             
-            <div className="specialties-grid">
-              {specialties.map(specialty => (
-                <button
-                  key={specialty.id}
-                  className="specialty-card"
-                  onClick={() => handleSpecialtySelect(specialty.name)}
-                >
-                  <div className="specialty-icon">{specialty.icon}</div>
-                  <h3 className="specialty-name">{specialty.name}</h3>
-                  <p className="specialty-doctors">{specialty.doctors} doctors available</p>
-                </button>
-              ))}
-            </div>
+            {loading ? (
+              <div style={{textAlign: 'center', padding: '40px'}}>
+                <div style={{fontSize: '48px', marginBottom: '20px'}}>⏳</div>
+                <p>Loading specializations...</p>
+              </div>
+            ) : specializations.length === 0 ? (
+              <div style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                <p>No specializations available at the moment.</p>
+              </div>
+            ) : (
+              <div className="specialties-grid">
+                {specializations.map(specialty => (
+                  <button
+                    key={specialty.specialization_id}
+                    className="specialty-card"
+                    onClick={() => handleSpecialtySelect(specialty)}
+                    disabled={loading}
+                  >
+                    <div className="specialty-icon">{specialty.icon}</div>
+                    <h3 className="specialty-name">{specialty.name}</h3>
+                    <p className="specialty-doctors">{specialty.doctor_count || 0} doctors available</p>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -182,41 +225,46 @@ export default function BookAppointment() {
               ← Back to Specialties
             </button>
             
-            <h2 className="section-heading">{selectedSpecialty} Specialists</h2>
+            <h2 className="section-heading">{selectedSpecialty?.name} Specialists</h2>
             <p style={{color: '#64748b', marginBottom: '30px'}}>Choose your preferred doctor</p>
             
-            <div className="doctors-list">
-              {doctors.filter(d => d.specialization === selectedSpecialty).length === 0 ? (
-                <div style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
-                  <p>No doctors available for this specialty at the moment.</p>
-                  <button className="btn-secondary" onClick={() => setStep(1)}>Choose Different Specialty</button>
-                </div>
-              ) : (
-                doctors.filter(d => d.specialization === selectedSpecialty).map(doctor => (
-                  <div key={doctor.doctor_id} className="doctor-card">
-                    <div className="doctor-image">👨‍⚕️</div>
-                    <div className="doctor-info">
-                      <h3 className="doctor-name">{doctor.name}</h3>
-                      <p className="doctor-qualifications">{doctor.qualifications || 'MBBS'}</p>
-                      <div className="doctor-meta">
-                        <span>⭐ {doctor.rating || '4.5'}/5</span>
-                        <span>•</span>
-                        <span>{doctor.years_experience || 5} years experience</span>
-                      </div>
-                      <div className="doctor-languages">
-                        Languages: {doctor.languages?.join(', ') || 'English, Sinhala'}
-                      </div>
-                      <p className="doctor-availability">
-                        License: {doctor.license_number || 'N/A'}
-                      </p>
-                    </div>
-                    <button className="btn-primary" onClick={() => handleDoctorSelect(doctor)} disabled={loading}>
-                      {loading ? 'Loading...' : 'Select Doctor'}
-                    </button>
+            {loading ? (
+              <div style={{textAlign: 'center', padding: '40px'}}>
+                <div style={{fontSize: '48px', marginBottom: '20px'}}>⏳</div>
+                <p>Loading doctors...</p>
+              </div>
+            ) : (
+              <div className="doctors-list">
+                {doctors.length === 0 ? (
+                  <div style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                    <p>No doctors available for this specialty at the moment.</p>
+                    <button className="btn-secondary" onClick={() => setStep(1)}>Choose Different Specialty</button>
                   </div>
-                ))
-              )}
-            </div>
+                ) : (
+                  doctors.map(doctor => (
+                    <div key={doctor.doctor_id} className="doctor-card">
+                      <div className="doctor-image">👨‍⚕️</div>
+                      <div className="doctor-info">
+                        <h3 className="doctor-name">{doctor.full_name || doctor.name}</h3>
+                        <p className="doctor-qualifications">{doctor.qualifications || 'MBBS'}</p>
+                        <div className="doctor-meta">
+                          <span>📧 {doctor.email}</span>
+                        </div>
+                        <div className="doctor-languages">
+                          Room: {doctor.room_no || 'N/A'} • Fee: LKR {doctor.consultation_fee || 'N/A'}
+                        </div>
+                        <p className="doctor-availability">
+                          License: {doctor.medical_licence_no || 'N/A'}
+                        </p>
+                      </div>
+                      <button className="btn-primary" onClick={() => handleDoctorSelect(doctor)} disabled={loading}>
+                        {loading ? 'Loading...' : 'Select Doctor'}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -229,7 +277,7 @@ export default function BookAppointment() {
             
             <h2 className="section-heading">Select Available Time Slot</h2>
             <p style={{color: '#64748b', marginBottom: '30px'}}>
-              Booking with {selectedDoctor.name}
+              Booking with {selectedDoctor.full_name || selectedDoctor.name}
             </p>
             
             {loading ? (
@@ -252,8 +300,8 @@ export default function BookAppointment() {
                       className={`time-slot ${selectedTimeSlot?.time_slot_id === slot.time_slot_id ? 'selected' : ''}`}
                       onClick={() => handleTimeSlotSelect(slot)}
                     >
-                      {new Date(slot.appointment_date).toLocaleDateString()}<br/>
-                      {new Date(slot.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                      {new Date(slot.available_date).toLocaleDateString()}<br/>
+                      {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                     </button>
                   ))}
                 </div>
@@ -275,16 +323,16 @@ export default function BookAppointment() {
               <h3>Booking Summary</h3>
               <div className="summary-item">
                 <span className="summary-label">Doctor:</span>
-                <span className="summary-value">{selectedDoctor.name}</span>
+                <span className="summary-value">{selectedDoctor.full_name || selectedDoctor.name}</span>
               </div>
               <div className="summary-item">
                 <span className="summary-label">Specialty:</span>
-                <span className="summary-value">{selectedSpecialty}</span>
+                <span className="summary-value">{selectedSpecialty?.name}</span>
               </div>
               <div className="summary-item">
                 <span className="summary-label">Date & Time:</span>
                 <span className="summary-value">
-                  {selectedTimeSlot && new Date(selectedTimeSlot.appointment_date).toLocaleString()}
+                  {selectedTimeSlot && `${new Date(selectedTimeSlot.available_date).toLocaleDateString()} at ${formatTime(selectedTimeSlot.start_time)} - ${formatTime(selectedTimeSlot.end_time)}`}
                 </span>
               </div>
               <div className="summary-item">

@@ -515,3 +515,217 @@ def remove_doctor_specialization(doctor_id: str, specialization_id: str):
             detail=f"An error occurred while removing specialization: {str(e)}"
         )
 
+@router.get("/specializations/all", status_code=status.HTTP_200_OK)
+def get_all_specializations(
+    skip: int = 0, 
+    limit: int = 100,
+    active_only: bool = False
+):
+    """
+    Get all available specializations
+    
+    - **skip**: Number of records to skip (for pagination)
+    - **limit**: Maximum number of records to return
+    - **active_only**: If True, only return specializations with active doctors
+    
+    Returns list of all specializations with details
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Get total count
+            count_query = "SELECT COUNT(*) as total FROM specialization"
+            cursor.execute(count_query)
+            total_result = cursor.fetchone()
+            total = total_result['total'] if total_result else 0
+            
+            # Build query based on filters
+            if active_only:
+                query = """
+                    SELECT DISTINCT 
+                        s.specialization_id,
+                        s.specialization_title,
+                        s.other_details,
+                        s.created_at,
+                        s.updated_at,
+                        COUNT(DISTINCT ds.doctor_id) as doctor_count
+                    FROM specialization s
+                    INNER JOIN doctor_specialization ds ON s.specialization_id = ds.specialization_id
+                    INNER JOIN doctor d ON ds.doctor_id = d.doctor_id
+                    INNER JOIN employee e ON d.doctor_id = e.employee_id
+                    WHERE e.is_active = TRUE AND d.is_available = TRUE
+                    GROUP BY s.specialization_id, s.specialization_title, s.other_details, s.created_at, s.updated_at
+                    ORDER BY s.specialization_title
+                    LIMIT %s OFFSET %s
+                """
+            else:
+                query = """
+                    SELECT 
+                        s.specialization_id,
+                        s.specialization_title,
+                        s.other_details,
+                        s.created_at,
+                        s.updated_at,
+                        COUNT(DISTINCT ds.doctor_id) as doctor_count
+                    FROM specialization s
+                    LEFT JOIN doctor_specialization ds ON s.specialization_id = ds.specialization_id
+                    GROUP BY s.specialization_id, s.specialization_title, s.other_details, s.created_at, s.updated_at
+                    ORDER BY s.specialization_title
+                    LIMIT %s OFFSET %s
+                """
+            
+            cursor.execute(query, (limit, skip))
+            specializations = cursor.fetchall()
+            
+            logger.info(f"Retrieved {len(specializations)} specializations")
+            
+            return {
+                "success": True,
+                "total": total,
+                "count": len(specializations),
+                "skip": skip,
+                "limit": limit,
+                "specializations": specializations or []
+            }
+            
+    except Exception as e:
+        logger.error(f"Error fetching specializations: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch specializations: {str(e)}"
+        )
+
+
+@router.get("/specializations/{specialization_id}/details", status_code=status.HTTP_200_OK)
+def get_specialization_details(specialization_id: str):
+    """
+    Get detailed information about a specific specialization
+    
+    - **specialization_id**: UUID of the specialization
+    
+    Returns:
+    - Specialization details
+    - List of doctors with this specialization
+    - Statistics
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Get specialization details
+            cursor.execute(
+                """SELECT * FROM specialization WHERE specialization_id = %s""",
+                (specialization_id,)
+            )
+            specialization = cursor.fetchone()
+            
+            if not specialization:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Specialization with ID {specialization_id} not found"
+                )
+            
+            # Get doctors with this specialization
+            cursor.execute(
+                """SELECT 
+                    d.doctor_id,
+                    u.full_name,
+                    u.email,
+                    d.room_no,
+                    d.consultation_fee,
+                    d.is_available,
+                    e.branch_id,
+                    b.branch_name,
+                    ds.certification_date
+                FROM doctor d
+                JOIN user u ON d.doctor_id = u.user_id
+                JOIN employee e ON d.doctor_id = e.employee_id
+                JOIN doctor_specialization ds ON d.doctor_id = ds.doctor_id
+                LEFT JOIN branch b ON e.branch_id = b.branch_id
+                WHERE ds.specialization_id = %s AND e.is_active = TRUE
+                ORDER BY u.full_name""",
+                (specialization_id,)
+            )
+            doctors = cursor.fetchall()
+            
+            # Get statistics
+            cursor.execute(
+                """SELECT 
+                    COUNT(DISTINCT ds.doctor_id) as total_doctors,
+                    COUNT(DISTINCT CASE WHEN d.is_available = TRUE THEN ds.doctor_id END) as available_doctors,
+                    COUNT(DISTINCT ts.time_slot_id) as total_time_slots,
+                    COUNT(DISTINCT CASE WHEN ts.is_booked = FALSE AND ts.available_date >= CURDATE() THEN ts.time_slot_id END) as available_slots
+                FROM doctor_specialization ds
+                LEFT JOIN doctor d ON ds.doctor_id = d.doctor_id
+                LEFT JOIN time_slot ts ON d.doctor_id = ts.doctor_id
+                WHERE ds.specialization_id = %s""",
+                (specialization_id,)
+            )
+            stats = cursor.fetchone()
+            
+            logger.info(f"Retrieved details for specialization {specialization_id}")
+            
+            return {
+                "success": True,
+                "specialization": specialization,
+                "doctors": doctors or [],
+                "statistics": stats or {
+                    "total_doctors": 0,
+                    "available_doctors": 0,
+                    "total_time_slots": 0,
+                    "available_slots": 0
+                }
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching specialization details: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch specialization details: {str(e)}"
+        )
+
+
+@router.get("/specializations/search/{search_term}", status_code=status.HTTP_200_OK)
+def search_specializations(search_term: str):
+    """
+    Search specializations by title or description
+    
+    - **search_term**: Search keyword
+    
+    Returns matching specializations
+    """
+    try:
+        with get_db() as (cursor, connection):
+            search_pattern = f"%{search_term}%"
+            
+            cursor.execute(
+                """SELECT 
+                    s.specialization_id,
+                    s.specialization_title,
+                    s.other_details,
+                    COUNT(DISTINCT ds.doctor_id) as doctor_count
+                FROM specialization s
+                LEFT JOIN doctor_specialization ds ON s.specialization_id = ds.specialization_id
+                WHERE s.specialization_title LIKE %s 
+                   OR s.other_details LIKE %s
+                GROUP BY s.specialization_id, s.specialization_title, s.other_details
+                ORDER BY s.specialization_title""",
+                (search_pattern, search_pattern)
+            )
+            specializations = cursor.fetchall()
+            
+            logger.info(f"Search for '{search_term}' returned {len(specializations)} results")
+            
+            return {
+                "success": True,
+                "search_term": search_term,
+                "count": len(specializations),
+                "specializations": specializations or []
+            }
+            
+    except Exception as e:
+        logger.error(f"Error searching specializations: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to search specializations: {str(e)}"
+        )
+

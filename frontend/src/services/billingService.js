@@ -58,6 +58,19 @@ class BillingService {
     }
   }
 
+  /**
+   * Get invoices by patient ID
+   * @param {string} patientId - Patient ID
+   */
+  async getInvoicesByPatient(patientId) {
+    try {
+      const response = await this.getAllInvoices({ patient_id: patientId });
+      return response.invoices || response || [];
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch patient invoices'));
+    }
+  }
+
   // ============ PAYMENTS ============
   
   /**
@@ -114,6 +127,19 @@ class BillingService {
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch payment summary'));
+    }
+  }
+
+  /**
+   * Get recent payments
+   * @param {number} limit - Number of recent payments to fetch
+   */
+  async getRecentPayments(limit = 10) {
+    try {
+      const response = await apiClient.get(`/payments/?limit=${limit}`);
+      return response.data.payments || response.data || [];
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch recent payments'));
     }
   }
 }

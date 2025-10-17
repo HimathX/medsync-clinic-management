@@ -68,7 +68,7 @@ class DashboardService {
   async getPatientDashboardData(patientId) {
     try {
       const [
-        patient,
+        patientResponse,
         appointments,
         prescriptions,
         invoices
@@ -76,9 +76,22 @@ class DashboardService {
         patientService.getPatientById(patientId).catch(() => null),
         appointmentService.getPatientAppointments(patientId).catch(() => []),
         // Assuming prescription endpoint exists
-        api.get(`/prescription/patient/${patientId}`).then(r => r.data).catch(() => []),
+        api.get(`/prescriptions/patient/${patientId}`).then(r => r.data).catch(() => []),
         billingService.getInvoicesByPatient(patientId).catch(() => [])
       ]);
+
+      // Extract patient data - backend returns { patient, user }
+      const patientData = patientResponse?.patient || patientResponse || {};
+      const userData = patientResponse?.user || {};
+      
+      // Merge patient and user data
+      const patient = {
+        ...patientData,
+        full_name: userData.full_name || patientData.full_name,
+        email: userData.email || patientData.email,
+        contact_num: patientData.contact_num1 || patientData.contact_num,
+        patient_id: patientData.patient_id || patientId
+      };
 
       const outstandingBalance = invoices.reduce((sum, inv) => 
         sum + ((inv.total_amount || 0) - (inv.paid_amount || 0)), 0

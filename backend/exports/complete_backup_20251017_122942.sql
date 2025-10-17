@@ -1,11 +1,11 @@
 -- ============================================
 -- MedSync Complete Database Backup
--- Generated: 2025-10-16 13:12:00
+-- Generated: 2025-10-17 12:29:43
 -- ============================================
 
 -- ============================================
 -- MedSync Schema (DDL) Export
--- Generated: 2025-10-16 13:12:00
+-- Generated: 2025-10-17 12:29:42
 -- ============================================
 
 CREATE DATABASE IF NOT EXISTS `medsync_db`;
@@ -513,7 +513,7 @@ CREATE TABLE `user` (
 
 -- ============================================
 -- MedSync Stored Procedures Export
--- Generated: 2025-10-16 13:12:00
+-- Generated: 2025-10-17 12:29:43
 -- ============================================
 
 USE `medsync_db`;
@@ -1318,6 +1318,132 @@ proc_label: BEGIN
     SET p_error_message = 'Treatment added successfully';
    
     COMMIT;
+END proc_label$$
+
+-- Procedure: AuthenticateUser
+DROP PROCEDURE IF EXISTS `AuthenticateUser`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AuthenticateUser`(
+    IN p_email VARCHAR(255),
+    IN p_password_hash VARCHAR(255),
+    OUT p_user_id CHAR(36),
+    OUT p_user_type VARCHAR(20),
+    OUT p_full_name VARCHAR(100),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    DECLARE v_stored_password VARCHAR(255);
+    DECLARE v_user_count INT DEFAULT 0;
+    DECLARE v_user_type_db VARCHAR(20);
+    DECLARE v_employee_role VARCHAR(20);
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_message = MESSAGE_TEXT;
+        SET p_success = FALSE;
+        SET p_user_id = NULL;
+        SET p_user_type = NULL;
+        SET p_full_name = NULL;
+    END;
+    
+    -- Initialize output parameters
+    SET p_success = FALSE;
+    SET p_user_id = NULL;
+    SET p_user_type = NULL;
+    SET p_full_name = NULL;
+    SET p_error_message = NULL;
+    
+    -- Check if user exists
+    SELECT COUNT(*) INTO v_user_count
+    FROM user
+    WHERE LOWER(TRIM(email)) = LOWER(TRIM(p_email));
+    
+    IF v_user_count = 0 THEN
+        SET p_error_message = 'Invalid email or password';
+        LEAVE proc_label;
+    END IF;
+    
+    -- Get user details - CHANGED: role -> user_type
+    SELECT user_id, password_hash, user_type, full_name
+    INTO p_user_id, v_stored_password, v_user_type_db, p_full_name
+    FROM user
+    WHERE LOWER(TRIM(email)) = LOWER(TRIM(p_email));
+    
+    -- Verify password hash
+    IF LOWER(TRIM(v_stored_password)) = LOWER(TRIM(p_password_hash)) THEN
+        -- Password is correct
+        SET p_success = TRUE;
+        SET p_error_message = NULL;
+        
+        -- Determine specific user type based on user_type column
+        IF v_user_type_db = 'patient' THEN
+            -- Check if patient record exists
+            SELECT COUNT(*) INTO v_user_count 
+            FROM patient 
+            WHERE patient_id = p_user_id;
+            
+            IF v_user_count = 0 THEN
+                SET p_error_message = 'User account not properly configured - Patient record missing';
+                SET p_success = FALSE;
+                SET p_user_id = NULL;
+                SET p_user_type = NULL;
+                SET p_full_name = NULL;
+                LEAVE proc_label;
+            END IF;
+            
+            SET p_user_type = 'patient';
+            
+        ELSEIF v_user_type_db = 'employee' THEN
+            -- Check if employee record exists and get role
+            SELECT COUNT(*), MAX(role) INTO v_user_count, v_employee_role
+            FROM employee
+            WHERE employee_id = p_user_id;
+            
+            IF v_user_count = 0 THEN
+                SET p_error_message = 'User account not properly configured - Employee record missing';
+                SET p_success = FALSE;
+                SET p_user_id = NULL;
+                SET p_user_type = NULL;
+                SET p_full_name = NULL;
+                LEAVE proc_label;
+            END IF;
+            
+            -- Check specific employee role
+            IF v_employee_role = 'doctor' THEN
+                SELECT COUNT(*) INTO v_user_count 
+                FROM doctor 
+                WHERE doctor_id = p_user_id;
+                
+                IF v_user_count = 0 THEN
+                    SET p_error_message = 'User account not properly configured - Doctor record missing';
+                    SET p_success = FALSE;
+                    SET p_user_id = NULL;
+                    SET p_user_type = NULL;
+                    SET p_full_name = NULL;
+                    LEAVE proc_label;
+                END IF;
+                
+                SET p_user_type = 'doctor';
+            ELSE
+                -- For other staff (nurse, admin, receptionist, manager)
+                SET p_user_type = v_employee_role;
+            END IF;
+        ELSE
+            SET p_error_message = CONCAT('Invalid user type: ', COALESCE(v_user_type_db, 'NULL'));
+            SET p_success = FALSE;
+            SET p_user_id = NULL;
+            SET p_user_type = NULL;
+            SET p_full_name = NULL;
+        END IF;
+    ELSE
+        -- Password is incorrect
+        SET p_success = FALSE;
+        SET p_error_message = 'Invalid email or password';
+        SET p_user_id = NULL;
+        SET p_user_type = NULL;
+        SET p_full_name = NULL;
+    END IF;
 END proc_label$$
 
 -- Procedure: BookAppointment
@@ -2778,7 +2904,7 @@ DELIMITER ;
 
 -- ============================================
 -- MedSync Functions Export
--- Generated: 2025-10-16 13:12:00
+-- Generated: 2025-10-17 12:29:43
 -- ============================================
 
 USE `medsync_db`;
@@ -2963,7 +3089,7 @@ DELIMITER ;
 
 -- ============================================
 -- MedSync Triggers Export
--- Generated: 2025-10-16 13:12:00
+-- Generated: 2025-10-17 12:29:43
 -- ============================================
 
 USE `medsync_db`;
@@ -2984,22 +3110,12 @@ CREATE DEFINER=`root`@`localhost` TRIGGER `validate_patient_age` BEFORE INSERT O
     END IF;
 END$$
 
--- Trigger: log_user_login
-DROP TRIGGER IF EXISTS `log_user_login`$$
-
-CREATE DEFINER=`root`@`localhost` TRIGGER `log_user_login` AFTER UPDATE ON `user` FOR EACH ROW BEGIN
-    IF NEW.last_login != OLD.last_login THEN
-        INSERT INTO audit_log (user_id, action, timestamp)
-        VALUES (NEW.user_id, 'LOGIN', NOW());
-    END IF;
-END$$
-
 DELIMITER ;
 
 
 -- ============================================
 -- MedSync Views Export
--- Generated: 2025-10-16 13:12:00
+-- Generated: 2025-10-17 12:29:43
 -- ============================================
 
 USE `medsync_db`;
@@ -3010,7 +3126,7 @@ USE `medsync_db`;
 
 -- ============================================
 -- MedSync Data (DML) Export
--- Generated: 2025-10-16 13:12:00
+-- Generated: 2025-10-17 12:29:42
 -- ============================================
 
 USE `medsync_db`;
@@ -3018,7 +3134,7 @@ USE `medsync_db`;
 SET FOREIGN_KEY_CHECKS=0;
 
 -- ============================================
--- Data for table: address (28 rows)
+-- Data for table: address (35 rows)
 -- ============================================
 
 INSERT INTO `address` (`address_id`, `address_line1`, `address_line2`, `city`, `province`, `postal_code`, `country`, `created_at`, `updated_at`) VALUES
@@ -3027,10 +3143,13 @@ INSERT INTO `address` (`address_id`, `address_line1`, `address_line2`, `city`, `
   ('164311a3-a9a9-11f0-afdd-005056c00001', '78 Beach View Avenue', 'Negombo', 'Negombo', 'Western', '11500', 'Sri Lanka', '2025-10-15 14:56:53', '2025-10-15 14:56:53'),
   ('1aaf38d7-a165-11f0-ba84-005056c00001', '123 Test Street', 'Unit 5A', 'Colombo', 'Western', '00100', 'Sri Lanka', '2025-10-05 02:30:05', '2025-10-05 02:30:05'),
   ('1b1de237-a34d-11f0-a762-005056c00001', '12 Flower Avenue', 'Nawala', 'Kotte', 'Western', '10100', 'Sri Lanka', '2025-10-07 12:43:21', '2025-10-07 12:43:21'),
+  ('1b5cc74f-aad9-11f0-afdd-005056c00001', '45 Galle Road', 'Colombo 03', 'Colombo', 'Western', '00300', 'Sri Lanka', '2025-10-17 03:13:09', '2025-10-17 03:13:09'),
   ('22c1226d-a9a6-11f0-afdd-005056c00001', '12 Kandy Road', 'Peradeniya', 'Kandy', 'Central', '20000', 'Sri Lanka', '2025-10-15 14:35:46', '2025-10-15 14:35:46'),
+  ('2963516d-aad4-11f0-afdd-005056c00001', '45 Galle Road', 'Colombo 03', 'Colombo', 'Western', '00300', 'Sri Lanka', '2025-10-17 02:37:45', '2025-10-17 02:37:45'),
   ('3abeb001-a167-11f0-ba84-005056c00001', '321 Youth Ave', NULL, 'Matara', 'Southern', '81000', 'Sri Lanka', '2025-10-05 02:45:18', '2025-10-05 02:45:18'),
   ('4e120a51-a9c0-11f0-afdd-005056c00001', '123 Hospital Road', 'Near City Center', 'Colombo', 'Western', '00100', 'Sri Lanka', '2025-10-15 17:43:05', '2025-10-15 17:43:05'),
   ('5f5c6103-a167-11f0-ba84-005056c00001', '111 Staff St', 'Apt 10', 'Colombo', 'Western', '00300', 'Sri Lanka', '2025-10-05 02:46:20', '2025-10-05 02:46:20'),
+  ('64a60890-aabe-11f0-afdd-005056c00001', '87/12, RESERVOIR ROAD, MALIGAKANDA, COLOMBO 9', 'Suite', 'Colombo 09', 'Western', '00900', 'Sri Lanka', '2025-10-17 00:01:55', '2025-10-17 00:01:55'),
   ('81921012-a022-11f0-b3b5-005056c00001', '123 Galle Road', 'Colombo 03', 'Colombo', 'Western', '00300', 'Sri Lanka', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('8194e2d9-a022-11f0-b3b5-005056c00001', '456 Kandy Road', 'Peradeniya', 'Kandy', 'Central', '20400', 'Sri Lanka', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('8194f1d0-a022-11f0-b3b5-005056c00001', '789 Matara Road', 'Galle Fort', 'Galle', 'Southern', '80000', 'Sri Lanka', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
@@ -3048,14 +3167,20 @@ INSERT INTO `address` (`address_id`, `address_line1`, `address_line2`, `city`, `
   ('81950038-a022-11f0-b3b5-005056c00001', '77 Health Road', 'Peradeniya', 'Kandy', 'Central', '20400', 'Sri Lanka', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('89934232-a9b7-11f0-afdd-005056c00001', '56 Hospital Lane', 'Kurunegala', 'Kurunegala', 'North Western', '60000', 'Sri Lanka', '2025-10-15 16:40:20', '2025-10-15 16:40:20'),
   ('9d26ef9d-a9b0-11f0-afdd-005056c00001', '210 Temple Road', 'Matara', 'Matara', 'Southern', '81000', 'Sri Lanka', '2025-10-15 15:50:46', '2025-10-15 15:50:46'),
+  ('abfdbf25-aac6-11f0-afdd-005056c00001', '87/12, RESERVOIR ROAD, MALIGAKANDA, COLOMBO 9', 'Suite', 'Colombo 09', 'Western', '00900', 'Sri Lanka', '2025-10-17 01:01:11', '2025-10-17 01:01:11'),
+  ('c322d5a1-aac9-11f0-afdd-005056c00001', '45 Galle Road', 'Colombo 03', 'Colombo', 'Western', '00300', 'Sri Lanka', '2025-10-17 01:23:18', '2025-10-17 01:23:18'),
+  ('dc5a35c3-aacb-11f0-afdd-005056c00001', '45 Galle Road', 'Colombo 03', 'Colombo', 'Western', '00300', 'Sri Lanka', '2025-10-17 01:38:20', '2025-10-17 01:38:20'),
+  ('e754f1a4-aabe-11f0-afdd-005056c00001', '87/12, RESERVOIR ROAD, MALIGAKANDA, COLOMBO 9', 'Suite', 'Colombo 09', 'Western', '00900', 'Sri Lanka', '2025-10-17 00:05:35', '2025-10-17 00:05:35'),
   ('e8090cc9-a9b8-11f0-afdd-005056c00001', '142 Temple Garden Road', 'Anuradhapura', 'Anuradhapura', 'North Central', '50000', 'Sri Lanka', '2025-10-15 16:50:08', '2025-10-15 16:50:08'),
   ('eb066fd4-a9be-11f0-afdd-005056c00001', '123 Hospital Road', 'Near City Center', 'Colombo', 'Western', '00100', 'Sri Lanka', '2025-10-15 17:33:10', '2025-10-15 17:33:10');
 
 -- ============================================
--- Data for table: appointment (1 rows)
+-- Data for table: appointment (3 rows)
 -- ============================================
 
 INSERT INTO `appointment` (`appointment_id`, `time_slot_id`, `patient_id`, `status`, `notes`, `created_at`, `updated_at`) VALUES
+  ('34d14be3-ab1d-11f0-b7a5-005056c00001', 'd55ef757-a9d5-11f0-afdd-005056c00001', '1b5cc7f8-aad9-11f0-afdd-005056c00001', 'Scheduled', '', '2025-10-17 11:20:37', '2025-10-17 11:20:37'),
+  ('5c18d0ac-ab26-11f0-b7a5-005056c00001', 'd5626f68-a9d5-11f0-afdd-005056c00001', '1b5cc7f8-aad9-11f0-afdd-005056c00001', 'Scheduled', '', '2025-10-17 12:26:09', '2025-10-17 12:26:09'),
   ('60d61664-aa37-11f0-afdd-005056c00001', 'd557782e-a9d5-11f0-afdd-005056c00001', '16431244-a9a9-11f0-afdd-005056c00001', 'Completed', 'Patient completed consultation', '2025-10-16 07:55:27', '2025-10-16 08:50:21');
 
 -- ============================================
@@ -3103,7 +3228,7 @@ INSERT INTO `consultation_record` (`consultation_rec_id`, `appointment_id`, `sym
   ('beae1ccb-aa50-11f0-afdd-005056c00001', '60d61664-aa37-11f0-afdd-005056c00001', 'Fever, headache, and sore throat for 3 days', 'Upper respiratory tract infection (URTI)', 1, '2025-10-25', '2025-10-16 10:57:02', '2025-10-16 10:57:02');
 
 -- ============================================
--- Data for table: contact (46 rows)
+-- Data for table: contact (53 rows)
 -- ============================================
 
 INSERT INTO `contact` (`contact_id`, `contact_num1`, `contact_num2`, `created_at`, `updated_at`) VALUES
@@ -3112,10 +3237,13 @@ INSERT INTO `contact` (`contact_id`, `contact_num1`, `contact_num2`, `created_at
   ('164311fd-a9a9-11f0-afdd-005056c00001', '+94784561234', '+94312233445', '2025-10-15 14:56:53', '2025-10-15 14:56:53'),
   ('1aaf3ab5-a165-11f0-ba84-005056c00001', '+94771234567', '+94112345678', '2025-10-05 02:30:06', '2025-10-05 02:30:06'),
   ('1b1de2c4-a34d-11f0-a762-005056c00001', '+94779876543', '+94112876543', '2025-10-07 12:43:21', '2025-10-07 12:43:21'),
+  ('1b5cc7be-aad9-11f0-afdd-005056c00001', '+94771234567', '+94112345678', '2025-10-17 03:13:09', '2025-10-17 03:13:09'),
   ('22c124f5-a9a6-11f0-afdd-005056c00001', '+94763456789', '+94812345670', '2025-10-15 14:35:46', '2025-10-15 14:35:46'),
+  ('296351c6-aad4-11f0-afdd-005056c00001', '+94771234567', '+94112345678', '2025-10-17 02:37:45', '2025-10-17 02:37:45'),
   ('3abeb077-a167-11f0-ba84-005056c00001', '+94773333333', NULL, '2025-10-05 02:45:18', '2025-10-05 02:45:18'),
   ('4e120ae0-a9c0-11f0-afdd-005056c00001', '+94112345678', '+94771234567', '2025-10-15 17:43:05', '2025-10-15 17:43:05'),
   ('5f5c6184-a167-11f0-ba84-005056c00001', '+94775555555', NULL, '2025-10-05 02:46:20', '2025-10-05 02:46:20'),
+  ('64a6091f-aabe-11f0-afdd-005056c00001', '+94755959596', '', '2025-10-17 00:01:55', '2025-10-17 00:01:55'),
   ('81968904-a022-11f0-b3b5-005056c00001', '+94112345001', '+94777123001', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('81a0446f-a022-11f0-b3b5-005056c00001', '+94812345002', '+94777123002', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('81a04800-a022-11f0-b3b5-005056c00001', '+94912345003', '+94777123003', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
@@ -3151,6 +3279,10 @@ INSERT INTO `contact` (`contact_id`, `contact_num1`, `contact_num2`, `created_at
   ('81a06700-a022-11f0-b3b5-005056c00001', '+94112345210', '+94777123210', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('899342b5-a9b7-11f0-afdd-005056c00001', '+94372233456', '+94770123456', '2025-10-15 16:40:20', '2025-10-15 16:40:20'),
   ('9d275db0-a9b0-11f0-afdd-005056c00001', '+94791239876', '+94412223344', '2025-10-15 15:50:46', '2025-10-15 15:50:46'),
+  ('abfdbf78-aac6-11f0-afdd-005056c00001', '+94755959596', '', '2025-10-17 01:01:11', '2025-10-17 01:01:11'),
+  ('c322d5fa-aac9-11f0-afdd-005056c00001', '+94771234567', '+94112345678', '2025-10-17 01:23:18', '2025-10-17 01:23:18'),
+  ('dc5a361e-aacb-11f0-afdd-005056c00001', '+94771234567', '+94112345678', '2025-10-17 01:38:20', '2025-10-17 01:38:20'),
+  ('e754f250-aabe-11f0-afdd-005056c00001', '+94755959596', '', '2025-10-17 00:05:35', '2025-10-17 00:05:35'),
   ('e8090d29-a9b8-11f0-afdd-005056c00001', '+94252233444', '+94775678901', '2025-10-15 16:50:08', '2025-10-15 16:50:08'),
   ('eb067079-a9be-11f0-afdd-005056c00001', '+94112345678', '+94771234567', '2025-10-15 17:33:10', '2025-10-15 17:33:10');
 
@@ -3238,20 +3370,27 @@ INSERT INTO `medication` (`medication_id`, `generic_name`, `manufacturer`, `form
   ('b086f4e9-aa41-11f0-afdd-005056c00001', 'Ceftriaxone', 'InjecTech', 'Injection', 'Severe kidney impairment', 'Pain at injection site, diarrhea', '2025-10-16 09:09:15', '2025-10-16 09:09:15');
 
 -- ============================================
--- Data for table: patient (10 rows)
+-- Data for table: patient (17 rows)
 -- ============================================
 
 INSERT INTO `patient` (`patient_id`, `blood_group`, `allergies`, `chronic_conditions`, `registered_branch_id`, `created_at`, `updated_at`) VALUES
   ('16431244-a9a9-11f0-afdd-005056c00001', 'B+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-15 14:56:53', '2025-10-15 14:56:53'),
   ('1aaf3ae2-a165-11f0-ba84-005056c00001', 'O+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-05 02:30:06', '2025-10-05 02:30:06'),
   ('1b1de314-a34d-11f0-a762-005056c00001', 'A-', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-07 12:43:21', '2025-10-07 12:43:21'),
+  ('1b5cc7f8-aad9-11f0-afdd-005056c00001', 'O+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-17 03:13:09', '2025-10-17 03:13:09'),
   ('22c12527-a9a6-11f0-afdd-005056c00001', 'A-', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-15 14:35:46', '2025-10-15 14:35:46'),
+  ('296351fe-aad4-11f0-afdd-005056c00001', 'O+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-17 02:37:45', '2025-10-17 02:37:45'),
   ('3abeb0cd-a167-11f0-ba84-005056c00001', 'AB+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-05 02:45:18', '2025-10-05 02:45:18'),
+  ('64a6098c-aabe-11f0-afdd-005056c00001', 'O+', NULL, NULL, '81a335ef-a022-11f0-b3b5-005056c00001', '2025-10-17 00:01:55', '2025-10-17 00:01:55'),
   ('81ac4b2a-a022-11f0-b3b5-005056c00001', 'O+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('81ac6531-a022-11f0-b3b5-005056c00001', 'A+', 'Penicillin', 'Hypertension', '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('81ac6ed7-a022-11f0-b3b5-005056c00001', 'B+', NULL, 'Diabetes Type 2', '81a3347c-a022-11f0-b3b5-005056c00001', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('81ac7636-a022-11f0-b3b5-005056c00001', 'AB+', 'Aspirin', NULL, '81a335ef-a022-11f0-b3b5-005056c00001', '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
-  ('9d275ddc-a9b0-11f0-afdd-005056c00001', 'AB+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-15 15:50:46', '2025-10-15 15:50:46');
+  ('9d275ddc-a9b0-11f0-afdd-005056c00001', 'AB+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-15 15:50:46', '2025-10-15 15:50:46'),
+  ('abfdbfae-aac6-11f0-afdd-005056c00001', 'O+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-17 01:01:11', '2025-10-17 01:01:11'),
+  ('c322d635-aac9-11f0-afdd-005056c00001', 'O+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-17 01:23:18', '2025-10-17 01:23:18'),
+  ('dc5a3654-aacb-11f0-afdd-005056c00001', 'O+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-17 01:38:20', '2025-10-17 01:38:20'),
+  ('e754f2cc-aabe-11f0-afdd-005056c00001', 'O+', NULL, NULL, '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-17 00:05:35', '2025-10-17 00:05:35');
 
 -- ============================================
 -- Data for table: patient_allergy (1 rows)
@@ -3300,9 +3439,9 @@ INSERT INTO `specialization` (`specialization_id`, `specialization_title`, `othe
 
 INSERT INTO `time_slot` (`time_slot_id`, `doctor_id`, `branch_id`, `available_date`, `is_booked`, `start_time`, `end_time`, `created_at`, `updated_at`) VALUES
   ('d557782e-a9d5-11f0-afdd-005056c00001', '16208a35-a340-11f0-a762-005056c00001', '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-20', 1, '9:00:00', '9:30:00', '2025-10-15 20:17:12', '2025-10-16 07:55:27'),
-  ('d55ef757-a9d5-11f0-afdd-005056c00001', '16208a35-a340-11f0-a762-005056c00001', '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-20', 0, '9:30:00', '10:00:00', '2025-10-15 20:17:12', '2025-10-15 20:17:12'),
+  ('d55ef757-a9d5-11f0-afdd-005056c00001', '16208a35-a340-11f0-a762-005056c00001', '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-20', 1, '9:30:00', '10:00:00', '2025-10-15 20:17:12', '2025-10-17 11:20:37'),
   ('d56071d5-a9d5-11f0-afdd-005056c00001', '16208a35-a340-11f0-a762-005056c00001', '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-20', 0, '10:00:00', '10:30:00', '2025-10-15 20:17:12', '2025-10-15 20:17:12'),
-  ('d5626f68-a9d5-11f0-afdd-005056c00001', '16208a35-a340-11f0-a762-005056c00001', '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-21', 0, '9:00:00', '9:30:00', '2025-10-15 20:17:12', '2025-10-15 20:17:12');
+  ('d5626f68-a9d5-11f0-afdd-005056c00001', '16208a35-a340-11f0-a762-005056c00001', '81a3303f-a022-11f0-b3b5-005056c00001', '2025-10-21', 1, '9:00:00', '9:30:00', '2025-10-15 20:17:12', '2025-10-17 12:26:09');
 
 -- ============================================
 -- Data for table: treatment (1 rows)
@@ -3320,7 +3459,7 @@ INSERT INTO `treatment_catalogue` (`treatment_service_code`, `treatment_name`, `
   ('a49846a2-f027-481b-a5cd-6f433fa06338', 'X-Ray Chest', '1500.00', '0:20:00', 'Chest X-ray examination', '2025-10-16 10:43:10', '2025-10-16 10:43:10');
 
 -- ============================================
--- Data for table: user (43 rows)
+-- Data for table: user (50 rows)
 -- ============================================
 
 INSERT INTO `user` (`user_id`, `address_id`, `user_type`, `full_name`, `NIC`, `email`, `gender`, `DOB`, `contact_id`, `password_hash`, `last_login`, `created_at`, `updated_at`) VALUES
@@ -3329,10 +3468,13 @@ INSERT INTO `user` (`user_id`, `address_id`, `user_type`, `full_name`, `NIC`, `e
   ('16431244-a9a9-11f0-afdd-005056c00001', '164311a3-a9a9-11f0-afdd-005056c00001', 'patient', 'Sachini Jayasinghe', '199523456789', 'sachini.jayasinghe@example.com', 'Female', '1995-03-08', '164311fd-a9a9-11f0-afdd-005056c00001', '1c31caf0e842905aca9a922b834f81f542212da6d5f256be6da1e9e9b875160e', NULL, '2025-10-15 14:56:53', '2025-10-15 14:56:53'),
   ('1aaf3ae2-a165-11f0-ba84-005056c00001', '1aaf38d7-a165-11f0-ba84-005056c00001', 'patient', 'Test Patient One', '199012345678', 'testpatient1@test.com', 'Male', '1990-05-15', '1aaf3ab5-a165-11f0-ba84-005056c00001', '$2b$12$testhash1', NULL, '2025-10-05 02:30:06', '2025-10-05 02:30:06'),
   ('1b1de314-a34d-11f0-a762-005056c00001', '1b1de237-a34d-11f0-a762-005056c00001', 'patient', 'Alice Perera', '850123456789', 'alice.perera@healthmail.com', 'Female', '1985-11-22', '1b1de2c4-a34d-11f0-a762-005056c00001', '98a0a04c5d11b4e5d1e0627f87d94fa80aecd65aebf922443b6c1c588065f07a', NULL, '2025-10-07 12:43:21', '2025-10-07 12:43:21'),
+  ('1b5cc7f8-aad9-11f0-afdd-005056c00001', '1b5cc74f-aad9-11f0-afdd-005056c00001', 'patient', 'John Doe', '199012345678BD', 'johndoe4@gmail.com', 'Male', '1990-05-15', '1b5cc7be-aad9-11f0-afdd-005056c00001', 'ac9689e2272427085e35b9d3e3e8bed88cb3434828b43b86fc0596cad4c6e270', NULL, '2025-10-17 03:13:09', '2025-10-17 03:13:09'),
   ('22c12527-a9a6-11f0-afdd-005056c00001', '22c1226d-a9a6-11f0-afdd-005056c00001', 'patient', 'Nuwan Perera', '198745678912', 'nuwan.perera@example.com', 'Male', '1987-11-22', '22c124f5-a9a6-11f0-afdd-005056c00001', '0b0d3ac254a5434fc80977a6e29b5f17f774dd2d488e168661d313d31ad476db', NULL, '2025-10-15 14:35:46', '2025-10-15 14:35:46'),
+  ('296351fe-aad4-11f0-afdd-005056c00001', '2963516d-aad4-11f0-afdd-005056c00001', 'patient', 'John Doe', '199012345678BC', 'johndoe3@gmail.com', 'Male', '1990-05-15', '296351c6-aad4-11f0-afdd-005056c00001', 'ac9689e2272427085e35b9d3e3e8bed88cb3434828b43b86fc0596cad4c6e270', NULL, '2025-10-17 02:37:45', '2025-10-17 02:37:45'),
   ('3abeb0cd-a167-11f0-ba84-005056c00001', '3abeb001-a167-11f0-ba84-005056c00001', 'patient', 'Test Minor', '201012345678', 'testminor@test.com', 'Male', '2010-01-01', '3abeb077-a167-11f0-ba84-005056c00001', '$2b$12$testhash4', NULL, '2025-10-05 02:45:18', '2025-10-05 02:45:18'),
   ('4e120b30-a9c0-11f0-afdd-005056c00001', '4e120a51-a9c0-11f0-afdd-005056c00001', 'employee', 'Sarah Johnson', '1990123456782', 'sarah.johnson@clinicd.com', 'Female', '1990-05-15', '4e120ae0-a9c0-11f0-afdd-005056c00001', '82b6314e99311ded1792a20c3dbfd040d644382846394d3b7cc77e6d1d0ec12a', NULL, '2025-10-15 17:43:05', '2025-10-15 17:43:05'),
   ('5f5c61d3-a167-11f0-ba84-005056c00001', '5f5c6103-a167-11f0-ba84-005056c00001', 'employee', 'Test Nurse One', '198512345678', 'testnurse1@test.com', 'Female', '1985-06-15', '5f5c6184-a167-11f0-ba84-005056c00001', '$2b$12$testhash6', NULL, '2025-10-05 02:46:20', '2025-10-05 02:46:20'),
+  ('64a6098c-aabe-11f0-afdd-005056c00001', '64a60890-aabe-11f0-afdd-005056c00001', 'patient', 'Dhanapalage Himath Nimpura Dhanapala', '200307310230', 'himath.nimpura@gmail.com', 'Male', '2003-03-13', '64a6091f-aabe-11f0-afdd-005056c00001', '26c9e0742dc8b2607e22f2daa78c2265019f7d5902f3cb6db5c4f3755e677bab', NULL, '2025-10-17 00:01:55', '2025-10-17 00:01:55'),
   ('81a5cb27-a022-11f0-b3b5-005056c00001', '8194faf9-a022-11f0-b3b5-005056c00001', 'employee', 'Dr. Samantha Perera', '198501234567', 'samantha.perera@medsync.lk', 'Female', '1985-05-15', '81a05e70-a022-11f0-b3b5-005056c00001', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7K8IVKMGe6', NULL, '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('81a5d173-a022-11f0-b3b5-005056c00001', '8194fbd4-a022-11f0-b3b5-005056c00001', 'employee', 'Dr. Nimal Silva', '198201234568', 'nimal.silva@medsync.lk', 'Male', '1982-08-22', '81a05f65-a022-11f0-b3b5-005056c00001', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7K8IVKMGe6', NULL, '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('81a5d543-a022-11f0-b3b5-005056c00001', '8194fca8-a022-11f0-b3b5-005056c00001', 'employee', 'Dr. Chamari Fernando', '198701234569', 'chamari.fernando@medsync.lk', 'Female', '1987-12-10', '81a06052-a022-11f0-b3b5-005056c00001', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7K8IVKMGe6', NULL, '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
@@ -3365,6 +3507,10 @@ INSERT INTO `user` (`user_id`, `address_id`, `user_type`, `full_name`, `NIC`, `e
   ('81acf2a1-a022-11f0-b3b5-005056c00001', '8194f91a-a022-11f0-b3b5-005056c00001', 'patient', 'Chathurika Bandara', '199201234520', 'chathurika.bandara@email.com', 'Female', '1992-04-27', '81a05d7e-a022-11f0-b3b5-005056c00001', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7K8IVKMGe6', NULL, '2025-10-03 12:00:51', '2025-10-03 12:00:51'),
   ('8993430c-a9b7-11f0-afdd-005056c00001', '89934232-a9b7-11f0-afdd-005056c00001', 'employee', 'Dr. Kasun Jayawardena', '198045678912', 'dr.kasun@medmail.com', 'Male', '1980-10-20', '899342b5-a9b7-11f0-afdd-005056c00001', '3ccb53f9a5095e53260da5f21800c243d09c3e99209375be671164ea67185883', NULL, '2025-10-15 16:40:20', '2025-10-15 16:40:20'),
   ('9d275ddc-a9b0-11f0-afdd-005056c00001', '9d26ef9d-a9b0-11f0-afdd-005056c00001', 'patient', 'Ranil Weerasinghe', '198212345678', 'ranil.weerasinghe@example.com', 'Male', '1982-09-14', '9d275db0-a9b0-11f0-afdd-005056c00001', '7d34fdac76109daad867f8fad6fdc4a34b626f340ec9800ef15b6613a02cf23c', NULL, '2025-10-15 15:50:46', '2025-10-15 15:50:46'),
+  ('abfdbfae-aac6-11f0-afdd-005056c00001', 'abfdbf25-aac6-11f0-afdd-005056c00001', 'patient', 'Dhanapalage Himath Nimpura Dhanapala', '2003m7310230', 'himathavengers@gmail.com', 'Male', '2003-01-02', 'abfdbf78-aac6-11f0-afdd-005056c00001', '15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225', NULL, '2025-10-17 01:01:11', '2025-10-17 01:01:11'),
+  ('c322d635-aac9-11f0-afdd-005056c00001', 'c322d5a1-aac9-11f0-afdd-005056c00001', 'patient', 'John Doe', '199012345678B', 'johndoe@gmail.com', 'Male', '1990-05-15', 'c322d5fa-aac9-11f0-afdd-005056c00001', '15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225', NULL, '2025-10-17 01:23:18', '2025-10-17 01:23:18'),
+  ('dc5a3654-aacb-11f0-afdd-005056c00001', 'dc5a35c3-aacb-11f0-afdd-005056c00001', 'patient', 'John Doe', '199012345678BA', 'johndoes@gmail.com', 'Male', '1990-05-15', 'dc5a361e-aacb-11f0-afdd-005056c00001', '15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225', NULL, '2025-10-17 01:38:20', '2025-10-17 01:38:20'),
+  ('e754f2cc-aabe-11f0-afdd-005056c00001', 'e754f1a4-aabe-11f0-afdd-005056c00001', 'patient', 'Dhanapalage Himath Nimpura Dhanapala', '200307310231', 'himathavenger@gmail.com', 'Male', '2003-01-02', 'e754f250-aabe-11f0-afdd-005056c00001', 'ac9689e2272427085e35b9d3e3e8bed88cb3434828b43b86fc0596cad4c6e270', NULL, '2025-10-17 00:05:35', '2025-10-17 00:05:35'),
   ('e8090d6f-a9b8-11f0-afdd-005056c00001', 'e8090cc9-a9b8-11f0-afdd-005056c00001', 'doctor', 'Dr. Nalaka Ranasinghe', '197945678901', 'dr.nalaka@medmail.com', 'Male', '1979-07-05', 'e8090d29-a9b8-11f0-afdd-005056c00001', '1a89323abed194903bb51fd9a06000e73ed3e394bb3cbebb55a1ea975a1ed450', NULL, '2025-10-15 16:50:08', '2025-10-15 16:50:08'),
   ('eb0670f9-a9be-11f0-afdd-005056c00001', 'eb066fd4-a9be-11f0-afdd-005056c00001', 'employee', 'Sarah Johnson', '1990123456781', 'sarah.johnson@clinic.com', 'Female', '1990-05-15', 'eb067079-a9be-11f0-afdd-005056c00001', '82b6314e99311ded1792a20c3dbfd040d644382846394d3b7cc77e6d1d0ec12a', NULL, '2025-10-15 17:33:10', '2025-10-15 17:33:10');
 
