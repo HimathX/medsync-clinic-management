@@ -2386,4 +2386,238 @@ proc_label: BEGIN
     COMMIT;
 END proc_label$$
 
+-- Procedure: GenerateInvoice
+DROP PROCEDURE IF EXISTS GenerateInvoice$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE GenerateInvoice(
+    IN p_consultation_rec_id CHAR(36),
+    OUT p_invoice_id CHAR(36),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    DECLARE v_appointment_id CHAR(36);
+    DECLARE v_doctor_fee DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_treatments_total DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_sub_total DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_patient_id CHAR(36);
+    DECLARE v_invoice_id CHAR(36);
+    DECLARE v_consultation_exists INT DEFAULT 0;
+    DECLARE v_balance_exists INT DEFAULT 0;
+   
+    -- Error handler
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- Initialize
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_invoice_id = NULL;
+   
+    START TRANSACTION;
+   
+    -- Validate consultation exists
+    SELECT COUNT(*) INTO v_consultation_exists FROM consultation_record WHERE consultation_rec_id = p_consultation_rec_id;
+    IF v_consultation_exists = 0 THEN
+        SET p_error_message = 'Consultation record not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Get doctor fee (via appointment → time_slot → doctor)
+    SELECT cr.appointment_id INTO v_appointment_id FROM consultation_record cr WHERE cr.consultation_rec_id = p_consultation_rec_id;
+    SELECT d.consultation_fee INTO v_doctor_fee 
+    FROM appointment a 
+    JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id 
+    JOIN doctor d ON ts.doctor_id = d.doctor_id 
+    WHERE a.appointment_id = v_appointment_id;
+   
+    -- Sum treatments total (base_price from catalogue)
+    SELECT COALESCE(SUM(tc.base_price), 0) INTO v_treatments_total
+    FROM treatment t 
+    JOIN treatment_catalogue tc ON t.treatment_service_code = tc.treatment_service_code 
+    WHERE t.consultation_rec_id = p_consultation_rec_id;
+   
+    -- Calculate sub_total
+    SET v_sub_total = v_doctor_fee + v_treatments_total;
+    IF v_sub_total <= 0 THEN
+        SET p_error_message = 'Invalid sub_total (must be > 0)';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Get patient_id
+    SELECT a.patient_id INTO v_patient_id FROM appointment a JOIN consultation_record cr ON a.appointment_id = cr.appointment_id WHERE cr.consultation_rec_id = p_consultation_rec_id;
+   
+    -- Insert invoice (tax_amount=0 for simplicity; adjust if needed)
+    SET v_invoice_id = UUID();
+    INSERT INTO invoice (invoice_id, consultation_rec_id, sub_total, tax_amount) 
+    VALUES (v_invoice_id, p_consultation_rec_id, v_sub_total, 0.00);
+   
+    -- Lock and update/add balance
+    INSERT INTO patient_balance (patient_id, total_balance) VALUES (v_patient_id, v_sub_total) 
+    ON DUPLICATE KEY UPDATE total_balance = total_balance + v_sub_total;
+   
+    SET p_invoice_id = v_invoice_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Invoice generated successfully';
+   
+    COMMIT;
+END proc_label$$
+
+-- Procedure: AddClaim 
+DROP PROCEDURE IF EXISTS AddClaim$$
+
+CREATE DEFINER=`root`@`localhost`PROCEDURE AddClaim(
+    IN p_invoice_id CHAR(36),
+    IN p_insurance_id CHAR(36),
+    IN p_claim_amount DECIMAL(12,2),
+    IN p_notes TEXT,
+    OUT p_claim_id CHAR(36),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    DECLARE v_claim_id CHAR(36);
+    DECLARE v_patient_id CHAR(36);
+    DECLARE v_current_sub_total DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_invoice_exists INT DEFAULT 0;
+    DECLARE v_insurance_exists INT DEFAULT 0;
+    DECLARE v_balance_exists INT DEFAULT 0;
+    DECLARE v_current_balance DECIMAL(12,2) DEFAULT 0.00;
+   
+    -- Error handler
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- Initialize
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_claim_id = NULL;
+   
+    START TRANSACTION;
+   
+    -- Validate invoice
+    SELECT COUNT(*) INTO v_invoice_exists FROM invoice WHERE invoice_id = p_invoice_id;
+    IF v_invoice_exists = 0 THEN
+        SET p_error_message = 'Invoice not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Get patient_id and current sub_total
+    SELECT i.consultation_rec_id, i.sub_total INTO @temp_cr, v_current_sub_total 
+    FROM invoice i WHERE i.invoice_id = p_invoice_id;  -- Temp for consultation
+    SELECT a.patient_id INTO v_patient_id FROM appointment a JOIN consultation_record cr ON a.appointment_id = cr.appointment_id 
+    WHERE cr.consultation_rec_id = @temp_cr;
+   
+    -- Validate insurance (active for patient)
+    SELECT COUNT(*) INTO v_insurance_exists FROM insurance WHERE insurance_id = p_insurance_id AND patient_id = v_patient_id AND status = 'Active';
+    IF v_insurance_exists = 0 THEN
+        SET p_error_message = 'Valid active insurance not found for patient';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validate amount >0 and <= sub_total
+    IF p_claim_amount <= 0 OR p_claim_amount > v_current_sub_total THEN
+        SET p_error_message = 'Claim amount must be >0 and <= invoice sub_total';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Lock and get current balance
+    SELECT total_balance INTO v_current_balance FROM patient_balance WHERE patient_id = v_patient_id FOR UPDATE;
+    SET v_balance_exists = ROW_COUNT();
+    IF v_balance_exists = 0 THEN
+        SET p_error_message = 'Patient balance not initialized';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Insert claim
+    SET v_claim_id = UUID();
+    INSERT INTO claim (claim_id, invoice_id, insurance_id, claim_amount, notes) 
+    VALUES (v_claim_id, p_invoice_id, p_insurance_id, p_claim_amount, p_notes);
+   
+    -- Deduct from invoice (update sub_total -= claim_amount; or claimed_amount += if ALTERed)
+    UPDATE invoice SET sub_total = sub_total - p_claim_amount WHERE invoice_id = p_invoice_id;
+   
+    -- Deduct from patient balance
+    UPDATE patient_balance SET total_balance = total_balance - p_claim_amount WHERE patient_id = v_patient_id;
+   
+    SET p_claim_id = v_claim_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Claim added successfully';
+   
+    COMMIT;
+END proc_label$$
+
+-- Procedure: AddPayment
+DROP PROCEDURE IF EXISTS AddPayment$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE AddPayment(
+    IN p_patient_id CHAR(36),
+    IN p_amount_paid DECIMAL(10,2),
+    IN p_payment_method ENUM('Cash','Credit Card','Debit Card','Online','Insurance','Other'),
+    IN p_status ENUM('Completed','Pending','Failed','Refunded'),
+    IN p_notes TEXT,
+    OUT p_payment_id CHAR(36),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    DECLARE v_payment_id CHAR(36);
+    DECLARE v_patient_exists INT DEFAULT 0;
+   
+    -- Error handler
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- Initialize
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+    SET p_payment_id = NULL;
+   
+    START TRANSACTION;
+   
+    -- Validate patient
+    SELECT COUNT(*) INTO v_patient_exists FROM patient WHERE patient_id = p_patient_id;
+    IF v_patient_exists = 0 THEN
+        SET p_error_message = 'Patient not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Validate amount >0
+    IF p_amount_paid <= 0 THEN
+        SET p_error_message = 'Amount paid must be greater than zero';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Insert payment (trigger handles balance if completed)
+    SET v_payment_id = UUID();
+    INSERT INTO payment (payment_id, patient_id, amount_paid, payment_method, status, notes) 
+    VALUES (v_payment_id, p_patient_id, p_amount_paid, p_payment_method, p_status, p_notes);
+   
+    SET p_payment_id = v_payment_id;
+    SET p_success = TRUE;
+    SET p_error_message = 'Payment added successfully';
+   
+    COMMIT;
+END proc_label$$
+
 DELIMITER ;
