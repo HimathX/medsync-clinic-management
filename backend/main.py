@@ -8,7 +8,8 @@ from core.db_export import export_database
 from routers import (
     auth, doctor, appointment, branch, patient, conditions, 
     staff, timeslot, insurance, medication, prescription, 
-    consultation, treatment_catalogue, treatment, payment, invoice, claims
+    consultation, treatment_catalogue, treatment, payment, invoice, claims,
+    profile_patient, dashboard_patient, dashboard_doctor, dashboard_staff
 )
 
 @asynccontextmanager
@@ -62,6 +63,10 @@ app.include_router(treatment.router, prefix="/treatment-records")
 app.include_router(payment.router, prefix="/payments")
 app.include_router(invoice.router, prefix="/invoices")
 app.include_router(claims.router, prefix="/claims")
+app.include_router(profile_patient.router, prefix="/profile-patient")
+# app.include_router(dashboard_patient.router, prefix="/dashboard-patient")
+# app.include_router(dashboard_doctor.router, prefix="/dashboard-doctor")
+# app.include_router(dashboard_staff.router, prefix="/dashboard-staff")
 
 @app.get("/")
 def read_root():
@@ -82,6 +87,6 @@ def health_check():
     }
 
 if __name__ == "__main__":
-    # import uvicorn
-    # uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-    export_database()
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    # export_database()

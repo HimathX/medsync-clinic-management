@@ -64,7 +64,7 @@ class AppointmentService {
    */
   async updateAppointment(appointmentId, updateData) {
     try {
-      const response = await apiClient.put(`/appointments/${appointmentId}`, updateData);
+      const response = await apiClient.patch(`/appointments/${appointmentId}`, updateData);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to update appointment'));
@@ -159,6 +159,26 @@ class AppointmentService {
       return response.data.time_slots || [];
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch available time slots'));
+    }
+  }
+
+  /**
+   * Get available time slots for a specific branch
+   * @param {string} branchId - Branch ID
+   * @param {string} dateFilter - Date in YYYY-MM-DD format - optional
+   * @returns {Promise} Available time slots with doctor information
+   */
+  async getAvailableSlotsByBranch(branchId, dateFilter = null) {
+    try {
+      let url = `/appointments/available-slots/branch/${branchId}`;
+      if (dateFilter) {
+        url += `?date_filter=${dateFilter}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch available time slots for branch'));
     }
   }
 }

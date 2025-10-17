@@ -5,6 +5,7 @@ import dashboardService from '../../services/dashboardService'
 import appointmentService from '../../services/appointmentService'
 import patientService from '../../services/patientService'
 import billingService from '../../services/billingService'
+import authService from '../../services/authService'
 import '../../styles/patientDashboard.css'
 
 function formatDate(date) {
@@ -22,8 +23,17 @@ export default function PatientDashboard() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   
-  // Get patient ID from localStorage or session (assuming login sets this)
-  const patientId = localStorage.getItem('patientId') || sessionStorage.getItem('patientId') || 1;
+  // Get patient ID from auth service
+  const currentUser = authService.getCurrentUser();
+  const patientId = currentUser?.patientId || localStorage.getItem('patientId') || sessionStorage.getItem('patientId');
+  
+  // If no patient ID, redirect to login
+  useEffect(() => {
+    if (!patientId) {
+      console.warn('⚠️ No patient ID found, redirecting to login');
+      navigate('/patient-login');
+    }
+  }, [patientId, navigate]);
   
   const [data, setData] = useState({
     patient: { 
@@ -49,8 +59,13 @@ export default function PatientDashboard() {
       setLoading(true)
       setError(null)
       
+      console.log('📊 Fetching dashboard data for patient ID:', patientId);
+      
       // Fetch patient dashboard data from backend
       const dashboardData = await dashboardService.getPatientDashboardData(patientId)
+      
+      console.log('✅ Dashboard data received:', dashboardData);
+      console.log('📅 Appointments count:', dashboardData.appointments?.length || 0);
       
       // Format patient data
       const patient = dashboardData.patient || {}
@@ -63,16 +78,32 @@ export default function PatientDashboard() {
       }
       
       // Format appointments
-      const appointments = (dashboardData.appointments || []).map(appt => ({
-        id: appt.appointment_id,
-        title: appt.specialty || 'Consultation',
-        doctor: appt.doctor_name || 'Doctor',
-        specialty: appt.specialty || 'General',
-        date: new Date(appt.appointment_date),
-        branch: appt.branch_name || 'Main',
-        room: appt.room_number || 'TBD',
-        status: appt.status || 'Scheduled'
-      }))
+      const appointments = (dashboardData.appointments || []).map(appt => {
+        // Backend returns available_date and start_time from time_slot table
+        const appointmentDate = appt.available_date || appt.appointment_date;
+        const appointmentTime = appt.start_time || '00:00:00';
+        
+        // Combine date and time into a single Date object
+        let fullDate;
+        if (appointmentDate) {
+          const dateStr = appointmentDate.split('T')[0]; // Get YYYY-MM-DD
+          fullDate = new Date(`${dateStr}T${appointmentTime}`);
+        } else {
+          fullDate = new Date();
+        }
+        
+        return {
+          id: appt.appointment_id,
+          title: appt.specialty || 'Consultation',
+          doctor: appt.doctor_name || 'Doctor',
+          specialty: appt.specialty || 'General',
+          date: fullDate,
+          time: appointmentTime,
+          branch: appt.branch_name || 'Main',
+          room: appt.room_number || 'TBD',
+          status: appt.status || 'Scheduled'
+        };
+      })
       
       // Format prescriptions
       const prescriptions = (dashboardData.prescriptions || []).map(rx => ({
@@ -113,11 +144,31 @@ export default function PatientDashboard() {
 
   // Calculate upcoming appointments - MUST be before conditional returns (Hooks rules)
   const upcomingAppointments = useMemo(() => {
-    const now = new Date()
-    return data.appointments
-      .filter(appt => appt.date > now)
-      .sort((a, b) => a.date - b.date)
-      .slice(0, 3)
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Reset to start of today for proper comparison
+    
+    console.log('🔍 Filtering appointments:', {
+      totalAppointments: data.appointments.length,
+      currentDate: now,
+      appointments: data.appointments.map(appt => ({
+        date: appt.date,
+        doctor: appt.doctor,
+        isFuture: appt.date >= now
+      }))
+    });
+    
+    const filtered = data.appointments
+      .filter(appt => {
+        const apptDate = new Date(appt.date);
+        apptDate.setHours(0, 0, 0, 0);
+        return apptDate >= now && appt.status !== 'Cancelled' && appt.status !== 'Completed';
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(0, 3);
+      
+    console.log('✅ Upcoming appointments found:', filtered.length);
+    
+    return filtered;
   }, [data.appointments])
 
   if (error) {
@@ -348,7 +399,7 @@ export default function PatientDashboard() {
             {/* Upcoming Appointments */}
             <div className="dashboard-card appointments-card">
               <div className="card-header">
-                <h3 className="card-title">Upcoming Appointments</h3>
+                <h3 className="card-title">Appointments</h3>
                 <button className="view-all-link" onClick={() => navigate('/patient/appointments')}>
                   View All →
                 </button>
@@ -361,12 +412,28 @@ export default function PatientDashboard() {
                     <div className="skeleton-line"></div>
                   </div>
                 ) : upcomingAppointments.length === 0 ? (
-                  <div className="empty-state-card">
-                    <span className="empty-icon">📅</span>
-                    <p>No upcoming appointments</p>
-                    <button className="btn-primary" onClick={() => navigate('/patient/book')}>
-                      Book Appointment
-                    </button>
+                  <div className="empty-appointments-card">
+                    <div className="empty-appointments-graphic">
+                      <div className="calendar-illustration">
+                        <div className="calendar-header"></div>
+                        <div className="calendar-body">
+                          <div className="calendar-date">📅</div>
+                        </div>
+                      </div>
+                    </div>
+                    <h3 className="empty-title">Appointments</h3>
+                    {/* <p className="empty-description">
+                      You don't have any scheduled appointments at the moment. 
+                      Book a consultation with our experienced doctors.
+                    </p> */}
+                    <div className="empty-actions">
+                      <button className="btn-primary-large" onClick={() => navigate('/patient/book')}>
+                        📅 Book New Appointment
+                      </button>
+                      <button className="btn-secondary-outline" onClick={() => navigate('/patient/appointments')}>
+                        📋 View All Appointments
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="appointments-list">

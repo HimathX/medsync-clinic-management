@@ -1,41 +1,14 @@
 import apiClient, { handleApiError } from './api';
 
 class BillingService {
-  // ============ INVOICES ============
+  // ============================================
+  // INVOICE ENDPOINTS
+  // ============================================
   
   /**
-   * Get all invoices
-   * @param {Object} filters - { patient_id, status }
-   */
-  async getAllInvoices(filters = {}) {
-    try {
-      const params = new URLSearchParams();
-      if (filters.patient_id) params.append('patient_id', filters.patient_id);
-      if (filters.status) params.append('status', filters.status);
-      
-      const response = await apiClient.get(`/invoices/?${params.toString()}`);
-      return response.data;
-    } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch invoices'));
-    }
-  }
-
-  /**
-   * Get invoice by ID
-   * @param {string} invoiceId - Invoice ID
-   */
-  async getInvoiceById(invoiceId) {
-    try {
-      const response = await apiClient.get(`/invoices/${invoiceId}`);
-      return response.data;
-    } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch invoice'));
-    }
-  }
-
-  /**
-   * Create invoice
-   * @param {Object} invoiceData - Invoice creation data
+   * Create invoice for consultation
+   * @param {Object} invoiceData - { consultation_rec_id, tax_percentage, due_days }
+   * @returns {Promise} Created invoice
    */
   async createInvoice(invoiceData) {
     try {
@@ -47,53 +20,135 @@ class BillingService {
   }
 
   /**
-   * Get pending invoices
+   * Get all invoices with pagination
+   * @param {number} skip - Pagination offset (default: 0)
+   * @param {number} limit - Number of records (default: 100)
+   * @param {boolean} overdueOnly - Show only overdue invoices (default: false)
+   * @returns {Promise} Invoices list
    */
-  async getPendingInvoices() {
+  async getAllInvoices(skip = 0, limit = 100, overdueOnly = false) {
     try {
-      const response = await apiClient.get('/invoices/pending');
+      const params = new URLSearchParams();
+      params.append('skip', skip);
+      params.append('limit', limit);
+      if (overdueOnly) params.append('overdue_only', 'true');
+      
+      const response = await apiClient.get(`/invoices/?${params.toString()}`);
       return response.data;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch pending invoices'));
+      throw new Error(handleApiError(error, 'Failed to fetch invoices'));
     }
   }
 
   /**
-   * Get invoices by patient ID
-   * @param {string} patientId - Patient ID
+   * Get invoice by ID with full details
+   * @param {string} invoiceId - Invoice ID (UUID)
+   * @returns {Promise} Invoice details with treatments and payment summary
    */
-  async getInvoicesByPatient(patientId) {
+  async getInvoiceById(invoiceId) {
     try {
-      const response = await this.getAllInvoices({ patient_id: patientId });
-      return response.invoices || response || [];
+      const response = await apiClient.get(`/invoices/${invoiceId}`);
+      return response.data;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch patient invoices'));
+      throw new Error(handleApiError(error, 'Failed to fetch invoice'));
     }
   }
 
-  // ============ PAYMENTS ============
+  /**
+   * Get invoice by consultation ID
+   * @param {string} consultationRecId - Consultation record ID (UUID)
+   * @returns {Promise} Invoice for consultation
+   */
+  async getInvoiceByConsultation(consultationRecId) {
+    try {
+      const response = await apiClient.get(`/invoices/consultation/${consultationRecId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch invoice for consultation'));
+    }
+  }
+
+  /**
+   * Update invoice
+   * @param {string} invoiceId - Invoice ID (UUID)
+   * @param {Object} updateData - { tax_amount, due_date }
+   * @returns {Promise} Updated invoice
+   */
+  async updateInvoice(invoiceId, updateData) {
+    try {
+      const response = await apiClient.patch(`/invoices/${invoiceId}`, updateData);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to update invoice'));
+    }
+  }
+
+  /**
+   * Delete invoice
+   * @param {string} invoiceId - Invoice ID (UUID)
+   * @returns {Promise} Success response
+   */
+  async deleteInvoice(invoiceId) {
+    try {
+      const response = await apiClient.delete(`/invoices/${invoiceId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to delete invoice'));
+    }
+  }
+
+  /**
+   * Get invoice statistics
+   * @returns {Promise} Invoice summary statistics
+   */
+  async getInvoiceStatistics() {
+    try {
+      const response = await apiClient.get('/invoices/statistics/summary');
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch invoice statistics'));
+    }
+  }
+
+  // ============================================
+  // PAYMENT ENDPOINTS
+  // ============================================
   
   /**
-   * Process payment
-   * @param {Object} paymentData - { invoice_id, patient_id, payment_method, amount }
+   * Create payment
+   * @param {Object} paymentData - { patient_id, amount_paid, payment_method, payment_date, notes }
+   * @returns {Promise} Created payment
    */
-  async processPayment(paymentData) {
+  async createPayment(paymentData) {
     try {
       const response = await apiClient.post('/payments/', paymentData);
       return response.data;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to process payment'));
+      throw new Error(handleApiError(error, 'Failed to create payment'));
     }
   }
 
   /**
-   * Get all payments
-   * @param {string|null} patientId - Optional patient ID filter
+   * Get all payments with filters
+   * @param {number} skip - Pagination offset (default: 0)
+   * @param {number} limit - Number of records (default: 100)
+   * @param {string|null} statusFilter - Filter by status (Completed, Pending, Failed, Refunded)
+   * @param {string|null} paymentMethod - Filter by payment method
+   * @param {string|null} dateFrom - Start date (YYYY-MM-DD)
+   * @param {string|null} dateTo - End date (YYYY-MM-DD)
+   * @returns {Promise} Payments list
    */
-  async getAllPayments(patientId = null) {
+  async getAllPayments(skip = 0, limit = 100, statusFilter = null, paymentMethod = null, dateFrom = null, dateTo = null) {
     try {
-      const url = patientId ? `/payments/patient/${patientId}` : '/payments/';
-      const response = await apiClient.get(url);
+      const params = new URLSearchParams();
+      params.append('skip', skip);
+      params.append('limit', limit);
+      if (statusFilter) params.append('status_filter', statusFilter);
+      if (paymentMethod) params.append('payment_method', paymentMethod);
+      if (dateFrom) params.append('date_from', dateFrom);
+      if (dateTo) params.append('date_to', dateTo);
+      
+      const response = await apiClient.get(`/payments/?${params.toString()}`);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch payments'));
@@ -102,7 +157,8 @@ class BillingService {
 
   /**
    * Get payment by ID
-   * @param {string} paymentId - Payment ID
+   * @param {string} paymentId - Payment ID (UUID)
+   * @returns {Promise} Payment details
    */
   async getPaymentById(paymentId) {
     try {
@@ -114,30 +170,216 @@ class BillingService {
   }
 
   /**
-   * Get payment summary
-   * @param {Object} filters - { start_date, end_date }
+   * Get payments by patient
+   * @param {string} patientId - Patient ID (UUID)
+   * @returns {Promise} Patient payments with totals
    */
-  async getPaymentSummary(filters = {}) {
+  async getPaymentsByPatient(patientId) {
     try {
-      const params = new URLSearchParams();
-      if (filters.start_date) params.append('start_date', filters.start_date);
-      if (filters.end_date) params.append('end_date', filters.end_date);
-      
-      const response = await apiClient.get(`/payments/summary?${params.toString()}`);
+      const response = await apiClient.get(`/payments/patient/${patientId}`);
       return response.data;
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch payment summary'));
+      throw new Error(handleApiError(error, 'Failed to fetch patient payments'));
     }
   }
 
   /**
-   * Get recent payments
-   * @param {number} limit - Number of recent payments to fetch
+   * Update payment
+   * @param {string} paymentId - Payment ID (UUID)
+   * @param {Object} updateData - { status, notes }
+   * @returns {Promise} Updated payment
+   */
+  async updatePayment(paymentId, updateData) {
+    try {
+      const response = await apiClient.patch(`/payments/${paymentId}`, updateData);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to update payment'));
+    }
+  }
+
+  /**
+   * Delete payment
+   * @param {string} paymentId - Payment ID (UUID)
+   * @returns {Promise} Success response
+   */
+  async deletePayment(paymentId) {
+    try {
+      const response = await apiClient.delete(`/payments/${paymentId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to delete payment'));
+    }
+  }
+
+  /**
+   * Get payment statistics
+   * @param {string|null} dateFrom - Start date (YYYY-MM-DD)
+   * @param {string|null} dateTo - End date (YYYY-MM-DD)
+   * @returns {Promise} Payment summary statistics
+   */
+  async getPaymentStatistics(dateFrom = null, dateTo = null) {
+    try {
+      const params = new URLSearchParams();
+      if (dateFrom) params.append('date_from', dateFrom);
+      if (dateTo) params.append('date_to', dateTo);
+      
+      const response = await apiClient.get(`/payments/statistics/summary?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch payment statistics'));
+    }
+  }
+
+  // ============================================
+  // CLAIMS ENDPOINTS
+  // ============================================
+  
+  /**
+   * Create insurance claim
+   * @param {Object} claimData - { invoice_id, insurance_id, claim_amount, claim_date, notes }
+   * @returns {Promise} Created claim
+   */
+  async createClaim(claimData) {
+    try {
+      const response = await apiClient.post('/claims/', claimData);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to create claim'));
+    }
+  }
+
+  /**
+   * Get claim details by ID
+   * @param {string} claimId - Claim ID (UUID)
+   * @returns {Promise} Claim details with full information
+   */
+  async getClaimById(claimId) {
+    try {
+      const response = await apiClient.get(`/claims/${claimId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch claim'));
+    }
+  }
+
+  /**
+   * Get all claims for patient
+   * @param {string} patientId - Patient ID (UUID)
+   * @returns {Promise} Patient claims with insurance details
+   */
+  async getClaimsByPatient(patientId) {
+    try {
+      const response = await apiClient.get(`/claims/patient/${patientId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch patient claims'));
+    }
+  }
+
+  /**
+   * Get insurance summary with claim limits
+   * @param {string} insuranceId - Insurance ID (UUID)
+   * @returns {Promise} Insurance claim summary with utilization
+   */
+  async getInsuranceSummary(insuranceId) {
+    try {
+      const response = await apiClient.get(`/claims/insurance/${insuranceId}/summary`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch insurance summary'));
+    }
+  }
+
+  /**
+   * Get claims statistics
+   * @param {string|null} startDate - Start date (YYYY-MM-DD)
+   * @param {string|null} endDate - End date (YYYY-MM-DD)
+   * @returns {Promise} Claims statistics with aggregations
+   */
+  async getClaimsStatistics(startDate = null, endDate = null) {
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      const response = await apiClient.get(`/claims/statistics/summary?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch claims statistics'));
+    }
+  }
+
+  /**
+   * Delete claim
+   * @param {string} claimId - Claim ID (UUID)
+   * @returns {Promise} Success response
+   */
+  async deleteClaim(claimId) {
+    try {
+      const response = await apiClient.delete(`/claims/${claimId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to delete claim'));
+    }
+  }
+
+  // ============================================
+  // LEGACY/COMPATIBILITY METHODS
+  // ============================================
+
+  /**
+   * Get invoices by patient ID (legacy)
+   * @param {string} patientId - Patient ID
+   */
+  async getInvoicesByPatient(patientId) {
+    try {
+      // Note: This is a workaround since the backend doesn't have a direct patient endpoint
+      // We'll get all invoices and filter, or implement server-side filtering
+      const data = await this.getAllInvoices(0, 1000);
+      const patientInvoices = data.invoices?.filter(inv => inv.patient_id === patientId) || [];
+      return patientInvoices;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch patient invoices'));
+    }
+  }
+
+  /**
+   * Get pending invoices (legacy)
+   */
+  async getPendingInvoices() {
+    try {
+      const data = await this.getAllInvoices(0, 100, true);
+      return data.invoices || [];
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch pending invoices'));
+    }
+  }
+
+  /**
+   * Process payment (legacy alias)
+   * @param {Object} paymentData - Payment data
+   */
+  async processPayment(paymentData) {
+    return this.createPayment(paymentData);
+  }
+
+  /**
+   * Get payment summary (legacy)
+   * @param {Object} filters - { start_date, end_date }
+   */
+  async getPaymentSummary(filters = {}) {
+    return this.getPaymentStatistics(filters.start_date, filters.end_date);
+  }
+
+  /**
+   * Get recent payments (legacy)
+   * @param {number} limit - Number of recent payments
    */
   async getRecentPayments(limit = 10) {
     try {
-      const response = await apiClient.get(`/payments/?limit=${limit}`);
-      return response.data.payments || response.data || [];
+      const data = await this.getAllPayments(0, limit);
+      return data.payments || [];
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch recent payments'));
     }
