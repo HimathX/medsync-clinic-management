@@ -1,3 +1,67 @@
+/*     USER AUTHENTICATION     */
+DELIMITER $$
+DROP PROCEDURE IF EXISTS AuthenticateUser$$
+
+CREATE PROCEDURE AuthenticateUser(
+    IN p_email VARCHAR(255),
+    IN p_password_hash VARCHAR(255),
+    OUT p_user_id CHAR(36),
+    OUT p_user_type VARCHAR(20),
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    DECLARE v_stored_password VARCHAR(255);
+    DECLARE v_user_count INT DEFAULT 0;
+    
+    -- Error handler
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            p_error_message = MESSAGE_TEXT;
+        SET p_success = FALSE;
+        SET p_user_id = NULL;
+        SET p_user_type = NULL;
+    END;
+    
+    -- Initialize outputs
+    SET p_success = FALSE;
+    SET p_user_id = NULL;
+    SET p_user_type = NULL;
+    SET p_error_message = NULL;
+    
+    -- Check if user exists (case-insensitive, trimmed)
+    SELECT COUNT(*) INTO v_user_count
+    FROM user
+    WHERE LOWER(TRIM(email)) = LOWER(TRIM(p_email));
+    
+    IF v_user_count = 0 THEN
+        SET p_error_message = 'Invalid email or password';
+        LEAVE proc_label;
+    END IF;
+    
+    -- Get user credentials (case-insensitive, trimmed)
+    SELECT user_id, password_hash, user_type
+    INTO p_user_id, v_stored_password, p_user_type
+    FROM user
+    WHERE LOWER(TRIM(email)) = LOWER(TRIM(p_email));
+    
+    -- Verify password
+    IF v_stored_password = p_password_hash THEN
+        SET p_success = TRUE;
+        SET p_error_message = NULL;
+    ELSE
+        SET p_success = FALSE;
+        SET p_error_message = 'Invalid email or password';
+        SET p_user_id = NULL;
+        SET p_user_type = NULL;
+    END IF;
+    
+END$$
+
+DELIMITER ;
+
+
 /*     PATIENT REGISTRATION     */
 DELIMITER $$
 DROP PROCEDURE IF EXISTS RegisterPatient$$

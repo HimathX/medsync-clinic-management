@@ -6,7 +6,7 @@ from core.db_export import export_database
 
 # Import routers
 from routers import (
-    doctor, appointment, branch, patient, conditions, 
+    auth, doctor, appointment, branch, patient, conditions, 
     staff, timeslot, insurance, medication, prescription, 
     consultation, treatment_catalogue, treatment, payment, invoice, claims
 )
@@ -44,6 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Authentication router (no prefix - /auth/login)
+app.include_router(auth.router, prefix="/auth")
 
 app.include_router(patient.router, prefix="/patients")
 app.include_router(doctor.router, prefix="/doctors")
