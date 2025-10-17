@@ -45,9 +45,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Authentication router (no prefix - /auth/login)
 app.include_router(auth.router, prefix="/auth")
-
 app.include_router(patient.router, prefix="/patients")
 app.include_router(doctor.router, prefix="/doctors")
 app.include_router(staff.router, prefix="/staff")
@@ -84,6 +82,6 @@ def health_check():
     }
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-    # export_database()
+    # import uvicorn
+    # uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    export_database()
