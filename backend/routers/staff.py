@@ -4,8 +4,8 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import date
 from decimal import Decimal
 from core.database import get_db
-from passlib.context import CryptContext
 import logging
+import hashlib
 
 router = APIRouter(tags=["staff"])
 
@@ -13,17 +13,17 @@ router = APIRouter(tags=["staff"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Password hashing context using bcrypt (matches database)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# ============================================
+# PASSWORD HASHING (SAME AS PATIENT.PY)
+# ============================================
 
-# Password hashing helper
 def hash_password(password: str) -> str:
-    """Hash password using bcrypt (matches database storage)"""
-    return pwd_context.hash(password)
+    """Hash password using SHA-256"""
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against bcrypt hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify password against hash"""
+    return hash_password(plain_password) == hashed_password
 
 
 # ============================================
@@ -53,7 +53,7 @@ class StaffRegistrationRequest(BaseModel):
     
     # Employee Info
     branch_name: str = Field(..., max_length=50, description="Branch name")
-    role: str = Field(..., pattern="^(nurse|admin|receptionist|manager|pharmacist|lab_technician)$")
+    role: str = Field(..., pattern="^(nurse|admin|receptionist|manager|pharmacist|lab_technician|doctor)$")
     salary: Decimal = Field(..., gt=0, description="Monthly salary")
     joined_date: date = Field(..., description="Date of joining")
     
@@ -95,28 +95,6 @@ class StaffRegistrationResponse(BaseModel):
             }
         }
 
-class UpdateSalaryRequest(BaseModel):
-    new_salary: Decimal = Field(..., gt=0, description="New monthly salary")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "new_salary": 75000.00
-            }
-        }
-
-class UpdateSalaryResponse(BaseModel):
-    success: bool
-    message: str
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Salary updated successfully"
-            }
-        }
-
 class StaffLoginRequest(BaseModel):
     email: EmailStr = Field(..., description="Staff email address")
     password: str = Field(..., min_length=6, description="Staff password")
@@ -124,8 +102,8 @@ class StaffLoginRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "email": "kasun.rajapaksha@medsync.lk",
-                "password": "doctor123"
+                "email": "johndoe5@gmail.com",
+                "password": "admin1234"
             }
         }
 
@@ -151,53 +129,73 @@ class StaffLoginResponse(BaseModel):
             }
         }
 
+class UpdateSalaryRequest(BaseModel):
+    new_salary: Decimal = Field(..., gt=0, description="New monthly salary")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "new_salary": 75000.00
+            }
+        }
+
+class UpdateSalaryResponse(BaseModel):
+    success: bool
+    message: str
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Salary updated successfully"
+            }
+        }
+
 
 # ============================================
-# STAFF LOGIN
+# STAFF LOGIN (SAME PATTERN AS PATIENT)
 # ============================================
 
 @router.post("/login", status_code=status.HTTP_200_OK, response_model=StaffLoginResponse)
 def staff_login(credentials: StaffLoginRequest):
     """
-    Staff-specific login endpoint using bcrypt password verification
+    Staff-specific login endpoint (same pattern as patient login)
     
     - Authenticates doctors, nurses, admins, managers, receptionists
-    - Uses bcrypt password hashing (matches database)
+    - Uses SHA-256 password hashing
     - Returns employee role and details
     """
     try:
         logger.info(f"Staff login attempt for email: {credentials.email}")
         
         with get_db() as (cursor, connection):
-            # Get user data and verify it's an employee
+            # Hash the password (same as patient login)
+            password_hash = hash_password(credentials.password)
+            logger.info(f"Password hash length: {len(password_hash)}")
+            
+            # Get user with matching email and password hash
             cursor.execute(
-                """SELECT u.user_id, u.password_hash, u.user_type, u.full_name, u.email
+                """SELECT u.user_id, u.email, u.full_name, u.user_type
                    FROM user u
-                   WHERE LOWER(TRIM(u.email)) = %s AND u.user_type = 'employee'""",
-                (credentials.email.lower().strip(),)
+                   WHERE LOWER(TRIM(u.email)) = %s 
+                   AND u.password_hash = %s 
+                   AND u.user_type = 'employee'""",
+                (credentials.email.lower().strip(), password_hash)
             )
             user_data = cursor.fetchone()
             
             if not user_data:
-                logger.warning(f"Staff login failed - user not found or not an employee: {credentials.email}")
+                logger.warning(f"Staff login failed - invalid credentials for: {credentials.email}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid email or password"
                 )
             
-            # Verify password using bcrypt
-            if not verify_password(credentials.password, user_data['password_hash']):
-                logger.warning(f"Staff login failed - invalid password for: {credentials.email}")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid email or password"
-                )
+            logger.info(f"✅ User authenticated: {user_data['email']}")
             
-            logger.info(f"Password verified for staff: {credentials.email}")
-            
-            # Get employee role
+            # Get employee role and status
             cursor.execute(
-                """SELECT role, branch_id FROM employee WHERE employee_id = %s AND is_active = TRUE""",
+                """SELECT role, branch_id, is_active FROM employee WHERE employee_id = %s""",
                 (user_data['user_id'],)
             )
             employee_data = cursor.fetchone()
@@ -209,20 +207,18 @@ def staff_login(credentials: StaffLoginRequest):
                     detail="Staff account not properly configured"
                 )
             
+            if not employee_data['is_active']:
+                logger.warning(f"Inactive employee attempted login: {credentials.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Staff account is inactive. Please contact administrator."
+                )
+            
             employee_role = employee_data['role']
             
             # Map role to user_type for frontend
             if employee_role == 'doctor':
-                # Verify doctor record exists
-                cursor.execute(
-                    """SELECT doctor_id FROM doctor WHERE doctor_id = %s""",
-                    (user_data['user_id'],)
-                )
-                if cursor.fetchone():
-                    user_type = 'doctor'
-                else:
-                    logger.warning(f"Doctor record missing for employee: {user_data['user_id']}")
-                    user_type = 'doctor'  # Still allow login
+                user_type = 'doctor'
             elif employee_role == 'admin':
                 user_type = 'admin'
             elif employee_role == 'manager':
@@ -253,142 +249,133 @@ def staff_login(credentials: StaffLoginRequest):
 
 
 # ============================================
-# STAFF REGISTRATION
+# STAFF REGISTRATION (USING STORED PROCEDURE)
 # ============================================
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=StaffRegistrationResponse)
 def register_staff(staff_data: StaffRegistrationRequest):
     """
-    Register a new staff member (non-doctor employees)
+    Register a new staff member using stored procedure (same pattern as patient)
     
-    - Creates user account with bcrypt password
+    - Creates user account with SHA-256 password
     - Creates employee record
     - Validates branch and role
-    - Direct database insertion (no stored procedure dependency)
     """
     try:
-        logger.info(f"Staff registration attempt for email: {staff_data.email}")
+        logger.info(f"Staff registration attempt for email: {staff_data.email}, role: {staff_data.role}")
         
         with get_db() as (cursor, connection):
-            # Hash the password using bcrypt
+            # Hash the password (same as patient registration)
             password_hash = hash_password(staff_data.password)
-            logger.info(f"Password hashed with bcrypt (length: {len(password_hash)})")
+            logger.info(f"Password hash length: {len(password_hash)}")
             
-            # Check if branch exists
-            cursor.execute(
-                "SELECT branch_id FROM branch WHERE branch_name = %s AND is_active = TRUE",
-                (staff_data.branch_name,)
+            # Set session variables for OUT parameters BEFORE calling procedure
+            cursor.execute("SET @p_user_id = NULL")
+            cursor.execute("SET @p_error_message = NULL")
+            cursor.execute("SET @p_success = NULL")
+            
+            # Call stored procedure with only IN parameters
+            call_sql = """
+                CALL RegisterStaff(
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    @p_user_id, @p_error_message, @p_success
+                )
+            """
+            
+            args = (
+                staff_data.address_line1,           # 1 IN
+                staff_data.address_line2 or '',     # 2 IN
+                staff_data.city,                    # 3 IN
+                staff_data.province,                # 4 IN
+                staff_data.postal_code,             # 5 IN
+                staff_data.country or 'Sri Lanka',  # 6 IN
+                staff_data.contact_num1,            # 7 IN
+                staff_data.contact_num2 or '',      # 8 IN
+                staff_data.full_name,               # 9 IN
+                staff_data.NIC,                     # 10 IN
+                staff_data.email,                   # 11 IN
+                staff_data.gender,                  # 12 IN
+                staff_data.DOB,                     # 13 IN
+                password_hash,                      # 14 IN
+                staff_data.branch_name,             # 15 IN
+                staff_data.role,                    # 16 IN
+                float(staff_data.salary),           # 17 IN
+                staff_data.joined_date,             # 18 IN
             )
-            branch = cursor.fetchone()
             
-            if not branch:
+            logger.info(f"Calling RegisterStaff procedure for branch: {staff_data.branch_name}, role: {staff_data.role}")
+            
+            # Call stored procedure
+            try:
+                cursor.execute(call_sql, args)
+                logger.info("Stored procedure called successfully")
+            except Exception as proc_error:
+                logger.error(f"Error calling stored procedure: {str(proc_error)}")
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Branch '{staff_data.branch_name}' not found or inactive"
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Database procedure error: {str(proc_error)}"
                 )
             
-            branch_id = branch['branch_id']
-            
-            # Check for duplicate email
-            cursor.execute(
-                "SELECT COUNT(*) as count FROM user WHERE LOWER(TRIM(email)) = %s",
-                (staff_data.email.lower().strip(),)
-            )
-            if cursor.fetchone()['count'] > 0:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email already registered"
-                )
-            
-            # Check for duplicate NIC
-            cursor.execute(
-                "SELECT COUNT(*) as count FROM user WHERE NIC = %s",
-                (staff_data.NIC,)
-            )
-            if cursor.fetchone()['count'] > 0:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="NIC already registered"
-                )
-            
-            # If role is manager, check if branch already has one
-            if staff_data.role == 'manager':
-                cursor.execute(
-                    """SELECT COUNT(*) as count FROM employee 
-                       WHERE branch_id = %s AND role = 'manager' AND is_active = TRUE""",
-                    (branch_id,)
-                )
-                if cursor.fetchone()['count'] > 0:
+            # Get OUT parameters from session variables
+            try:
+                cursor.execute("SELECT @p_user_id as user_id, @p_error_message as error_message, @p_success as success")
+                out_result = cursor.fetchone()
+                
+                if not out_result:
+                    logger.error("No result returned from stored procedure")
                     raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Branch already has an active manager"
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="No response from database procedure"
                     )
+                
+                user_id = out_result.get('user_id')
+                error_message = out_result.get('error_message')
+                success = out_result.get('success')
+                
+                logger.info(f"Procedure result - Success: {success}, User ID: {user_id}, Error: {error_message}")
+                
+            except Exception as fetch_error:
+                logger.error(f"Error fetching OUT parameters: {str(fetch_error)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error retrieving procedure results: {str(fetch_error)}"
+                )
             
-            # Generate UUIDs
-            import uuid
-            address_id = str(uuid.uuid4())
-            contact_id = str(uuid.uuid4())
-            user_id = str(uuid.uuid4())
-            
-            # Insert address
-            cursor.execute(
-                """INSERT INTO address (address_id, address_line1, address_line2, city, province, postal_code, country)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                (address_id, staff_data.address_line1, staff_data.address_line2 or '', 
-                 staff_data.city, staff_data.province, staff_data.postal_code, 
-                 staff_data.country or 'Sri Lanka')
-            )
-            
-            # Insert contact
-            cursor.execute(
-                """INSERT INTO contact (contact_id, contact_num1, contact_num2)
-                   VALUES (%s, %s, %s)""",
-                (contact_id, staff_data.contact_num1, staff_data.contact_num2 or '')
-            )
-            
-            # Insert user
-            cursor.execute(
-                """INSERT INTO user (user_id, address_id, user_type, full_name, NIC, email, 
-                                     gender, DOB, contact_id, password_hash)
-                   VALUES (%s, %s, 'employee', %s, %s, %s, %s, %s, %s, %s)""",
-                (user_id, address_id, staff_data.full_name, staff_data.NIC, 
-                 staff_data.email.lower().strip(), staff_data.gender, staff_data.DOB, 
-                 contact_id, password_hash)
-            )
-            
-            # Insert employee
-            cursor.execute(
-                """INSERT INTO employee (employee_id, branch_id, role, salary, joined_date, is_active)
-                   VALUES (%s, %s, %s, %s, %s, TRUE)""",
-                (user_id, branch_id, staff_data.role, float(staff_data.salary), staff_data.joined_date)
-            )
-            
-            connection.commit()
-            
-            logger.info(f"✅ Staff member registered successfully - ID: {user_id}, Email: {staff_data.email}")
-            
-            return StaffRegistrationResponse(
-                success=True,
-                message="Staff member registered successfully",
-                staff_id=user_id
-            )
+            # Check if registration was successful
+            if success == 1 or success is True:
+                logger.info(f"✅ Staff member registered successfully with ID: {user_id}")
+                return StaffRegistrationResponse(
+                    success=True,
+                    message=error_message or "Staff member registered successfully",
+                    staff_id=user_id
+                )
+            else:
+                logger.warning(f"Registration failed: {error_message}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=error_message or "Failed to register staff member"
+                )
                 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error during staff registration: {str(e)}", exc_info=True)
+        logger.error(f"Unexpected error during staff registration: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during registration: {str(e)}"
         )
 
 
+# ============================================
+# GET STAFF ENDPOINTS
+# ============================================
+
 @router.get("/", status_code=status.HTTP_200_OK)
 def get_all_staff(
     branch_name: str = Query(..., description="Branch name (required)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    role: Optional[str] = Query(None, pattern="^(nurse|admin|receptionist|manager|pharmacist|lab_technician)$"),
+    role: Optional[str] = Query(None, pattern="^(nurse|admin|receptionist|manager|pharmacist|lab_technician|doctor)$"),
     active_only: bool = Query(True, description="Get only active staff")
 ):
     """
@@ -497,7 +484,7 @@ def get_staff_by_id(staff_id: str):
         logger.error(f"Error fetching staff {staff_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-         detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}"
         )
 
 
@@ -506,7 +493,7 @@ def get_staff_by_role(role: str):
     """Get all staff members with a specific role"""
     try:
         # Validate role
-        valid_roles = ['nurse', 'admin', 'receptionist', 'manager', 'pharmacist', 'lab_technician']
+        valid_roles = ['nurse', 'admin', 'receptionist', 'manager', 'pharmacist', 'lab_technician', 'doctor']
         if role not in valid_roles:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

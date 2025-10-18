@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DoctorHeader from '../../components/DoctorHeader';
 import '../../styles/staff.css';
@@ -7,6 +7,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
+  const hasCheckedAuth = useRef(false); // Prevent multiple auth checks
   const [staffInfo, setStaffInfo] = useState(null);
   const [stats, setStats] = useState({
     totalAppointments: 0,
@@ -20,19 +21,42 @@ const StaffDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Check authentication only ONCE when component mounts
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
+    // Prevent multiple executions
+    if (hasCheckedAuth.current) {
+      console.log('Auth already checked, skipping');
       return;
     }
-    const user = JSON.parse(storedUser);
-    setStaffInfo(user);
+    hasCheckedAuth.current = true;
+
+    const userId = localStorage.getItem('user_id');
+    const userType = localStorage.getItem('user_type');
+    const fullName = localStorage.getItem('full_name');
+    const role = localStorage.getItem('role');
+
+    console.log('Auth check:', { userId, userType, fullName, role });
+
+    if (!userId || !userType) {
+      console.log('No auth found, redirecting to login');
+      navigate('/staff/login', { replace: true });
+      return;
+    }
+
+    // Set user info
+    setStaffInfo({
+      userId,
+      userType,
+      fullName,
+      role,
+    });
+
+    // Fetch dashboard data after auth check
     fetchDashboardData();
-  }, [navigate]);
+    setLoading(false);
+  }, [navigate]); // Only navigate as dependency
 
   const fetchDashboardData = async () => {
-    setLoading(true);
     setError('');
     
     try {
@@ -76,8 +100,6 @@ const StaffDashboard = () => {
     } catch (err) {
       console.error('Error:', err);
       setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -97,16 +119,23 @@ const StaffDashboard = () => {
     });
   };
 
+  // Show loading state
   if (loading) {
     return (
-      <div className="staff-container">
-        <DoctorHeader />
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Loading dashboard...</p>
-        </div>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <div>Loading...</div>
       </div>
     );
+  }
+
+  // If no user info after loading, don't render anything (redirect is happening)
+  if (!staffInfo) {
+    return null;
   }
 
   return (
@@ -115,7 +144,7 @@ const StaffDashboard = () => {
       <div className="staff-content">
         <div className="staff-header">
           <h1>Staff Dashboard</h1>
-          <p>Welcome back, {staffInfo?.first_name} {staffInfo?.last_name}</p>
+          <p>Welcome back, {staffInfo?.fullName}</p>
         </div>
 
         {error && <div className="error-message">{error}</div>}
