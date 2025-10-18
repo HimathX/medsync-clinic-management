@@ -151,36 +151,50 @@ jobs:
           mysql -h 127.0.0.1 -u root -proot_password -e "SET GLOBAL log_bin_trust_function_creators = 1;"
           echo "✅ MySQL configured to allow function creation"
 
+      - name: Grant DEFINER privileges (Fix for ERROR 1227)
+        run: |
+          mysql -h 127.0.0.1 -u root -proot_password -e "GRANT SET_USER_ID ON *.* TO 'medsync_user'@'%';"
+          mysql -h 127.0.0.1 -u root -proot_password -e "FLUSH PRIVILEGES;"
+          echo "✅ Granted SET_USER_ID privilege to medsync_user"
+
       - name: Test tables creation
         run: |
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/1_tables.sql || exit 1
+          echo "✅ Tables created successfully"
           
       - name: Test functions
         run: |
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/2_functions.sql || exit 1
+          echo "✅ Functions created successfully"
 
       - name: Test procedures
         run: |
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/3_procedures.sql || exit 1
+          echo "✅ Procedures created successfully"
 
       - name: Test triggers
         run: |
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/4_triggers.sql || exit 1
+          echo "✅ Triggers created successfully"
 
       - name: Test records insertion
         run: |
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/5_records.sql || exit 1
+          echo "✅ Records inserted successfully"
 
       - name: Test branch initialization
         run: |
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/6_branch_initialization.sql || exit 1
+          echo "✅ Branches initialized successfully"
 
       - name: Validate database structure
         run: |
+          echo "📊 Validating database structure..."
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW TABLES;"
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW FUNCTION STATUS WHERE Db='medsync_db';"
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW PROCEDURE STATUS WHERE Db='medsync_db';"
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW TRIGGERS;"
+          echo "✅ Database structure validated"
 
   docker-build:
     name: Docker Build Test
