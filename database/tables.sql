@@ -310,6 +310,15 @@ CREATE TABLE invoice (
     CHECK (tax_amount >= 0)
 );
 
+-- Add after invoice table
+CREATE TABLE patient_balance (
+    patient_id CHAR(36) PRIMARY KEY,
+    total_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON DELETE RESTRICT,
+    CHECK (total_balance >= 0)
+);
+
 -- Payment Table (kept as original)
 CREATE TABLE payment(
     payment_id CHAR(36) PRIMARY KEY,
@@ -339,3 +348,4 @@ CREATE TABLE claim(
     FOREIGN KEY (insurance_id) REFERENCES insurance(insurance_id) ON DELETE RESTRICT,
     CHECK (claim_amount > 0)
 );
+
