@@ -146,6 +146,11 @@ jobs:
             sleep 2
           done
 
+      - name: Configure MySQL for function creation
+        run: |
+          mysql -h 127.0.0.1 -u root -proot_password -e "SET GLOBAL log_bin_trust_function_creators = 1;"
+          echo "✅ MySQL configured to allow function creation"
+
       - name: Test tables creation
         run: |
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/1_tables.sql || exit 1
@@ -172,10 +177,10 @@ jobs:
 
       - name: Validate database structure
         run: |
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW TABLES;" || exit 1
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW FUNCTION STATUS WHERE Db='medsync_db';" || exit 1
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW PROCEDURE STATUS WHERE Db='medsync_db';" || exit 1
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW TRIGGERS;" || exit 1
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW TABLES;"
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW FUNCTION STATUS WHERE Db='medsync_db';"
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW PROCEDURE STATUS WHERE Db='medsync_db';"
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW TRIGGERS;"
 
   docker-build:
     name: Docker Build Test
