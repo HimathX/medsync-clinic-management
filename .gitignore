@@ -2,9 +2,9 @@
 # PYTHON
 # ============================================
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
 
 # Distribution / packaging
@@ -31,6 +31,8 @@ pip-delete-this-directory.txt
 # Virtual environments
 venv/
 env/
+*.log
+exports/
 ENV/
 env.bak/
 venv.bak/
@@ -56,7 +58,7 @@ nosetests.xml
 # ============================================
 # ENVIRONMENT VARIABLES
 # ============================================
-.env
+.env               # ✅ Keep your password safe
 .env.local
 .env.*.local
 .env.development
@@ -312,3 +314,29 @@ TODO.txt
 NOTES.txt
 scratch/
 temp/
+
+
+# Docker
+.dockerignore
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -252,259 +252,165 @@ INSERT INTO user (user_id, address_id, user_type, full_name, NIC, email, gender,
 (UUID(), (SELECT address_id FROM address LIMIT 1 OFFSET 8), 'patient', 'Chathurika Bandara', '199201234520', 'chathurika.bandara@email.com', 'Female', '1992-04-27', (SELECT contact_id FROM contact LIMIT 1 OFFSET 22), '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7K8IVKMGe6');
 
 -- ============================================
--- 6. EMPLOYEES (Link to users & branches)
--- ============================================
--- Managers
-INSERT INTO employee (employee_id, branch_id, role, salary, joined_date, is_active)
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo'),
-    'manager',
-    250000.00,
-    '2020-01-15',
-    TRUE
-FROM user u
-WHERE u.email = 'samantha.perera@medsync.lk'
-UNION ALL
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Kandy'),
-    'manager',
-    240000.00,
-    '2020-02-01',
-    TRUE
-FROM user u
-WHERE u.email = 'nimal.silva@medsync.lk'
-UNION ALL
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Galle'),
-    'manager',
-    245000.00,
-    '2020-03-10',
-    TRUE
-FROM user u
-WHERE u.email = 'chamari.fernando@medsync.lk';
-
--- Update branch managers
-UPDATE branch b
-SET manager_id = (SELECT employee_id FROM employee e WHERE e.branch_id = b.branch_id AND e.role = 'manager');
-
--- Doctors
-INSERT INTO employee (employee_id, branch_id, role, salary, joined_date, is_active)
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo'),
-    'doctor',
-    180000.00,
-    '2021-05-01',
-    TRUE
-FROM user u
-WHERE u.email = 'kasun.rajapaksha@medsync.lk'
-UNION ALL
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo'),
-    'doctor',
-    175000.00,
-    '2021-06-15',
-    TRUE
-FROM user u
-WHERE u.email = 'priya.jayawardena@medsync.lk'
-UNION ALL
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Kandy'),
-    'doctor',
-    170000.00,
-    '2021-07-20',
-    TRUE
-FROM user u
-WHERE u.email = 'rohan.wickramasinghe@medsync.lk'
-UNION ALL
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Galle'),
-    'doctor',
-    172000.00,
-    '2021-08-10',
-    TRUE
-FROM user u
-WHERE u.email = 'dilini.gunasekara@medsync.lk';
-
--- Other Staff
-INSERT INTO employee (employee_id, branch_id, role, salary, joined_date, is_active)
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo'),
-    'nurse',
-    80000.00,
-    '2022-01-10',
-    TRUE
-FROM user u
-WHERE u.email = 'nimali.wijesinghe@medsync.lk'
-UNION ALL
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Kandy'),
-    'nurse',
-    78000.00,
-    '2022-02-15',
-    TRUE
-FROM user u
-WHERE u.email = 'sanduni.amarasinghe@medsync.lk'
-UNION ALL
-SELECT 
-    u.user_id,
-    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Galle'),
-    'receptionist',
-    60000.00,
-    '2022-03-01',
-    TRUE
-FROM user u
-WHERE u.email = 'kavinda.dissanayake@medsync.lk';
-
--- ============================================
--- 7. DOCTORS (Link to employees)
--- ============================================
-INSERT INTO doctor (doctor_id, room_no, medical_licence_no, consultation_fee, is_available)
-SELECT 
-    e.employee_id,
-    'C101',
-    'SLMC001234',
-    5000.00,
-    TRUE
-FROM employee e
-INNER JOIN user u ON e.employee_id = u.user_id
-WHERE u.email = 'kasun.rajapaksha@medsync.lk'
-UNION ALL
-SELECT 
-    e.employee_id,
-    'C102',
-    'SLMC001235',
-    5500.00,
-    TRUE
-FROM employee e
-INNER JOIN user u ON e.employee_id = u.user_id
-WHERE u.email = 'priya.jayawardena@medsync.lk'
-UNION ALL
-SELECT 
-    e.employee_id,
-    'K101',
-    'SLMC001236',
-    4800.00,
-    TRUE
-FROM employee e
-INNER JOIN user u ON e.employee_id = u.user_id
-WHERE u.email = 'rohan.wickramasinghe@medsync.lk'
-UNION ALL
-SELECT 
-    e.employee_id,
-    'G101',
-    'SLMC001237',
-    4500.00,
-    TRUE
-FROM employee e
-INNER JOIN user u ON e.employee_id = u.user_id
-WHERE u.email = 'dilini.gunasekara@medsync.lk';
-
--- ============================================
--- 8. SPECIALIZATIONS
--- ============================================
-INSERT INTO specialization (specialization_id, specialization_title, other_details) VALUES
-(UUID(), 'General Medicine', 'General practice and primary care'),
-(UUID(), 'Cardiology', 'Heart and cardiovascular diseases'),
-(UUID(), 'Pediatrics', 'Medical care for infants, children, and adolescents'),
-(UUID(), 'Dermatology', 'Skin, hair, and nail conditions'),
-(UUID(), 'Orthopedics', 'Musculoskeletal system disorders');
-
--- ============================================
--- 9. DOCTOR SPECIALIZATIONS
--- ============================================
-INSERT INTO doctor_specialization (doctor_id, specialization_id, certification_date)
-SELECT 
-    d.doctor_id,
-    (SELECT specialization_id FROM specialization WHERE specialization_title = 'General Medicine'),
-    '2020-05-01'
-FROM doctor d
-INNER JOIN user u ON d.doctor_id = u.user_id
-WHERE u.email = 'kasun.rajapaksha@medsync.lk'
-UNION ALL
-SELECT 
-    d.doctor_id,
-    (SELECT specialization_id FROM specialization WHERE specialization_title = 'Cardiology'),
-    '2020-06-15'
-FROM doctor d
-INNER JOIN user u ON d.doctor_id = u.user_id
-WHERE u.email = 'priya.jayawardena@medsync.lk'
-UNION ALL
-SELECT 
-    d.doctor_id,
-    (SELECT specialization_id FROM specialization WHERE specialization_title = 'Pediatrics'),
-    '2020-07-20'
-FROM doctor d
-INNER JOIN user u ON d.doctor_id = u.user_id
-WHERE u.email = 'rohan.wickramasinghe@medsync.lk'
-UNION ALL
-SELECT 
-    d.doctor_id,
-    (SELECT specialization_id FROM specialization WHERE specialization_title = 'Dermatology'),
-    '2020-08-10'
-FROM doctor d
-INNER JOIN user u ON d.doctor_id = u.user_id
-WHERE u.email = 'dilini.gunasekara@medsync.lk';
-
--- ============================================
 -- 10. PATIENTS
 -- ============================================
-INSERT INTO patient (patient_id, blood_group, allergies, chronic_conditions, registered_branch_id)
+INSERT INTO patient (patient_id, blood_group, registered_branch_id)
 SELECT 
     u.user_id,
     'O+',
-    NULL,
-    NULL,
     (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo')
 FROM user u
-WHERE u.user_type = 'patient' AND u.email LIKE '%amara.bandara%'
+WHERE u.user_type = 'patient' AND u.email = 'amara.bandara@email.com'
 UNION ALL
 SELECT 
     u.user_id,
     'A+',
-    'Penicillin',
-    'Hypertension',
     (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo')
 FROM user u
-WHERE u.user_type = 'patient' AND u.email LIKE '%tharushi.desilva%'
--- Continue for all 20 patients...
+WHERE u.user_type = 'patient' AND u.email = 'tharushi.desilva@email.com'
 UNION ALL
 SELECT 
     u.user_id,
     'B+',
-    NULL,
-    'Diabetes Type 2',
     (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Kandy')
 FROM user u
-WHERE u.user_type = 'patient' AND u.email LIKE '%kavindu.jayasinghe%'
+WHERE u.user_type = 'patient' AND u.email = 'kavindu.jayasinghe@email.com'
 UNION ALL
 SELECT 
     u.user_id,
     'AB+',
-    'Aspirin',
-    NULL,
     (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Galle')
 FROM user u
-WHERE u.user_type = 'patient' AND u.email LIKE '%nethmi.samaraweera%';
+WHERE u.user_type = 'patient' AND u.email = 'nethmi.samaraweera@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'O-',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'dinesh.fernando@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'A-',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'sandali.perera@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'B-',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Kandy')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'ravindu.silva@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'AB-',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Galle')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'ishara.gamage@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'O+',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'lakshan.wijewardena@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'A+',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Kandy')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'malsha.rathnayake@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'B+',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Galle')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'prasad.mendis@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'AB+',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'dulani.hewage@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'O-',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Kandy')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'nuwan.kumara@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'A-',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Galle')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'sachini.wickramasinghe@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'B-',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'chaminda.rajapaksha@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'AB-',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Kandy')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'anusha.jayawardena@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'O+',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Galle')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'thilina.gunasekara@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'A+',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Colombo')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'harini.dissanayake@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'B+',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Kandy')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'janaka.senanayake@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    'AB+',
+    (SELECT branch_id FROM branch WHERE branch_name = 'MedSync Galle')
+FROM user u
+WHERE u.user_type = 'patient' AND u.email = 'chathurika.bandara@email.com';
 
 -- ============================================
--- 11. CONDITION CATEGORIES & CONDITIONS
+-- 10a. CONDITION CATEGORIES
 -- ============================================
 INSERT INTO conditions_category (condition_category_id, category_name, description) VALUES
 (UUID(), 'Cardiovascular', 'Heart and blood vessel related conditions'),
-(UUID(), 'Metabolic', 'Metabolism related disorders'),
-(UUID(), 'Respiratory', 'Breathing and lung conditions'),
-(UUID(), 'Musculoskeletal', 'Bones, muscles, and joints'),
-(UUID(), 'Skin', 'Dermatological conditions');
+(UUID(), 'Respiratory', 'Lung and breathing related conditions'),
+(UUID(), 'Endocrine', 'Hormonal and metabolic disorders'),
+(UUID(), 'Infectious', 'Bacterial, viral, and parasitic infections'),
+(UUID(), 'Neurological', 'Brain and nervous system disorders'),
+(UUID(), 'Musculoskeletal', 'Bone, joint, and muscle conditions'),
+(UUID(), 'Dermatological', 'Skin related conditions'),
+(UUID(), 'Gastrointestinal', 'Digestive system disorders');
 
+-- ============================================
+-- 10b. CONDITIONS
+-- ============================================
 INSERT INTO conditions (condition_id, condition_category_id, condition_name, description, severity)
 SELECT 
     UUID(),
@@ -515,9 +421,9 @@ SELECT
 UNION ALL
 SELECT 
     UUID(),
-    (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Metabolic'),
+    (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Endocrine'),
     'Diabetes Type 2',
-    'Insulin resistance',
+    'Insulin resistance and high blood sugar',
     'Moderate'
 UNION ALL
 SELECT 
@@ -525,6 +431,299 @@ SELECT
     (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Respiratory'),
     'Asthma',
     'Chronic inflammatory airway disease',
+    'Moderate'
+UNION ALL
+SELECT 
+    UUID(),
+    (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Cardiovascular'),
+    'Coronary Artery Disease',
+    'Narrowing of coronary arteries',
+    'Severe'
+UNION ALL
+SELECT 
+    UUID(),
+    (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Endocrine'),
+    'Hypothyroidism',
+    'Underactive thyroid gland',
+    'Mild'
+UNION ALL
+SELECT 
+    UUID(),
+    (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Musculoskeletal'),
+    'Arthritis',
+    'Joint inflammation',
+    'Moderate'
+UNION ALL
+SELECT 
+    UUID(),
+    (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Respiratory'),
+    'Chronic Bronchitis',
+    'Long-term inflammation of bronchi',
+    'Moderate'
+UNION ALL
+SELECT 
+    UUID(),
+    (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Neurological'),
+    'Migraine',
+    'Severe recurring headaches',
+    'Moderate'
+UNION ALL
+SELECT 
+    UUID(),
+    (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Gastrointestinal'),
+    'Gastroesophageal Reflux Disease',
+    'Acid reflux from stomach to esophagus',
+    'Mild'
+UNION ALL
+SELECT 
+    UUID(),
+    (SELECT condition_category_id FROM conditions_category WHERE category_name = 'Dermatological'),
+    'Eczema',
+    'Chronic inflammatory skin condition',
     'Mild';
 
--- Continue the script in next part...
+-- ============================================
+-- 10c. PATIENT ALLERGIES
+-- ============================================
+INSERT INTO patient_allergy (patient_allergy_id, patient_id, allergy_name, severity, reaction_description, diagnosed_date)
+SELECT 
+    UUID(),
+    u.user_id,
+    'Penicillin',
+    'Mild',
+    'Rash and itching',
+    '2021-05-10'
+FROM user u
+WHERE u.email = 'amara.bandara@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Latex',
+    'Severe',
+    'Anaphylaxis',
+    '2020-08-15'
+FROM user u
+WHERE u.email = 'tharushi.desilva@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Peanuts',
+    'Moderate',
+    'Hives and swelling',
+    '2019-11-20'
+FROM user u
+WHERE u.email = 'kavindu.jayasinghe@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Shellfish',
+    'Severe',
+    'Anaphylaxis',
+    '2022-01-25'
+FROM user u
+WHERE u.email = 'nethmi.samaraweera@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Soy',
+    'Mild',
+    'Nausea and vomiting',
+    '2021-07-30'
+FROM user u
+WHERE u.email = 'dinesh.fernando@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Milk',
+    'Moderate',
+    'Abdominal cramps',
+    '2020-12-05'
+FROM user u
+WHERE u.email = 'sandali.perera@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Eggs',
+    'Mild',
+    'Skin rash',
+    '2021-03-15'
+FROM user u
+WHERE u.email = 'ravindu.silva@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Wheat',
+    'Moderate',
+    'Breathing difficulty',
+    '2022-02-10'
+FROM user u
+WHERE u.email = 'ishara.gamage@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Corn',
+    'Mild',
+    'Itching and swelling',
+    '2021-09-20'
+FROM user u
+WHERE u.email = 'lakshan.wijewardena@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Tomato',
+    'Moderate',
+    'Heartburn',
+    '2022-03-05'
+FROM user u
+WHERE u.email = 'malsha.rathnayake@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Potato',
+    'Mild',
+    'Nasal congestion',
+    '2021-06-18'
+FROM user u
+WHERE u.email = 'prasad.mendis@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Carrot',
+    'Moderate',
+    'Skin irritation',
+    '2020-11-12'
+FROM user u
+WHERE u.email = 'dulani.hewage@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Cucumber',
+    'Mild',
+    'Mouth itching',
+    '2021-08-25'
+FROM user u
+WHERE u.email = 'nuwan.kumara@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Onion',
+    'Moderate',
+    'Eye irritation',
+    '2022-04-15'
+FROM user u
+WHERE u.email = 'sachini.wickramasinghe@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Garlic',
+    'Mild',
+    'Breath odor',
+    '2021-10-30'
+FROM user u
+WHERE u.email = 'chaminda.rajapaksha@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Ginger',
+    'Moderate',
+    'Stomach upset',
+    '2020-07-22'
+FROM user u
+WHERE u.email = 'anusha.jayawardena@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Turmeric',
+    'Mild',
+    'Skin rash',
+    '2021-04-10'
+FROM user u
+WHERE u.email = 'thilina.gunasekara@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Chili Pepper',
+    'Moderate',
+    'Burning sensation',
+    '2022-05-05'
+FROM user u
+WHERE u.email = 'harini.dissanayake@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Cinnamon',
+    'Mild',
+    'Nausea',
+    '2021-01-15'
+FROM user u
+WHERE u.email = 'janaka.senanayake@email.com'
+UNION ALL
+SELECT 
+    UUID(),
+    u.user_id,
+    'Clove',
+    'Moderate',
+    'Toothache',
+    '2020-09-20'
+FROM user u
+WHERE u.email = 'chathurika.bandara@email.com';
+
+-- ============================================
+-- 10d. PATIENT CHRONIC CONDITIONS
+-- ============================================
+INSERT INTO patient_condition (patient_id, condition_id, diagnosed_date, is_chronic, current_status, notes)
+SELECT 
+    u.user_id,
+    (SELECT condition_id FROM conditions WHERE condition_name = 'Hypertension'),  -- ✅ Now exists!
+    '2020-01-15',
+    TRUE,
+    'Managed',
+    'On medication, regular checkups required'
+FROM user u
+WHERE u.email = 'tharushi.desilva@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    (SELECT condition_id FROM conditions WHERE condition_name = 'Diabetes Type 2'),  -- ✅ Now exists!
+    '2019-06-20',
+    TRUE,
+    'In Treatment',
+    'Diet control and insulin therapy'
+FROM user u
+WHERE u.email = 'kavindu.jayasinghe@email.com'
+UNION ALL
+SELECT 
+    u.user_id,
+    (SELECT condition_id FROM conditions WHERE condition_name = 'Asthma'),  -- ✅ Now exists!
+    '2021-03-12',
+    TRUE,
+    'Active',
+    'Using inhaler as needed'
+FROM user u
+WHERE u.email = 'malsha.rathnayake@email.com';
+
+-- ============================================
+-- 10e. PATIENT BALANCE INITIALIZATION
+-- ============================================
+INSERT INTO patient_balance (patient_id, total_balance)
+SELECT user_id, 0.00
+FROM user
+WHERE user_type = 'patient';
