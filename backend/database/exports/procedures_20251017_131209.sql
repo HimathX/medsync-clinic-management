@@ -2620,4 +2620,63 @@ proc_label: BEGIN
     COMMIT;
 END proc_label$$
 
+-- Procedure: CancelAppointment
+DROP DEFINER=`root`@`localhost` PROCEDURE IF EXISTS CancelAppointment$$
+
+CREATE PROCEDURE CancelAppointment(
+    IN p_appointment_id CHAR(36),
+    IN p_cancel_reason TEXT,  -- Optional notes
+    OUT p_error_message VARCHAR(255),
+    OUT p_success BOOLEAN
+)
+proc_label: BEGIN
+    DECLARE v_current_status ENUM('Scheduled','Completed','Cancelled','No-Show');
+    DECLARE v_appointment_exists INT DEFAULT 0;
+   
+    -- Error handler
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = FALSE;
+    END;
+   
+    -- Initialize
+    SET p_success = FALSE;
+    SET p_error_message = NULL;
+   
+    START TRANSACTION;
+   
+    -- Validate appointment exists and is cancellable
+    SELECT COUNT(*), status INTO v_appointment_exists, v_current_status 
+    FROM appointment 
+    WHERE appointment_id = p_appointment_id;
+   
+    IF v_appointment_exists = 0 THEN
+        SET p_error_message = 'Appointment not found';
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    IF v_current_status IN ('Cancelled', 'Completed', 'No-Show') THEN
+        SET p_error_message = CONCAT('Appointment cannot be cancelled (current status: ', v_current_status, ')');
+        ROLLBACK;
+        LEAVE proc_label;
+    END IF;
+   
+    -- Update status to cancelled (trigger will free slot)
+    UPDATE appointment 
+    SET status = 'Cancelled',
+        notes = CONCAT(COALESCE(notes, ''), '; Cancelled: ', COALESCE(p_cancel_reason, 'No reason provided'))
+    WHERE appointment_id = p_appointment_id;
+   
+    SET p_success = TRUE;
+    SET p_error_message = 'Appointment cancelled successfully';
+   
+    COMMIT;
+END proc_label$$
+
+DELIMITER ;
+
+
 DELIMITER ;

@@ -21,18 +21,19 @@ CREATE DEFINER=`root`@`localhost` TRIGGER `validate_patient_age` BEFORE INSERT O
     END IF;
 END$$
 
--- Trigger: Auto-deduct balance on completed payment insert
 DROP TRIGGER IF EXISTS trg_payment_after_insert_balance_update$$
 
+-- Recreate with fix: Remove ROLLBACK; let errors propagate
 CREATE TRIGGER trg_payment_after_insert_balance_update 
 AFTER INSERT ON payment
 FOR EACH ROW
 BEGIN
     DECLARE v_current_balance DECIMAL(12,2);
+    
+    -- Simplified handler: Just re-raise the exception (no ROLLBACK)
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        -- Rollback the whole INSERT if balance update fails
-        ROLLBACK;
+        RESIGNAL;
     END;
     
     -- Only for completed payments
@@ -43,7 +44,7 @@ BEGIN
         WHERE patient_id = NEW.patient_id 
         FOR UPDATE;
         
-        -- Prevent overpayment (optional: raise error if exceeds)
+        -- Prevent overpayment: Raise error if exceeds (aborts INSERT)
         IF v_current_balance < NEW.amount_paid THEN
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Payment exceeds patient balance';
         END IF;
@@ -54,6 +55,43 @@ BEGIN
         WHERE patient_id = NEW.patient_id;
     END IF;
 END$$
+
+-- Trigger: Auto-complete appointment on consultation record insert
+DROP TRIGGER IF EXISTS trg_appointment_complete_on_consult$$
+
+CREATE TRIGGER trg_appointment_complete_on_consult 
+AFTER INSERT ON consultation_record
+FOR EACH ROW
+BEGIN
+    UPDATE appointment 
+    SET status = 'Completed' 
+    WHERE appointment_id = NEW.appointment_id;
+END$$
+
+CREATE TRIGGER trg_insurance_auto_expire 
+AFTER UPDATE ON insurance
+FOR EACH ROW
+BEGIN
+    IF NEW.end_date < CURDATE() AND NEW.status != 'Expired' THEN
+        UPDATE insurance SET status = 'Expired' WHERE insurance_id = NEW.insurance_id;
+    END IF;
+END$$
+
+-- Trigger: Free time slot on appointment cancellation
+DROP TRIGGER IF EXISTS trg_appointment_cancel_free_slot$$
+
+CREATE TRIGGER trg_appointment_cancel_free_slot 
+AFTER UPDATE ON appointment
+FOR EACH ROW
+BEGIN
+    -- Only if status changed to 'Cancelled'
+    IF NEW.status = 'Cancelled' AND OLD.status != 'Cancelled' THEN
+        UPDATE time_slot 
+        SET is_booked = FALSE 
+        WHERE time_slot_id = NEW.time_slot_id;
+    END IF;
+END$$
+
 DELIMITER ;
 
 
