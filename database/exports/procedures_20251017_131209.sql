@@ -1791,7 +1791,7 @@ proc_label: BEGIN
         user_id, address_id, user_type, full_name, NIC, email, gender, DOB, 
         contact_id, password_hash
     ) VALUES (
-        v_user_id, v_address_id, 'doctor', TRIM(p_full_name), TRIM(p_NIC), 
+        v_user_id, v_address_id, 'employee', TRIM(p_full_name), TRIM(p_NIC), 
         LOWER(TRIM(p_email)), p_gender, p_DOB, v_contact_id, p_password_hash
     );
     
