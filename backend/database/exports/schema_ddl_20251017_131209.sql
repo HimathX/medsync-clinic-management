@@ -504,3 +504,14 @@ CREATE TABLE `user` (
   CONSTRAINT `user_chk_1` CHECK (regexp_like(`email`,_utf8mb4'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Z|a-z]{2,}$'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Table: patient_balance
+DROP TABLE IF EXISTS `patient_balance`;
+
+CREATE TABLE `patient_balance` (
+  `patient_id` char(36) NOT NULL PRIMARY KEY,
+  `total_balance` decimal(12,2) NOT NULL DEFAULT '0.00',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`patient_id`) REFERENCES `patient` (`patient_id`) ON DELETE CASCADE,
+  CHECK (`total_balance` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
