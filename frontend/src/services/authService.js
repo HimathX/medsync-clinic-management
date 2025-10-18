@@ -10,10 +10,14 @@ class AuthService {
    * Login user
    * @param {string} email - User email
    * @param {string} password - User password
+   * @param {string} loginType - Type of login ('staff' or 'patient')
    * @returns {Promise} Login response with user details
    */
-  async login(email, password) {
-    const response = await api.post('/auth/login', {
+  async login(email, password, loginType = 'patient') {
+    // Use different endpoints based on login type
+    const endpoint = loginType === 'staff' ? '/staff/login' : '/auth/login';
+    
+    const response = await api.post(endpoint, {
       email,
       password
     });

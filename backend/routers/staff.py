@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import date
 from decimal import Decimal
 from core.database import get_db
-import hashlib
+from passlib.context import CryptContext
 import logging
 
 router = APIRouter(tags=["staff"])
@@ -13,14 +13,17 @@ router = APIRouter(tags=["staff"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Password hashing context using bcrypt (matches database)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 # Password hashing helper
 def hash_password(password: str) -> str:
-    """Hash password using SHA-256"""
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+    """Hash password using bcrypt (matches database storage)"""
+    return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash"""
-    return hash_password(plain_password) == hashed_password
+    """Verify password against bcrypt hash"""
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 # ============================================
@@ -114,6 +117,140 @@ class UpdateSalaryResponse(BaseModel):
             }
         }
 
+class StaffLoginRequest(BaseModel):
+    email: EmailStr = Field(..., description="Staff email address")
+    password: str = Field(..., min_length=6, description="Staff password")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "kasun.rajapaksha@medsync.lk",
+                "password": "doctor123"
+            }
+        }
+
+class StaffLoginResponse(BaseModel):
+    success: bool
+    message: str
+    user_id: Optional[str] = None
+    user_type: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Login successful",
+                "user_id": "296351fe-aad4-11f0-afdd-005056c00001",
+                "user_type": "doctor",
+                "full_name": "Dr. Kasun Rajapaksha",
+                "email": "kasun.rajapaksha@medsync.lk",
+                "role": "doctor"
+            }
+        }
+
+
+# ============================================
+# STAFF LOGIN
+# ============================================
+
+@router.post("/login", status_code=status.HTTP_200_OK, response_model=StaffLoginResponse)
+def staff_login(credentials: StaffLoginRequest):
+    """
+    Staff-specific login endpoint using bcrypt password verification
+    
+    - Authenticates doctors, nurses, admins, managers, receptionists
+    - Uses bcrypt password hashing (matches database)
+    - Returns employee role and details
+    """
+    try:
+        logger.info(f"Staff login attempt for email: {credentials.email}")
+        
+        with get_db() as (cursor, connection):
+            # Get user data and verify it's an employee
+            cursor.execute(
+                """SELECT u.user_id, u.password_hash, u.user_type, u.full_name, u.email
+                   FROM user u
+                   WHERE LOWER(TRIM(u.email)) = %s AND u.user_type = 'employee'""",
+                (credentials.email.lower().strip(),)
+            )
+            user_data = cursor.fetchone()
+            
+            if not user_data:
+                logger.warning(f"Staff login failed - user not found or not an employee: {credentials.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
+            
+            # Verify password using bcrypt
+            if not verify_password(credentials.password, user_data['password_hash']):
+                logger.warning(f"Staff login failed - invalid password for: {credentials.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
+            
+            logger.info(f"Password verified for staff: {credentials.email}")
+            
+            # Get employee role
+            cursor.execute(
+                """SELECT role, branch_id FROM employee WHERE employee_id = %s AND is_active = TRUE""",
+                (user_data['user_id'],)
+            )
+            employee_data = cursor.fetchone()
+            
+            if not employee_data:
+                logger.error(f"Employee record not found for user: {user_data['user_id']}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Staff account not properly configured"
+                )
+            
+            employee_role = employee_data['role']
+            
+            # Map role to user_type for frontend
+            if employee_role == 'doctor':
+                # Verify doctor record exists
+                cursor.execute(
+                    """SELECT doctor_id FROM doctor WHERE doctor_id = %s""",
+                    (user_data['user_id'],)
+                )
+                if cursor.fetchone():
+                    user_type = 'doctor'
+                else:
+                    logger.warning(f"Doctor record missing for employee: {user_data['user_id']}")
+                    user_type = 'doctor'  # Still allow login
+            elif employee_role == 'admin':
+                user_type = 'admin'
+            elif employee_role == 'manager':
+                user_type = 'manager'
+            else:
+                user_type = employee_role  # nurse, receptionist, etc.
+            
+            logger.info(f"✅ Staff login successful - {credentials.email} (role: {employee_role}, type: {user_type})")
+            
+            return StaffLoginResponse(
+                success=True,
+                message="Login successful",
+                user_id=user_data['user_id'],
+                user_type=user_type,
+                full_name=user_data['full_name'],
+                email=user_data['email'],
+                role=employee_role
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during staff login: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during authentication"
+        )
+
 
 # ============================================
 # STAFF REGISTRATION
@@ -124,76 +261,122 @@ def register_staff(staff_data: StaffRegistrationRequest):
     """
     Register a new staff member (non-doctor employees)
     
-    - Creates user account
+    - Creates user account with bcrypt password
     - Creates employee record
     - Validates branch and role
-    - Ensures no duplicate managers per branch
+    - Direct database insertion (no stored procedure dependency)
     """
     try:
+        logger.info(f"Staff registration attempt for email: {staff_data.email}")
+        
         with get_db() as (cursor, connection):
-            # Hash the password
+            # Hash the password using bcrypt
             password_hash = hash_password(staff_data.password)
+            logger.info(f"Password hashed with bcrypt (length: {len(password_hash)})")
             
-            # Set session variables for OUT parameters
-            cursor.execute("SET @p_user_id = NULL")
-            cursor.execute("SET @p_error_message = NULL")
-            cursor.execute("SET @p_success = NULL")
+            # Check if branch exists
+            cursor.execute(
+                "SELECT branch_id FROM branch WHERE branch_name = %s AND is_active = TRUE",
+                (staff_data.branch_name,)
+            )
+            branch = cursor.fetchone()
             
-            # Call stored procedure
-            call_sql = """
-                CALL RegisterStaff(
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    @p_user_id, @p_error_message, @p_success
+            if not branch:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Branch '{staff_data.branch_name}' not found or inactive"
                 )
-            """
             
-            cursor.execute(call_sql, (
-                staff_data.address_line1,
-                staff_data.address_line2 or '',
-                staff_data.city,
-                staff_data.province,
-                staff_data.postal_code,
-                staff_data.country or 'Sri Lanka',
-                staff_data.contact_num1,
-                staff_data.contact_num2 or '',
-                staff_data.full_name,
-                staff_data.NIC,
-                staff_data.email,
-                staff_data.gender,
-                staff_data.DOB,
-                password_hash,
-                staff_data.branch_name,
-                staff_data.role,
-                float(staff_data.salary),
-                staff_data.joined_date
-            ))
+            branch_id = branch['branch_id']
             
-            # Get OUT parameters
-            cursor.execute("SELECT @p_user_id as user_id, @p_error_message as error_message, @p_success as success")
-            result = cursor.fetchone()
-            
-            user_id = result['user_id']
-            error_message = result['error_message']
-            success = result['success']
-            
-            logger.info(f"Staff registration result - Success: {success}, User ID: {user_id}, Error: {error_message}")
-            
-            if success == 1 or success is True:
-                return StaffRegistrationResponse(
-                    success=True,
-                    message=error_message or "Staff member registered successfully",
-                    staff_id=user_id
-                )
-            else:
+            # Check for duplicate email
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM user WHERE LOWER(TRIM(email)) = %s",
+                (staff_data.email.lower().strip(),)
+            )
+            if cursor.fetchone()['count'] > 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=error_message or "Failed to register staff member"
+                    detail="Email already registered"
                 )
+            
+            # Check for duplicate NIC
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM user WHERE NIC = %s",
+                (staff_data.NIC,)
+            )
+            if cursor.fetchone()['count'] > 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="NIC already registered"
+                )
+            
+            # If role is manager, check if branch already has one
+            if staff_data.role == 'manager':
+                cursor.execute(
+                    """SELECT COUNT(*) as count FROM employee 
+                       WHERE branch_id = %s AND role = 'manager' AND is_active = TRUE""",
+                    (branch_id,)
+                )
+                if cursor.fetchone()['count'] > 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Branch already has an active manager"
+                    )
+            
+            # Generate UUIDs
+            import uuid
+            address_id = str(uuid.uuid4())
+            contact_id = str(uuid.uuid4())
+            user_id = str(uuid.uuid4())
+            
+            # Insert address
+            cursor.execute(
+                """INSERT INTO address (address_id, address_line1, address_line2, city, province, postal_code, country)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                (address_id, staff_data.address_line1, staff_data.address_line2 or '', 
+                 staff_data.city, staff_data.province, staff_data.postal_code, 
+                 staff_data.country or 'Sri Lanka')
+            )
+            
+            # Insert contact
+            cursor.execute(
+                """INSERT INTO contact (contact_id, contact_num1, contact_num2)
+                   VALUES (%s, %s, %s)""",
+                (contact_id, staff_data.contact_num1, staff_data.contact_num2 or '')
+            )
+            
+            # Insert user
+            cursor.execute(
+                """INSERT INTO user (user_id, address_id, user_type, full_name, NIC, email, 
+                                     gender, DOB, contact_id, password_hash)
+                   VALUES (%s, %s, 'employee', %s, %s, %s, %s, %s, %s, %s)""",
+                (user_id, address_id, staff_data.full_name, staff_data.NIC, 
+                 staff_data.email.lower().strip(), staff_data.gender, staff_data.DOB, 
+                 contact_id, password_hash)
+            )
+            
+            # Insert employee
+            cursor.execute(
+                """INSERT INTO employee (employee_id, branch_id, role, salary, joined_date, is_active)
+                   VALUES (%s, %s, %s, %s, %s, TRUE)""",
+                (user_id, branch_id, staff_data.role, float(staff_data.salary), staff_data.joined_date)
+            )
+            
+            connection.commit()
+            
+            logger.info(f"✅ Staff member registered successfully - ID: {user_id}, Email: {staff_data.email}")
+            
+            return StaffRegistrationResponse(
+                success=True,
+                message="Staff member registered successfully",
+                staff_id=user_id
+            )
                 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error during staff registration: {str(e)}")
+        logger.error(f"Error during staff registration: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during registration: {str(e)}"
