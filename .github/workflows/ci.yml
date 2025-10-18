@@ -62,8 +62,9 @@ jobs:
           SECRET_KEY: group6
           ALGORITHM: HS256
           ACCESS_TOKEN_EXPIRE_MINUTES: 30
+          PYTHONPATH: .  # ⬅️ Add this to set Python path
         run: |
-          pytest --cov=. --cov-report=xml --cov-report=term
+          pytest tests/ --cov=. --cov-report=xml --cov-report=term -v
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
