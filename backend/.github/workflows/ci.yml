@@ -1,0 +1,235 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: ['**']  # Run on all branches
+  pull_request:
+    branches: ['**']
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: medsync_db
+          MYSQL_USER: medsync_user
+          MYSQL_PASSWORD: medsync_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio httpx
+
+      - name: Lint with flake8
+        working-directory: ./backend
+        run: |
+          pip install flake8
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run tests
+        working-directory: ./backend
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: medsync_user
+          DB_PASSWORD: medsync_password
+          DB_NAME: medsync_db
+          DB_PORT: 3306
+          SECRET_KEY: group6
+          ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+        run: |
+          pytest --cov=. --cov-report=xml --cov-report=term
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: ./frontend
+        run: npm run lint --if-present
+
+      - name: Run tests
+        working-directory: ./frontend
+        run: npm test --if-present -- --coverage --watchAll=false
+
+      - name: Build
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./frontend/coverage/coverage-final.json
+          flags: frontend
+
+  database-validation:
+    name: Database Schema Validation
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: medsync_db
+          MYSQL_USER: medsync_user
+          MYSQL_PASSWORD: medsync_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for MySQL to be ready
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -u medsync_user -pmedsync_password &> /dev/null; then
+              echo "MySQL is ready!"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+
+      - name: Test tables creation
+        run: |
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/1_tables.sql || exit 1
+          
+      - name: Test functions
+        run: |
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/2_functions.sql || exit 1
+
+      - name: Test procedures
+        run: |
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/3_procedures.sql || exit 1
+
+      - name: Test triggers
+        run: |
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/4_triggers.sql || exit 1
+
+      - name: Test records insertion
+        run: |
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/5_records.sql || exit 1
+
+      - name: Test branch initialization
+        run: |
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/6_branch_initialization.sql || exit 1
+
+      - name: Validate database structure
+        run: |
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW TABLES;" || exit 1
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW FUNCTION STATUS WHERE Db='medsync_db';" || exit 1
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW PROCEDURE STATUS WHERE Db='medsync_db';" || exit 1
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db -e "SHOW TRIGGERS;" || exit 1
+
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Test Backend Docker Build
+        working-directory: ./backend
+        run: |
+          docker build -t medsync-backend:test .
+
+      - name: Test Frontend Docker Build
+        working-directory: ./frontend
+        run: |
+          docker build -t medsync-frontend:test .
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript, python
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
