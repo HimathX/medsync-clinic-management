@@ -230,6 +230,434 @@ BEGIN
     END IF;
 END$$
 
+
+-- Add after existing triggers in SECTION 2:
+
+-- ============================================
+-- ADDITIONAL AUDIT TRIGGERS (Missing)
+-- ============================================
+
+-- ==================== USER TABLE ====================
+
+-- Trigger: Audit User Creation
+DROP TRIGGER IF EXISTS trg_user_audit_insert$$
+CREATE TRIGGER trg_user_audit_insert
+AFTER INSERT ON user
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, new_values
+    ) VALUES (
+        NEW.user_id, 
+        'INSERT', 
+        'user', 
+        NEW.user_id,
+        JSON_OBJECT(
+            'full_name', NEW.full_name,
+            'email', NEW.email,
+            'NIC', NEW.NIC,
+            'user_type', NEW.user_type,
+            'gender', NEW.gender,
+            'DOB', NEW.DOB
+        )
+    );
+END$$
+
+-- Trigger: Audit User Deletion
+DROP TRIGGER IF EXISTS trg_user_audit_delete$$
+CREATE TRIGGER trg_user_audit_delete
+BEFORE DELETE ON user
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, old_values
+    ) VALUES (
+        OLD.user_id,
+        'DELETE',
+        'user',
+        OLD.user_id,
+        JSON_OBJECT(
+            'full_name', OLD.full_name,
+            'email', OLD.email,
+            'NIC', OLD.NIC,
+            'user_type', OLD.user_type,
+            'last_login', OLD.last_login,
+            'created_at', OLD.created_at
+        )
+    );
+END$$
+
+-- ==================== EMPLOYEE TABLE ====================
+
+-- Trigger: Audit Employee Creation
+DROP TRIGGER IF EXISTS trg_employee_audit_insert$$
+CREATE TRIGGER trg_employee_audit_insert
+AFTER INSERT ON employee
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, new_values
+    ) VALUES (
+        NEW.employee_id,
+        'INSERT',
+        'employee',
+        NEW.employee_id,
+        JSON_OBJECT(
+            'branch_id', NEW.branch_id,
+            'role', NEW.role,
+            'salary', NEW.salary,
+            'joined_date', NEW.joined_date,
+            'is_active', NEW.is_active
+        )
+    );
+END$$
+
+-- Trigger: Audit Employee Deletion
+DROP TRIGGER IF EXISTS trg_employee_audit_delete$$
+CREATE TRIGGER trg_employee_audit_delete
+BEFORE DELETE ON employee
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, old_values
+    ) VALUES (
+        OLD.employee_id,
+        'DELETE',
+        'employee',
+        OLD.employee_id,
+        JSON_OBJECT(
+            'branch_id', OLD.branch_id,
+            'role', OLD.role,
+            'salary', OLD.salary,
+            'joined_date', OLD.joined_date,
+            'end_date', OLD.end_date,
+            'is_active', OLD.is_active
+        )
+    );
+END$$
+
+-- ==================== PATIENT TABLE ====================
+
+-- Trigger: Audit Patient Registration
+DROP TRIGGER IF EXISTS trg_patient_audit_insert$$
+CREATE TRIGGER trg_patient_audit_insert
+AFTER INSERT ON patient
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, new_values
+    ) VALUES (
+        NEW.patient_id,
+        'INSERT',
+        'patient',
+        NEW.patient_id,
+        JSON_OBJECT(
+            'blood_group', NEW.blood_group,
+            'registered_branch_id', NEW.registered_branch_id
+        )
+    );
+END$$
+
+-- ==================== PATIENT ALLERGY TABLE ====================
+
+-- Trigger: Audit Allergy Insert
+DROP TRIGGER IF EXISTS trg_allergy_audit_insert$$
+CREATE TRIGGER trg_allergy_audit_insert
+AFTER INSERT ON patient_allergy
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, new_values
+    ) VALUES (
+        NEW.patient_id,
+        'INSERT',
+        'patient_allergy',
+        NEW.patient_allergy_id,
+        JSON_OBJECT(
+            'patient_id', NEW.patient_id,
+            'allergy_name', NEW.allergy_name,
+            'severity', NEW.severity,
+            'diagnosed_date', NEW.diagnosed_date
+        )
+    );
+END$$
+
+-- Trigger: Audit Allergy Update
+DROP TRIGGER IF EXISTS trg_allergy_audit_update$$
+CREATE TRIGGER trg_allergy_audit_update
+AFTER UPDATE ON patient_allergy
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, old_values, new_values
+    ) VALUES (
+        NEW.patient_id,
+        'UPDATE',
+        'patient_allergy',
+        NEW.patient_allergy_id,
+        JSON_OBJECT(
+            'allergy_name', OLD.allergy_name,
+            'severity', OLD.severity,
+            'reaction_description', OLD.reaction_description
+        ),
+        JSON_OBJECT(
+            'allergy_name', NEW.allergy_name,
+            'severity', NEW.severity,
+            'reaction_description', NEW.reaction_description
+        )
+    );
+END$$
+
+-- Trigger: Audit Allergy Delete
+DROP TRIGGER IF EXISTS trg_allergy_audit_delete$$
+CREATE TRIGGER trg_allergy_audit_delete
+BEFORE DELETE ON patient_allergy
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, old_values
+    ) VALUES (
+        OLD.patient_id,
+        'DELETE',
+        'patient_allergy',
+        OLD.patient_allergy_id,
+        JSON_OBJECT(
+            'allergy_name', OLD.allergy_name,
+            'severity', OLD.severity,
+            'diagnosed_date', OLD.diagnosed_date
+        )
+    );
+END$$
+
+-- ==================== PATIENT CONDITION TABLE ====================
+
+-- Trigger: Audit Condition Insert
+DROP TRIGGER IF EXISTS trg_condition_audit_insert$$
+CREATE TRIGGER trg_condition_audit_insert
+AFTER INSERT ON patient_condition
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, new_values
+    ) VALUES (
+        NEW.patient_id,
+        'INSERT',
+        'patient_condition',
+        CONCAT(NEW.patient_id, '-', NEW.condition_id),
+        JSON_OBJECT(
+            'patient_id', NEW.patient_id,
+            'condition_id', NEW.condition_id,
+            'diagnosed_date', NEW.diagnosed_date,
+            'is_chronic', NEW.is_chronic,
+            'current_status', NEW.current_status
+        )
+    );
+END$$
+
+-- Trigger: Audit Condition Update
+DROP TRIGGER IF EXISTS trg_condition_audit_update$$
+CREATE TRIGGER trg_condition_audit_update
+AFTER UPDATE ON patient_condition
+FOR EACH ROW
+BEGIN
+    IF OLD.current_status != NEW.current_status OR OLD.is_chronic != NEW.is_chronic THEN
+        INSERT INTO audit_log (
+            user_id, action_type, table_name, record_id, old_values, new_values
+        ) VALUES (
+            NEW.patient_id,
+            'UPDATE',
+            'patient_condition',
+            CONCAT(NEW.patient_id, '-', NEW.condition_id),
+            JSON_OBJECT(
+                'current_status', OLD.current_status,
+                'is_chronic', OLD.is_chronic,
+                'notes', OLD.notes
+            ),
+            JSON_OBJECT(
+                'current_status', NEW.current_status,
+                'is_chronic', NEW.is_chronic,
+                'notes', NEW.notes
+            )
+        );
+    END IF;
+END$$
+
+-- Trigger: Audit Condition Delete
+DROP TRIGGER IF EXISTS trg_condition_audit_delete$$
+CREATE TRIGGER trg_condition_audit_delete
+BEFORE DELETE ON patient_condition
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, old_values
+    ) VALUES (
+        OLD.patient_id,
+        'DELETE',
+        'patient_condition',
+        CONCAT(OLD.patient_id, '-', OLD.condition_id),
+        JSON_OBJECT(
+            'condition_id', OLD.condition_id,
+            'diagnosed_date', OLD.diagnosed_date,
+            'current_status', OLD.current_status
+        )
+    );
+END$$
+
+-- ==================== APPOINTMENT TABLE ====================
+
+-- Trigger: Audit Appointment Insert
+DROP TRIGGER IF EXISTS trg_appointment_audit_insert$$
+CREATE TRIGGER trg_appointment_audit_insert
+AFTER INSERT ON appointment
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, new_values
+    ) VALUES (
+        NEW.patient_id,
+        'INSERT',
+        'appointment',
+        NEW.appointment_id,
+        JSON_OBJECT(
+            'patient_id', NEW.patient_id,
+            'time_slot_id', NEW.time_slot_id,
+            'status', NEW.status
+        )
+    );
+END$$
+
+-- Trigger: Audit Appointment Update
+DROP TRIGGER IF EXISTS trg_appointment_audit_update$$
+CREATE TRIGGER trg_appointment_audit_update
+AFTER UPDATE ON appointment
+FOR EACH ROW
+BEGIN
+    IF OLD.status != NEW.status THEN
+        INSERT INTO audit_log (
+            user_id, action_type, table_name, record_id, old_values, new_values
+        ) VALUES (
+            NEW.patient_id,
+            'UPDATE',
+            'appointment',
+            NEW.appointment_id,
+            JSON_OBJECT('status', OLD.status, 'notes', OLD.notes),
+            JSON_OBJECT('status', NEW.status, 'notes', NEW.notes)
+        );
+    END IF;
+END$$
+
+-- Trigger: Audit Appointment Delete
+DROP TRIGGER IF EXISTS trg_appointment_audit_delete$$
+CREATE TRIGGER trg_appointment_audit_delete
+BEFORE DELETE ON appointment
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, old_values
+    ) VALUES (
+        OLD.patient_id,
+        'DELETE',
+        'appointment',
+        OLD.appointment_id,
+        JSON_OBJECT(
+            'time_slot_id', OLD.time_slot_id,
+            'status', OLD.status,
+            'created_at', OLD.created_at
+        )
+    );
+END$$
+
+-- ==================== PAYMENT TABLE ====================
+
+-- Trigger: Audit Payment Update
+DROP TRIGGER IF EXISTS trg_payment_audit_update$$
+CREATE TRIGGER trg_payment_audit_update
+AFTER UPDATE ON payment
+FOR EACH ROW
+BEGIN
+    IF OLD.status != NEW.status OR OLD.amount_paid != NEW.amount_paid THEN
+        INSERT INTO audit_log (
+            user_id, action_type, table_name, record_id, old_values, new_values
+        ) VALUES (
+            NEW.patient_id,
+            'UPDATE',
+            'payment',
+            NEW.payment_id,
+            JSON_OBJECT(
+                'amount_paid', OLD.amount_paid,
+                'status', OLD.status,
+                'payment_method', OLD.payment_method
+            ),
+            JSON_OBJECT(
+                'amount_paid', NEW.amount_paid,
+                'status', NEW.status,
+                'payment_method', NEW.payment_method
+            )
+        );
+    END IF;
+END$$
+
+-- ==================== CLAIM TABLE ====================
+
+-- Trigger: Audit Claim Insert
+DROP TRIGGER IF EXISTS trg_claim_audit_insert$$
+CREATE TRIGGER trg_claim_audit_insert
+AFTER INSERT ON claim
+FOR EACH ROW
+BEGIN
+    DECLARE v_patient_id CHAR(36);
+    
+    -- Get patient_id from invoice -> consultation -> appointment
+    SELECT a.patient_id INTO v_patient_id
+    FROM invoice inv
+    INNER JOIN consultation_record cr ON inv.consultation_rec_id = cr.consultation_rec_id
+    INNER JOIN appointment a ON cr.appointment_id = a.appointment_id
+    WHERE inv.invoice_id = NEW.invoice_id;
+    
+    INSERT INTO audit_log (
+        user_id, action_type, table_name, record_id, new_values
+    ) VALUES (
+        v_patient_id,
+        'INSERT',
+        'claim',
+        NEW.claim_id,
+        JSON_OBJECT(
+            'invoice_id', NEW.invoice_id,
+            'insurance_id', NEW.insurance_id,
+            'claim_amount', NEW.claim_amount,
+            'claim_date', NEW.claim_date
+        )
+    );
+END$$
+
+-- Trigger: Audit Claim Update
+DROP TRIGGER IF EXISTS trg_claim_audit_update$$
+CREATE TRIGGER trg_claim_audit_update
+AFTER UPDATE ON claim
+FOR EACH ROW
+BEGIN
+    DECLARE v_patient_id CHAR(36);
+    
+    SELECT a.patient_id INTO v_patient_id
+    FROM invoice inv
+    INNER JOIN consultation_record cr ON inv.consultation_rec_id = cr.consultation_rec_id
+    INNER JOIN appointment a ON cr.appointment_id = a.appointment_id
+    WHERE inv.invoice_id = NEW.invoice_id;
+    
+    IF OLD.claim_amount != NEW.claim_amount THEN
+        INSERT INTO audit_log (
+            user_id, action_type, table_name, record_id, old_values, new_values
+        ) VALUES (
+            v_patient_id,
+            'UPDATE',
+            'claim',
+            NEW.claim_id,
+            JSON_OBJECT('claim_amount', OLD.claim_amount, 'notes', OLD.notes),
+            JSON_OBJECT('claim_amount', NEW.claim_amount, 'notes', NEW.notes)
+        );
+    END IF;
+END$$
+
 DELIMITER ;
 
 -- ============================================
