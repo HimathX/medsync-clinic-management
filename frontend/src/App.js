@@ -41,6 +41,9 @@ import DoctorTreatments from "./pages/doctor/DoctorTreatments";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
 import DoctorReports from "./pages/doctor/DoctorReports";
 import DoctorSettings from "./pages/doctor/DoctorSettings";
+import DoctorSpecializations from "./pages/doctor/DoctorSpecializations";
+import DoctorSpecializationBrowser from "./pages/doctor/DoctorSpecializationBrowser";
+import DoctorTimeSlots from "./pages/doctor/DoctorTimeSlots";
 
 // Patient Portal Pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
@@ -189,6 +192,9 @@ function App() {
             <Route path="/doctor/profile" element={<DoctorProfile />} />
             <Route path="/doctor/reports" element={<DoctorReports />} />
             <Route path="/doctor/settings" element={<DoctorSettings />} />
+            <Route path="/doctor/specializations" element={<DoctorSpecializations />} />
+            <Route path="/doctor/specializations/browse" element={<DoctorSpecializationBrowser />} />
+            <Route path="/doctor/time-slots" element={<DoctorTimeSlots />} />
             <Route path="/profile" element={<DoctorProfile />} />
             <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />
           </>

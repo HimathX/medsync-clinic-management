@@ -1,184 +1,298 @@
-import apiClient, { handleApiError } from './api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 class AppointmentService {
-  /**
-   * Book new appointment
-   * @param {Object} appointmentData - { patient_id, time_slot_id, notes }
-   */
-  async bookAppointment(appointmentData) {
+  // Get all appointments with filters
+  async getAllAppointments(skip = 0, limit = 100, statusFilter = null, dateFilter = null) {
     try {
-      const response = await apiClient.post('/appointments/book', appointmentData);
-      return response.data;
+      const params = new URLSearchParams({
+        skip: skip.toString(),
+        limit: limit.toString()
+      });
+
+      if (statusFilter) {
+        params.append('status_filter', statusFilter);
+      }
+
+      if (dateFilter) {
+        params.append('date_filter', dateFilter);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/appointments/?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to book appointment'));
+      console.error('Error fetching appointments:', error);
+      throw error;
     }
   }
 
-  /**
-   * Get all appointments with filters
-   * @param {Object} filters - Filter parameters (status, doctor_id, patient_id, branch_id, dates)
-   */
-  async getAllAppointments(filters = {}) {
-    try {
-      const params = new URLSearchParams();
-      if (filters.status) params.append('status', filters.status);
-      if (filters.doctor_id) params.append('doctor_id', filters.doctor_id);
-      if (filters.patient_id) params.append('patient_id', filters.patient_id);
-      if (filters.branch_id) params.append('branch_id', filters.branch_id);
-      if (filters.start_date) params.append('start_date', filters.start_date);
-      if (filters.end_date) params.append('end_date', filters.end_date);
-      if (filters.date) params.append('date_filter', filters.date);
-      
-      const response = await apiClient.get(`/appointments/?${params.toString()}`);
-      return response.data;
-    } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch appointments'));
-    }
-  }
-
-  /**
-   * Alias for getAllAppointments - for backward compatibility
-   * @param {Object} filters - Filter parameters
-   */
-  async getAppointments(filters = {}) {
-    return this.getAllAppointments(filters);
-  }
-
-  /**
-   * Get appointment by ID
-   * @param {string} appointmentId - Appointment ID
-   */
+  // Get appointment by ID
   async getAppointmentById(appointmentId) {
     try {
-      const response = await apiClient.get(`/appointments/${appointmentId}`);
-      return response.data;
+      const response = await fetch(`${API_BASE_URL}/appointments/${appointmentId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch appointment'));
+      console.error('Error fetching appointment:', error);
+      throw error;
     }
   }
 
-  /**
-   * Update appointment status
-   * @param {string} appointmentId - Appointment ID
-   * @param {Object} updateData - { status, notes }
-   */
+  // Get appointments by patient
+  async getAppointmentsByPatient(patientId, includePast = false) {
+    try {
+      const params = new URLSearchParams({
+        include_past: includePast.toString()
+      });
+
+      const response = await fetch(`${API_BASE_URL}/appointments/patient/${patientId}?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching patient appointments:', error);
+      throw error;
+    }
+  }
+
+  // Get appointments by doctor
+  async getAppointmentsByDoctor(doctorId, includePast = false) {
+    try {
+      const params = new URLSearchParams({
+        include_past: includePast.toString()
+      });
+
+      const response = await fetch(`${API_BASE_URL}/appointments/doctor/${doctorId}?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching doctor appointments:', error);
+      throw error;
+    }
+  }
+
+  // Get appointments by date
+  async getAppointmentsByDate(appointmentDate) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/appointments/date/${appointmentDate}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching appointments by date:', error);
+      throw error;
+    }
+  }
+
+  // Book appointment
+  async bookAppointment(bookingData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/appointments/book`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bookingData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      throw error;
+    }
+  }
+
+  // Update appointment
   async updateAppointment(appointmentId, updateData) {
     try {
-      const response = await apiClient.patch(`/appointments/${appointmentId}`, updateData);
-      return response.data;
+      const response = await fetch(`${API_BASE_URL}/appointments/${appointmentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to update appointment'));
+      console.error('Error updating appointment:', error);
+      throw error;
     }
   }
 
-  /**
-   * Cancel appointment
-   * @param {string} appointmentId - Appointment ID
-   */
+  // Cancel appointment
   async cancelAppointment(appointmentId) {
     try {
-      const response = await apiClient.delete(`/appointments/${appointmentId}`);
-      return response.data;
+      const response = await fetch(`${API_BASE_URL}/appointments/${appointmentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to cancel appointment'));
+      console.error('Error cancelling appointment:', error);
+      throw error;
     }
   }
 
-  /**
-   * Get appointment with full details (doctor, patient, timeslot)
-   * @param {string} appointmentId - Appointment ID
-   */
-  async getAppointmentDetails(appointmentId) {
+  // Get available time slots for a doctor
+  async getAvailableTimeSlots(doctorId, dateFrom = null, dateTo = null) {
     try {
-      const response = await apiClient.get(`/appointments/${appointmentId}/details`);
-      return response.data;
-    } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch appointment details'));
-    }
-  }
-
-  /**
-   * Get all appointments for a specific patient
-   * @param {string} patientId - Patient ID
-   * @param {boolean} includePast - Include past appointments (default: false)
-   */
-  async getPatientAppointments(patientId, includePast = false) {
-    try {
-      const response = await apiClient.get(`/appointments/patient/${patientId}?include_past=${includePast}`);
-      return response.data.appointments || [];
-    } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch patient appointments'));
-    }
-  }
-
-  /**
-   * Get all appointments for a specific doctor
-   * @param {string} doctorId - Doctor ID
-   * @param {boolean} includePast - Include past appointments (default: false)
-   */
-  async getDoctorAppointments(doctorId, includePast = false) {
-    try {
-      const response = await apiClient.get(`/appointments/doctor/${doctorId}?include_past=${includePast}`);
-      return response.data.appointments || [];
-    } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch doctor appointments'));
-    }
-  }
-
-  /**
-   * Get all appointments for a specific date
-   * @param {string} date - Date in YYYY-MM-DD format
-   */
-  async getAppointmentsByDate(date) {
-    try {
-      const response = await apiClient.get(`/appointments/date/${date}`);
-      return response.data.appointments || [];
-    } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch appointments for date'));
-    }
-  }
-
-  /**
-   * Get available time slots for a doctor
-   * @param {string} doctorId - Doctor ID
-   * @param {string} dateFrom - Start date (YYYY-MM-DD) - optional
-   * @param {string} dateTo - End date (YYYY-MM-DD) - optional
-   */
-  async getAvailableSlots(doctorId, dateFrom = null, dateTo = null) {
-    try {
-      let url = `/appointments/available-slots/${doctorId}`;
       const params = new URLSearchParams();
-      if (dateFrom) params.append('date_from', dateFrom);
-      if (dateTo) params.append('date_to', dateTo);
       
-      if (params.toString()) {
-        url += `?${params.toString()}`;
+      if (dateFrom) {
+        params.append('date_from', dateFrom);
       }
       
-      const response = await apiClient.get(url);
-      return response.data.time_slots || [];
+      if (dateTo) {
+        params.append('date_to', dateTo);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/appointments/available-slots/${doctorId}?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch available time slots'));
+      console.error('Error fetching available time slots:', error);
+      throw error;
     }
   }
 
-  /**
-   * Get available time slots for a specific branch
-   * @param {string} branchId - Branch ID
-   * @param {string} dateFilter - Date in YYYY-MM-DD format - optional
-   * @returns {Promise} Available time slots with doctor information
-   */
-  async getAvailableSlotsByBranch(branchId, dateFilter = null) {
+  // Get available time slots by branch
+  async getAvailableTimeSlotsByBranch(branchId, dateFilter = null) {
     try {
-      let url = `/appointments/available-slots/branch/${branchId}`;
-      if (dateFilter) {
-        url += `?date_filter=${dateFilter}`;
-      }
+      const params = new URLSearchParams();
       
-      const response = await apiClient.get(url);
-      return response.data;
+      if (dateFilter) {
+        params.append('date_filter', dateFilter);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/appointments/available-slots/branch/${branchId}?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch available time slots for branch'));
+      console.error('Error fetching available time slots by branch:', error);
+      throw error;
+    }
+  }
+
+  // Get doctor's upcoming appointments (next 7 days)
+  async getUpcomingAppointments(doctorId) {
+    try {
+      const today = new Date();
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      
+      return await this.getAppointmentsByDoctor(doctorId, false);
+    } catch (error) {
+      console.error('Error fetching upcoming appointments:', error);
+      throw error;
+    }
+  }
+
+  // Get doctor's today's appointments
+  async getTodaysAppointments(doctorId) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      return await this.getAppointmentsByDate(today);
+    } catch (error) {
+      console.error('Error fetching today\'s appointments:', error);
+      throw error;
+    }
+  }
+
+  // Get appointment statistics for doctor
+  async getDoctorAppointmentStats(doctorId) {
+    try {
+      const appointments = await this.getAppointmentsByDoctor(doctorId, true);
+      const stats = {
+        total: appointments.appointments.length,
+        scheduled: appointments.appointments.filter(apt => apt.status === 'Scheduled').length,
+        completed: appointments.appointments.filter(apt => apt.status === 'Completed').length,
+        cancelled: appointments.appointments.filter(apt => apt.status === 'Cancelled').length,
+        noShow: appointments.appointments.filter(apt => apt.status === 'No-Show').length
+      };
+      
+      return stats;
+    } catch (error) {
+      console.error('Error fetching appointment statistics:', error);
+      throw error;
     }
   }
 }
