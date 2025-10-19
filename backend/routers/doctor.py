@@ -14,7 +14,10 @@ router = APIRouter(tags=["doctor"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Password hashing helper
+# ============================================
+# PASSWORD HASHING (SAME AS STAFF.PY)
+# ============================================
+
 def hash_password(password: str) -> str:
     """Hash password using SHA-256"""
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
@@ -23,6 +26,188 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password against hash"""
     return hash_password(plain_password) == hashed_password
 
+
+# ============================================
+# PYDANTIC SCHEMAS FOR LOGIN
+# ============================================
+
+class DoctorLoginRequest(BaseModel):
+    email: EmailStr = Field(..., description="Doctor email address")
+    password: str = Field(..., min_length=6, description="Doctor password")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "dr.john@clinic.com",
+                "password": "SecureDoc123!"
+            }
+        }
+
+class DoctorLoginResponse(BaseModel):
+    success: bool
+    message: str
+    user_id: Optional[str] = None
+    user_type: str = "doctor"  # Always 'doctor' for this endpoint
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    doctor_id: Optional[str] = None
+    room_no: Optional[str] = None
+    consultation_fee: Optional[Decimal] = None
+    specializations: Optional[List[str]] = None
+    branch_name: Optional[str] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Login successful",
+                "user_id": "296351fe-aad4-11f0-afdd-005056c00001",
+                "user_type": "doctor",
+                "full_name": "Dr. John Smith",
+                "email": "dr.john@clinic.com",
+                "doctor_id": "296351fe-aad4-11f0-afdd-005056c00001",
+                "room_no": "R101",
+                "consultation_fee": 2500.00,
+                "specializations": ["Cardiology", "General Medicine"],
+                "branch_name": "Main Branch"
+            }
+        }
+
+
+# ============================================
+# DOCTOR LOGIN ENDPOINT
+# ============================================
+
+@router.post("/login", status_code=status.HTTP_200_OK, response_model=DoctorLoginResponse)
+def doctor_login(credentials: DoctorLoginRequest):
+    """
+    Doctor login endpoint
+    
+    - Authenticates doctors using email and password
+    - Uses SHA-256 password hashing (same as staff/patient)
+    - Returns doctor details including specializations and room info
+    - Validates that user is an active doctor
+    """
+    try:
+        logger.info(f"🔑 Doctor login attempt for email: {credentials.email}")
+        
+        with get_db() as (cursor, connection):
+            # Hash the password using SHA-256
+            password_hash = hash_password(credentials.password)
+            logger.info(f"Password hash generated, length: {len(password_hash)}")
+            
+            # Get user with matching email and password (must be doctor/employee)
+            cursor.execute(
+                """SELECT u.user_id, u.email, u.full_name, u.user_type
+                   FROM user u
+                   WHERE LOWER(TRIM(u.email)) = %s 
+                   AND u.password_hash = %s 
+                   AND u.user_type = 'employee'""",
+                (credentials.email.lower().strip(), password_hash)
+            )
+            user_data = cursor.fetchone()
+            
+            if not user_data:
+                logger.warning(f"❌ Doctor login failed - invalid credentials for: {credentials.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
+            
+            logger.info(f"✅ User authenticated: {user_data['email']}")
+            
+            # Get employee role to verify it's a doctor
+            cursor.execute(
+                """SELECT role, branch_id, is_active FROM employee WHERE employee_id = %s""",
+                (user_data['user_id'],)
+            )
+            employee_data = cursor.fetchone()
+            
+            if not employee_data:
+                logger.error(f"❌ Employee record not found for user: {user_data['user_id']}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Account not properly configured"
+                )
+            
+            # Verify that employee is a doctor
+            if employee_data['role'] != 'doctor':
+                logger.warning(f"❌ User is not a doctor, role is: {employee_data['role']}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="This account is not authorized as a doctor"
+                )
+            
+            # Check if doctor is active
+            if not employee_data['is_active']:
+                logger.warning(f"❌ Inactive doctor attempted login: {credentials.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Doctor account is inactive. Please contact administrator."
+                )
+            
+            logger.info(f"✅ Doctor account verified as active")
+            
+            # Get doctor-specific details
+            cursor.execute(
+                """SELECT d.doctor_id, d.room_no, d.consultation_fee, d.is_available,
+                          b.branch_name, b.branch_id
+                   FROM doctor d
+                   JOIN employee e ON d.doctor_id = e.employee_id
+                   LEFT JOIN branch b ON e.branch_id = b.branch_id
+                   WHERE d.doctor_id = %s""",
+                (user_data['user_id'],)
+            )
+            doctor_data = cursor.fetchone()
+            
+            if not doctor_data:
+                logger.error(f"❌ Doctor record not found for user: {user_data['user_id']}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Doctor account not properly configured"
+                )
+            
+            logger.info(f"✅ Doctor details retrieved - Room: {doctor_data['room_no']}, Available: {doctor_data['is_available']}")
+            
+            # Get doctor specializations
+            cursor.execute(
+                """SELECT s.specialization_title
+                   FROM specialization s
+                   JOIN doctor_specialization ds ON s.specialization_id = ds.specialization_id
+                   WHERE ds.doctor_id = %s
+                   ORDER BY s.specialization_title""",
+                (user_data['user_id'],)
+            )
+            specializations_data = cursor.fetchall()
+            specializations = [spec['specialization_title'] for spec in specializations_data] if specializations_data else []
+            
+            logger.info(f"✅✅✅ Doctor login SUCCESSFUL - {credentials.email}")
+            logger.info(f"    Doctor ID: {doctor_data['doctor_id']}")
+            logger.info(f"    Specializations: {', '.join(specializations)}")
+            logger.info(f"    Branch: {doctor_data['branch_name']}")
+            
+            return DoctorLoginResponse(
+                success=True,
+                message="Login successful",
+                user_id=user_data['user_id'],
+                user_type="doctor",
+                full_name=user_data['full_name'],
+                email=user_data['email'],
+                doctor_id=doctor_data['doctor_id'],
+                room_no=doctor_data['room_no'],
+                consultation_fee=doctor_data['consultation_fee'],
+                specializations=specializations,
+                branch_name=doctor_data['branch_name']
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"💥 Unexpected error during doctor login: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during authentication"
+        )
 
 class DoctorRegistrationRequest(BaseModel):
     # Address

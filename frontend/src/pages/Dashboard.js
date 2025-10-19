@@ -30,68 +30,39 @@ export default function Dashboard({ user }) {
     fetchDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  async function fetchDashboardData() {
+    setLoading(true); // Start loading
+    setError(null);   // Clear previous errors
+    
     try {
-      setLoading(true);
-      setError(null);
+      const res = await dashboardService.getStaffDashboardStats();
+      const stats = res?.stats || {};
+      const todayAppointments = res?.todayAppointments || [];
 
-      // Fetch dashboard data
-      const dashboardData = await dashboardService.getStaffDashboardStats(user?.branch);
+      // NORMALIZE doctors response
+      const doctorsData = res?.doctors ?? [];
+      const doctorsList = Array.isArray(doctorsData)
+        ? doctorsData
+        : (doctorsData?.doctors || []);
+
+      setStats(stats);
+      setTodayAppointments(todayAppointments);
+      setDoctors(doctorsList.slice(0, 10));
       
-      // Set statistics
-      setStats({
-        totalAppointments: dashboardData.stats.totalAppointments,
-        checkedIn: dashboardData.stats.checkedIn,
-        completed: dashboardData.stats.completed,
-        cancelled: dashboardData.stats.cancelled,
-        newPatients: dashboardData.stats.newPatients,
-        pendingBills: dashboardData.stats.pendingBills,
-        totalRevenue: dashboardData.stats.totalRevenue.toLocaleString(),
-        outstandingBalance: dashboardData.stats.outstandingBalance.toLocaleString()
-      });
-
-      // Transform appointments for display
-      const formattedAppointments = (dashboardData.todayAppointments || []).map(appt => ({
-        id: appt.appointment_id,
-        patient: appt.patient_name || `Patient ${appt.patient_id}`,
-        patientId: `P-${appt.patient_id}`,
-        doctor: appt.doctor_name || 'Doctor',
-        specialty: appt.specialty || 'General',
-        time: new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        status: appt.status || 'Scheduled'
-      }));
-      setTodayAppointments(formattedAppointments);
-
-      // Fetch notifications
-      const notificationsData = await dashboardService.getNotifications();
-      setNotifications(notificationsData);
-
-      // Fetch branches
-      const branchesData = await branchService.getAllBranches();
-      setBranches(branchesData || []);
-
-      // Fetch doctors
-      const doctorsData = await doctorService.getAllDoctors();
-      const formattedDoctors = (doctorsData || []).slice(0, 5).map(doc => ({
-        id: doc.doctor_id,
-        name: doc.name || `Dr. ${doc.doctor_id}`,
-        specialty: doc.specialization || 'General',
-        room: doc.room_number || 'TBD',
-        status: 'Available'
-      }));
-      setDoctors(formattedDoctors);
-
-      // Fetch recent activity
-      const activityData = await dashboardService.getRecentActivity(5);
-      setRecentActivity(activityData);
-
+      // Fetch additional data
+      const activities = await dashboardService.getRecentActivity(5).catch(() => []);
+      const notifs = await dashboardService.getNotifications().catch(() => []);
+      
+      setRecentActivity(activities);
+      setNotifications(notifs);
+      
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data. Please refresh the page.');
+      setError('Failed to load dashboard data. Please try again.');
     } finally {
-      setLoading(false);
+      setLoading(false); // Always stop loading, success or failure
     }
-  };
+  }
 
   if (loading) {
     return (
