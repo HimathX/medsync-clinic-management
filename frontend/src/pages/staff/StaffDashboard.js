@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DoctorHeader from '../../components/DoctorHeader';
+import authService from '../../services/authService';
 import '../../styles/staff.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -30,10 +31,12 @@ const StaffDashboard = () => {
     }
     hasCheckedAuth.current = true;
 
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
-    const fullName = localStorage.getItem('full_name');
-    const role = localStorage.getItem('role');
+    // Use authService to read the current user (keeps key naming consistent)
+    const currentUser = authService.getCurrentUser();
+    const userId = currentUser?.userId || localStorage.getItem('userId') || localStorage.getItem('user_id');
+    const userType = currentUser?.userType || localStorage.getItem('userType') || localStorage.getItem('user_type');
+    const fullName = currentUser?.fullName || localStorage.getItem('fullName') || localStorage.getItem('full_name');
+    const role = currentUser?.role || localStorage.getItem('role');
 
     console.log('Auth check:', { userId, userType, fullName, role });
 
