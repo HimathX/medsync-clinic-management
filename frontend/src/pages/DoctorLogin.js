@@ -66,11 +66,14 @@ const DoctorLogin = () => {
         console.log('   - Branch:', data.branch_name);
         console.log('   - Specializations:', data.specializations);
 
+        // Dispatch custom event to notify App component
+        window.dispatchEvent(new Event('authChanged'));
+
         // Use a small delay to ensure localStorage is written
         setTimeout(() => {
           console.log('🚀 Redirecting to /doctor/dashboard');
           navigate('/doctor/dashboard', { replace: true });
-        }, 500);
+        }, 300);
 
       } else {
         // Handle error response

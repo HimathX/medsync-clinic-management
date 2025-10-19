@@ -65,7 +65,7 @@ app.include_router(invoice.router, prefix="/invoices")
 app.include_router(claims.router, prefix="/claims")
 app.include_router(profile_patient.router, prefix="/profile-patient")
 app.include_router(dashboard_patient.router, prefix="/dashboard-patient")
-app.include_router(dashboard_doctor.router, prefix="/dashboard-doctor")
+app.include_router(dashboard_doctor.router, prefix="")
 # app.include_router(dashboard_staff.router, prefix="/dashboard-staff")
 
 @app.get("/")

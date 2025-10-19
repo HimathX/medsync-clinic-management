@@ -43,11 +43,26 @@ class AuthService {
    * Clears all session data
    */
   logout() {
+    // Clear old format keys
     localStorage.removeItem('userId');
     localStorage.removeItem('userType');
     localStorage.removeItem('fullName');
     localStorage.removeItem('patientId');
     localStorage.removeItem('isAuthenticated');
+    
+    // Clear new format keys (used by DoctorLogin, etc.)
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_type');
+    localStorage.removeItem('full_name');
+    localStorage.removeItem('patient_id');
+    localStorage.removeItem('doctor_id');
+    localStorage.removeItem('email');
+    localStorage.removeItem('token');
+    localStorage.removeItem('room_no');
+    localStorage.removeItem('consultation_fee');
+    localStorage.removeItem('branch_name');
+    localStorage.removeItem('specializations');
+    
     sessionStorage.clear();
   }
 
@@ -64,11 +79,27 @@ class AuthService {
    * @returns {Object} User data
    */
   getCurrentUser() {
+    // Check both old and new localStorage key formats for compatibility
+    const userId = localStorage.getItem('userId') || localStorage.getItem('user_id');
+    const userType = localStorage.getItem('userType') || localStorage.getItem('user_type');
+    const fullName = localStorage.getItem('fullName') || localStorage.getItem('full_name');
+    const patientId = localStorage.getItem('patientId') || localStorage.getItem('patient_id');
+    const doctorId = localStorage.getItem('doctor_id');
+    const email = localStorage.getItem('email');
+    
+    // User is authenticated if we have both userId and userType
+    const isAuthenticated = !!(userId && userType);
+    
     return {
-      userId: localStorage.getItem('userId'),
-      userType: localStorage.getItem('userType'),
-      fullName: localStorage.getItem('fullName'),
-      patientId: localStorage.getItem('patientId')
+      userId,
+      userType,
+      fullName,
+      full_name: fullName,
+      patientId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      email,
+      isAuthenticated
     };
   }
 
