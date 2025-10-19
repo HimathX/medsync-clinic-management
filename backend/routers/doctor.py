@@ -84,76 +84,93 @@ def doctor_login(credentials: DoctorLoginRequest):
     Doctor login endpoint
     
     - Authenticates doctors using email and password
-    - Uses SHA-256 password hashing (same as staff/patient)
+    - Uses SHA-256 password hashing
     - Returns doctor details including specializations and room info
-    - Validates that user is an active doctor
+    - Handles both user_type='doctor' and user_type='employee' with role='doctor'
     """
     try:
         logger.info(f"🔑 Doctor login attempt for email: {credentials.email}")
         
         with get_db() as (cursor, connection):
-            # Hash the password using SHA-256
-            password_hash = hash_password(credentials.password)
-            logger.info(f"Password hash generated, length: {len(password_hash)}")
-            
-            # Get user with matching email and password (must be doctor/employee)
+            # Get user data - check for both user_type='doctor' AND user_type='employee' with role='doctor'
             cursor.execute(
-                """SELECT u.user_id, u.email, u.full_name, u.user_type
+                """SELECT u.user_id, u.email, u.full_name, u.user_type, u.password_hash
                    FROM user u
                    WHERE LOWER(TRIM(u.email)) = %s 
-                   AND u.password_hash = %s 
-                   AND u.user_type = 'employee'""",
-                (credentials.email.lower().strip(), password_hash)
+                   AND (u.user_type = 'doctor' OR u.user_type = 'employee')""",
+                (credentials.email.lower().strip(),)
             )
             user_data = cursor.fetchone()
             
             if not user_data:
-                logger.warning(f"❌ Doctor login failed - invalid credentials for: {credentials.email}")
+                logger.warning(f"❌ Doctor login failed - user not found: {credentials.email}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid email or password"
                 )
             
-            logger.info(f"✅ User authenticated: {user_data['email']}")
+            logger.info(f"✅ User found: {user_data['email']} (type: {user_data['user_type']})")
+            logger.info(f"   Stored hash: {user_data['password_hash'][:20]}...")
             
-            # Get employee role to verify it's a doctor
-            cursor.execute(
-                """SELECT role, branch_id, is_active FROM employee WHERE employee_id = %s""",
-                (user_data['user_id'],)
-            )
-            employee_data = cursor.fetchone()
+            # Hash the provided password
+            provided_hash = hashlib.sha256(credentials.password.encode('utf-8')).hexdigest()
+            logger.info(f"   Generated hash: {provided_hash[:20]}...")
+            logger.info(f"   Password length: {len(credentials.password)}")
+            logger.info(f"   Hashes match: {provided_hash == user_data['password_hash']}")
             
-            if not employee_data:
-                logger.error(f"❌ Employee record not found for user: {user_data['user_id']}")
+            # Verify password
+            if provided_hash != user_data['password_hash']:
+                logger.warning(f"❌ Doctor login failed - invalid password for: {credentials.email}")
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Account not properly configured"
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
                 )
             
-            # Verify that employee is a doctor
-            if employee_data['role'] != 'doctor':
-                logger.warning(f"❌ User is not a doctor, role is: {employee_data['role']}")
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="This account is not authorized as a doctor"
-                )
+            logger.info(f"✅ Password verified")
             
-            # Check if doctor is active
-            if not employee_data['is_active']:
-                logger.warning(f"❌ Inactive doctor attempted login: {credentials.email}")
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Doctor account is inactive. Please contact administrator."
+            # If user_type is 'employee', verify role is 'doctor'
+            if user_data['user_type'] == 'employee':
+                cursor.execute(
+                    """SELECT role, branch_id, is_active FROM employee WHERE employee_id = %s""",
+                    (user_data['user_id'],)
                 )
+                employee_data = cursor.fetchone()
+                
+                if not employee_data:
+                    logger.error(f"❌ Employee record not found for user: {user_data['user_id']}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Account not properly configured"
+                    )
+                
+                # Verify that employee is a doctor
+                if employee_data['role'] != 'doctor':
+                    logger.warning(f"❌ Employee role is not doctor, role is: {employee_data['role']}")
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="This account is not authorized as a doctor"
+                    )
+                
+                # Check if doctor is active
+                if not employee_data['is_active']:
+                    logger.warning(f"❌ Inactive employee attempted login: {credentials.email}")
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Doctor account is inactive"
+                    )
+                
+                logger.info(f"✅ Employee verified as active doctor, role: {employee_data['role']}")
             
-            logger.info(f"✅ Doctor account verified as active")
+            elif user_data['user_type'] == 'doctor':
+                # For direct doctor user_type, just log it
+                logger.info(f"✅ User type is 'doctor', proceeding with login")
             
             # Get doctor-specific details
             cursor.execute(
                 """SELECT d.doctor_id, d.room_no, d.consultation_fee, d.is_available,
-                          b.branch_name, b.branch_id
+                          b.branch_name
                    FROM doctor d
-                   JOIN employee e ON d.doctor_id = e.employee_id
+                   LEFT JOIN employee e ON d.doctor_id = e.employee_id
                    LEFT JOIN branch b ON e.branch_id = b.branch_id
                    WHERE d.doctor_id = %s""",
                 (user_data['user_id'],)
@@ -183,8 +200,8 @@ def doctor_login(credentials: DoctorLoginRequest):
             
             logger.info(f"✅✅✅ Doctor login SUCCESSFUL - {credentials.email}")
             logger.info(f"    Doctor ID: {doctor_data['doctor_id']}")
+            logger.info(f"    User Type: {user_data['user_type']}")
             logger.info(f"    Specializations: {', '.join(specializations)}")
-            logger.info(f"    Branch: {doctor_data['branch_name']}")
             
             return DoctorLoginResponse(
                 success=True,
@@ -203,10 +220,10 @@ def doctor_login(credentials: DoctorLoginRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"💥 Unexpected error during doctor login: {str(e)}", exc_info=True)
+        logger.error(f"💥 Unexpected error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during authentication"
+            detail="An unexpected error occurred"
         )
 
 class DoctorRegistrationRequest(BaseModel):
