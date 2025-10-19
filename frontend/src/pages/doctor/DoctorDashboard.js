@@ -1,221 +1,405 @@
 // src/pages/doctor/DoctorDashboard.js - Doctor Dashboard
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import authService from '../../services/authService';
-import appointmentService from '../../services/appointmentService';
-import LoadingSpinner from '../../components/shared/LoadingSpinner';
-import ErrorMessage from '../../components/shared/ErrorMessage';
-import StatCard from '../../components/shared/StatCard';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export default function DoctorDashboard() {
   const navigate = useNavigate();
-  const currentUser = authService.getCurrentUser();
-  const doctorId = currentUser?.userId;
+  const hasCheckedAuth = useRef(false);
   
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [todayAppointments, setTodayAppointments] = useState([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [stats, setStats] = useState({
-    today: 0,
-    pending: 0,
-    completed: 0,
-    totalPatients: 0
+    today_appointments: 0,
+    pending_consultations: 0,
+    completed_today: 0,
+    patients_seen: 0,
+    upcoming_appointments: 0,
+    total_patients: 0
   });
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    // Check authentication only once
+    if (hasCheckedAuth.current) {
+      console.log('Auth already checked, skipping');
+      return;
+    }
+    hasCheckedAuth.current = true;
 
-  const fetchDashboardData = async () => {
+    const checkAuth = () => {
+      console.log('🔐 Checking authentication...');
+      
+      const userId = localStorage.getItem('user_id');
+      const userType = localStorage.getItem('user_type');
+      const fullName = localStorage.getItem('full_name');
+      const email = localStorage.getItem('email');
+      const doctorId = localStorage.getItem('doctor_id');
+      const roomNo = localStorage.getItem('room_no');
+      const branchName = localStorage.getItem('branch_name');
+
+      console.log('Auth data:', { userId, userType, fullName, email, doctorId });
+
+      // Check if user is authenticated as a doctor
+      if (!userId) {
+        console.log('❌ No user_id found, redirecting to login');
+        navigate('/doctor/login', { replace: true });
+        return;
+      }
+
+      if (userType !== 'doctor') {
+        console.log('❌ User type is not doctor:', userType);
+        navigate('/doctor/login', { replace: true });
+        return;
+      }
+
+      console.log('✅ Auth verified successfully');
+      
+      // Set current user
+      const user = {
+        userId,
+        doctorId,
+        fullName,
+        email,
+        roomNo,
+        branchName
+      };
+      
+      setCurrentUser(user);
+      console.log('User set:', user);
+      
+      // Fetch dashboard data
+      fetchDashboardData(doctorId);
+    };
+
+    checkAuth();
+  }, [navigate]);
+
+  const fetchDashboardData = async (doctorId) => {
     try {
-      setLoading(true);
+      console.log('📡 Fetching dashboard data for doctor:', doctorId);
       setError(null);
 
-      // Fetch doctor's appointments
-      const appointmentsData = await appointmentService.getAppointments({
-        doctor_id: doctorId,
-        date: new Date().toISOString().split('T')[0]
-      });
+      // Fetch stats
+      await fetchStats(doctorId);
+      
+      // Fetch today's appointments
+      await fetchTodayAppointments(doctorId);
+      
+      // Fetch upcoming appointments
+      await fetchUpcomingAppointments(doctorId);
 
-      const appointments = appointmentsData.appointments || [];
-      setTodayAppointments(appointments);
-
-      // Calculate stats
-      setStats({
-        today: appointments.length,
-        pending: appointments.filter(a => a.status === 'Scheduled' || a.status === 'Checked-in').length,
-        completed: appointments.filter(a => a.status === 'Completed').length,
-        totalPatients: new Set(appointments.map(a => a.patient_id)).size
-      });
+      setLoading(false);
 
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
+      console.error('💥 Error fetching dashboard data:', err);
       setError('Failed to load dashboard data. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
 
+  const fetchStats = async (doctorId) => {
+    try {
+      console.log('📊 Fetching dashboard stats...');
+      
+      const response = await fetch(
+        `${API_BASE_URL}/doctors/${doctorId}/dashboard/stats`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Stats fetched:', data);
+        setStats(data);
+      } else {
+        console.warn('⚠️ Could not fetch stats, status:', response.status);
+      }
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+  };
+
+  const fetchTodayAppointments = async (doctorId) => {
+    try {
+      console.log('📅 Fetching today\'s appointments...');
+      
+      const response = await fetch(
+        `${API_BASE_URL}/doctors/${doctorId}/dashboard/today-appointments`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Today\'s appointments fetched:', data);
+        setTodayAppointments(data.appointments || []);
+      } else {
+        console.warn('⚠️ Could not fetch today\'s appointments, status:', response.status);
+      }
+    } catch (err) {
+      console.error('Error fetching today\'s appointments:', err);
+    }
+  };
+
+  const fetchUpcomingAppointments = async (doctorId) => {
+    try {
+      console.log('📆 Fetching upcoming appointments...');
+      
+      const response = await fetch(
+        `${API_BASE_URL}/doctors/${doctorId}/dashboard/upcoming?days=7`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Upcoming appointments fetched:', data);
+        setUpcomingAppointments(data.appointments || []);
+      } else {
+        console.warn('⚠️ Could not fetch upcoming appointments, status:', response.status);
+      }
+    } catch (err) {
+      console.error('Error fetching upcoming appointments:', err);
+    }
+  };
+
+  const handleLogout = () => {
+    console.log('🚪 Logging out...');
+    localStorage.clear();
+    navigate('/doctor/login', { replace: true });
+  };
+
+  const refreshDashboard = () => {
+    console.log('🔄 Refreshing dashboard...');
+    if (currentUser?.doctorId) {
+      fetchDashboardData(currentUser.doctorId);
+    }
+  };
+
+  // Show loading state
   if (loading) {
-    return <LoadingSpinner message="Loading your dashboard..." />;
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        <div>
+          <i className="fas fa-spinner fa-spin" style={{ marginRight: '10px' }}></i>
+          Loading Dashboard...
+        </div>
+      </div>
+    );
   }
 
-  if (error) {
-    return <ErrorMessage title="Error Loading Dashboard" message={error} onRetry={fetchDashboardData} />;
+  // If no current user, don't render (redirect happened)
+  if (!currentUser) {
+    return null;
   }
 
   return (
-    <div>
-      {/* Welcome Section */}
-      <div style={{ marginBottom: '30px' }}>
-        <h1 style={{ margin: 0, marginBottom: '8px' }}>
-          Welcome back, Dr. {currentUser?.fullName} 👨‍⚕️
-        </h1>
-        <p className="label" style={{ fontSize: '15px' }}>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
+    <div style={{ padding: '30px', maxWidth: '1400px', margin: '0 auto', background: '#f5f7fa', minHeight: '100vh' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <div>
+          <h1 style={{ margin: 0, marginBottom: '8px' }}>
+            Welcome back, Dr. {currentUser.fullName} 👨‍⚕️
+          </h1>
+          <p style={{ margin: 0, fontSize: '14px', color: '#999' }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={refreshDashboard}
+            style={{
+              background: '#fff',
+              color: '#667eea',
+              border: '2px solid #667eea',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            <i className="fas fa-sync-alt"></i> Refresh
+          </button>
+          <button 
+            onClick={handleLogout}
+            style={{
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            <i className="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
       </div>
 
+      {error && (
+        <div style={{
+          background: '#ffebee',
+          color: '#c62828',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px'
+        }}>
+          <i className="fas fa-exclamation-circle"></i> {error}
+        </div>
+      )}
+
       {/* Stats Grid */}
-      <div className="grid grid-4 section" style={{ marginBottom: '30px' }}>
-        <StatCard
-          icon="📅"
-          title="Today's Appointments"
-          value={stats.today}
-          color="var(--primary-black)"
-          onClick={() => navigate('/doctor/appointments')}
-        />
-        <StatCard
-          icon="⏳"
-          title="Pending"
-          value={stats.pending}
-          color="#f59e0b"
-        />
-        <StatCard
-          icon="✅"
-          title="Completed"
-          value={stats.completed}
-          color="#10b981"
-        />
-        <StatCard
-          icon="👥"
-          title="Patients Today"
-          value={stats.totalPatients}
-          color="var(--accent-red)"
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: '32px', marginBottom: '10px' }}>📅</div>
+          <h3 style={{ margin: '0 0 5px 0', color: '#667eea', fontSize: '24px', fontWeight: '700' }}>{stats.today_appointments}</h3>
+          <p style={{ margin: 0, fontSize: '13px', color: '#999' }}>Today's Appointments</p>
+        </div>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: '32px', marginBottom: '10px' }}>⏳</div>
+          <h3 style={{ margin: '0 0 5px 0', color: '#f59e0b', fontSize: '24px', fontWeight: '700' }}>{stats.pending_consultations}</h3>
+          <p style={{ margin: 0, fontSize: '13px', color: '#999' }}>Pending Consultations</p>
+        </div>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: '32px', marginBottom: '10px' }}>✅</div>
+          <h3 style={{ margin: '0 0 5px 0', color: '#10b981', fontSize: '24px', fontWeight: '700' }}>{stats.completed_today}</h3>
+          <p style={{ margin: 0, fontSize: '13px', color: '#999' }}>Completed Today</p>
+        </div>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: '32px', marginBottom: '10px' }}>👥</div>
+          <h3 style={{ margin: '0 0 5px 0', color: '#ec4899', fontSize: '24px', fontWeight: '700' }}>{stats.patients_seen}</h3>
+          <p style={{ margin: 0, fontSize: '13px', color: '#999' }}>Patients Seen Today</p>
+        </div>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: '32px', marginBottom: '10px' }}>🗓️</div>
+          <h3 style={{ margin: '0 0 5px 0', color: '#8b5cf6', fontSize: '24px', fontWeight: '700' }}>{stats.upcoming_appointments}</h3>
+          <p style={{ margin: 0, fontSize: '13px', color: '#999' }}>Upcoming (7 days)</p>
+        </div>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: '32px', marginBottom: '10px' }}>📊</div>
+          <h3 style={{ margin: '0 0 5px 0', color: '#06b6d4', fontSize: '24px', fontWeight: '700' }}>{stats.total_patients}</h3>
+          <p style={{ margin: 0, fontSize: '13px', color: '#999' }}>Total Patients</p>
+        </div>
       </div>
 
       {/* Today's Appointments */}
-      <section className="section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0 }}>Today's Appointments</h2>
-          <button className="btn primary" onClick={() => navigate('/doctor/appointments')}>
-            View All
-          </button>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <section style={{ background: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <h2 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Today's Appointments</h2>
 
-        {todayAppointments.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
-            <p className="label" style={{ fontSize: '16px' }}>No appointments scheduled for today</p>
-          </div>
-        ) : (
-          <div className="grid grid-1" style={{ gap: '12px' }}>
-            {todayAppointments.slice(0, 5).map((appt) => (
-              <div key={appt.appointment_id} className="card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '18px' }}>
-                        {new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {todayAppointments.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
+              <p style={{ fontSize: '16px', color: '#999' }}>No appointments scheduled for today</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '500px', overflowY: 'auto' }}>
+              {todayAppointments.slice(0, 10).map((appt) => (
+                <div key={appt.appointment_id} style={{ padding: '15px', border: '1px solid #e9ecef', borderRadius: '8px', background: '#fafbfc' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div>
+                      <strong style={{ fontSize: '16px' }}>
+                        {appt.start_time ? appt.start_time.substring(0, 5) : 'TBD'}
                       </strong>
-                      <span style={{ fontSize: '18px', color: '#ccc' }}>•</span>
-                      <strong style={{ fontSize: '16px' }}>{appt.patient_name || `Patient ${appt.patient_id}`}</strong>
-                      <span className={`badge ${
-                        appt.status === 'Completed' ? 'badge-success' :
-                        appt.status === 'Checked-in' ? 'badge-warn' : ''
-                      }`}>
-                        {appt.status}
-                      </span>
-                    </div>
-                    <p className="label" style={{ marginBottom: '4px' }}>
-                      Patient ID: P-{appt.patient_id}
-                    </p>
-                    {appt.notes && (
-                      <p className="label" style={{ fontSize: '13px', color: '#64748b' }}>
-                        Note: {appt.notes}
+                      <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: '600', color: '#333' }}>
+                        {appt.patient_name}
                       </p>
-                    )}
+                    </div>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      background: appt.status === 'Completed' ? '#e8f5e9' : appt.status === 'Checked-in' ? '#e3f2fd' : '#fff3cd',
+                      color: appt.status === 'Completed' ? '#388e3c' : appt.status === 'Checked-in' ? '#1976d2' : '#856404'
+                    }}>
+                      {appt.status}
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {appt.status === 'Checked-in' && (
-                      <button 
-                        className="btn primary"
-                        onClick={() => navigate(`/doctor/consultations/${appt.appointment_id}`)}
-                      >
-                        Start Consultation
-                      </button>
-                    )}
-                    <button 
-                      className="btn"
-                      onClick={() => navigate(`/doctor/patients/${appt.patient_id}`)}
-                    >
-                      View Patient
-                    </button>
+                  <p style={{ margin: '0', fontSize: '12px', color: '#999' }}>
+                    ID: {appt.patient_id}
+                  </p>
+                  {appt.chronic_conditions && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>
+                      <i className="fas fa-info-circle"></i> {appt.chronic_conditions}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Upcoming Appointments */}
+        <section style={{ background: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <h2 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Upcoming Appointments (7 Days)</h2>
+
+          {upcomingAppointments.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📆</div>
+              <p style={{ fontSize: '16px', color: '#999' }}>No upcoming appointments</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '500px', overflowY: 'auto' }}>
+              {upcomingAppointments.slice(0, 10).map((appt) => (
+                <div key={appt.appointment_id} style={{ padding: '15px', border: '1px solid #e9ecef', borderRadius: '8px', background: '#fafbfc' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div>
+                      <strong style={{ fontSize: '16px' }}>
+                        {appt.start_time ? appt.start_time.substring(0, 5) : 'TBD'}
+                      </strong>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: '600', color: '#333' }}>
+                        {appt.patient_name}
+                      </p>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#999' }}>
+                        {new Date(appt.available_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      background: '#e3f2fd',
+                      color: '#1976d2'
+                    }}>
+                      {appt.status}
+                    </span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Quick Actions */}
-      <section className="section">
-        <h3>Quick Actions</h3>
-        <div className="grid grid-4" style={{ gap: '16px' }}>
-          <button 
-            className="card" 
-            style={{ padding: '24px', textAlign: 'center', cursor: 'pointer', border: '2px solid transparent', transition: 'all 0.3s' }}
-            onClick={() => navigate('/doctor/appointments')}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#667eea'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-          >
-            <div style={{ fontSize: '36px', marginBottom: '12px' }}>📅</div>
-            <strong>View Schedule</strong>
-          </button>
-          <button 
-            className="card" 
-            style={{ padding: '24px', textAlign: 'center', cursor: 'pointer', border: '2px solid transparent', transition: 'all 0.3s' }}
-            onClick={() => navigate('/doctor/patients')}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#667eea'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-          >
-            <div style={{ fontSize: '36px', marginBottom: '12px' }}>👥</div>
-            <strong>Patient List</strong>
-          </button>
-          <button 
-            className="card" 
-            style={{ padding: '24px', textAlign: 'center', cursor: 'pointer', border: '2px solid transparent', transition: 'all 0.3s' }}
-            onClick={() => navigate('/doctor/consultations')}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#667eea'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-          >
-            <div style={{ fontSize: '36px', marginBottom: '12px' }}>📋</div>
-            <strong>Consultations</strong>
-          </button>
-          <button 
-            className="card" 
-            style={{ padding: '24px', textAlign: 'center', cursor: 'pointer', border: '2px solid transparent', transition: 'all 0.3s' }}
-            onClick={() => navigate('/doctor/schedule')}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#667eea'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-          >
-            <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚙️</div>
-            <strong>Manage Schedule</strong>
-          </button>
-        </div>
-      </section>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
