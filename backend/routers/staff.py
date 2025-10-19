@@ -222,9 +222,9 @@ def staff_login(credentials: StaffLoginRequest):
             elif employee_role == 'admin':
                 user_type = 'admin'
             elif employee_role == 'manager':
-                user_type = 'manager'
+                user_type = 'staff'
             else:
-                user_type = employee_role  # nurse, receptionist, etc.
+                user_type = 'employee'  # nurse, receptionist, etc.
             
             logger.info(f"✅ Staff login successful - {credentials.email} (role: {employee_role}, type: {user_type})")
             

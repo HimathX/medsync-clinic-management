@@ -23,18 +23,23 @@ class DashboardService {
         appointments,
         pendingInvoices,
         branches,
-        doctors
+        doctorsResponse
       ] = await Promise.all([
         appointmentService.getAppointments({ 
           date: new Date().toISOString().split('T')[0] 
         }).catch(() => ({ appointments: [] })),
         billingService.getPendingInvoices().catch(() => []),
         branchService.getAllBranches().catch(() => []),
-        doctorService.getAllDoctors().catch(() => [])
+        doctorService.getAllDoctors().catch(() => ({ doctors: [] }))
       ]);
 
       const today = new Date().toISOString().split('T')[0];
       const todayAppointments = appointments.appointments || [];
+      
+      // FIXED: Extract doctors array from response object
+      const doctorsList = Array.isArray(doctorsResponse) 
+        ? doctorsResponse 
+        : (doctorsResponse?.doctors || []);
       
       // Calculate statistics
       const stats = {
@@ -52,7 +57,7 @@ class DashboardService {
         stats,
         todayAppointments: todayAppointments.slice(0, 10),
         branches: branches,
-        doctors: doctors.slice(0, 10)
+        doctors: doctorsList.slice(0, 10)
       };
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
