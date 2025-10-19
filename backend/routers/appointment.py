@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, WebSocket, WebSocketDisconnect
 from typing import Optional
-from datetime import date, time
+from datetime import date, time, datetime
 from pydantic import BaseModel, Field
 from core.database import get_db
+from core.websocket_manager import manager
 import logging
 
 router = APIRouter(tags=["appointments"])
@@ -56,14 +57,59 @@ class AppointmentUpdateRequest(BaseModel):
         }
 
 
+
+# ============================================
+# WEBSOCKET ENDPOINT
+# ============================================
+
+@router.websocket("/ws/doctor/{doctor_id}")
+async def websocket_doctor_appointments(websocket: WebSocket, doctor_id: str):
+    """
+    WebSocket endpoint for real-time appointment updates for a specific doctor
+    
+    Clients connect to: ws://localhost:8000/api/appointments/ws/doctor/{doctor_id}
+    
+    Sends updates when:
+    - New appointment is booked
+    - Appointment is cancelled
+    - Time slot availability changes
+    """
+    await manager.connect(websocket, resource_type='doctor', resource_id=doctor_id)
+    
+    try:
+        while True:
+            # Keep connection alive and listen for client messages
+            try:
+                data = await websocket.receive_text()
+                # Handle client ping/pong messages
+                if data == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": datetime.now().isoformat()})
+            except WebSocketDisconnect:
+                break
+                
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, resource_type='doctor', resource_id=doctor_id)
+        logger.info(f"Client disconnected from doctor {doctor_id} appointments")
+    except Exception as e:
+        logger.error(f"WebSocket error for doctor {doctor_id}: {e}")
+        manager.disconnect(websocket, resource_type='doctor', resource_id=doctor_id)
+
+
+# ============================================
+# BOOKING ENDPOINTS
+# ============================================
+
+
+
 @router.post("/book", status_code=status.HTTP_201_CREATED, response_model=AppointmentBookingResponse)
-def book_appointment(booking_data: AppointmentBookingRequest):
+async def book_appointment(booking_data: AppointmentBookingRequest):  # ← Changed to async
     """
     Book a new appointment using stored procedure
     
     - Validates patient and time slot
     - Marks time slot as booked
     - Creates appointment record
+    - Broadcasts real-time update via WebSocket
     """
     try:
         logger.info(f"Attempting to book appointment - Patient: {booking_data.patient_id}, Time Slot: {booking_data.time_slot_id}")
@@ -90,7 +136,7 @@ def book_appointment(booking_data: AppointmentBookingRequest):
                     detail="Error validating patient"
                 )
             
-            # Pre-validation: Check time slot details
+            # Pre-validation: Check time slot details (🔥 Store doctor_id for WebSocket)
             try:
                 cursor.execute(
                     """SELECT 
@@ -99,6 +145,7 @@ def book_appointment(booking_data: AppointmentBookingRequest):
                         ts.available_date,
                         ts.start_time,
                         ts.end_time,
+                        ts.doctor_id,
                         u.full_name as doctor_name,
                         b.branch_name
                     FROM time_slot ts
@@ -116,6 +163,9 @@ def book_appointment(booking_data: AppointmentBookingRequest):
                         status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"Time slot with ID {booking_data.time_slot_id} not found"
                     )
+                
+                # 🔥 Store doctor_id for WebSocket broadcast later
+                doctor_id = slot['doctor_id']
                 
                 # Check if already booked
                 if slot['is_booked'] == 1 or slot['is_booked'] is True:
@@ -223,6 +273,33 @@ def book_appointment(booking_data: AppointmentBookingRequest):
             # Process result
             if success == 1 or success is True:
                 logger.info(f"✅ Appointment booked successfully: {appointment_id}")
+                
+                # 🔥 NEW: BROADCAST WEBSOCKET UPDATE
+                try:
+                    await manager.broadcast_to_doctor(
+                        doctor_id=doctor_id,
+                        message={
+                            "type": "appointment_booked",
+                            "data": {
+                                "appointment_id": appointment_id,
+                                "time_slot_id": booking_data.time_slot_id,
+                                "is_booked": True,
+                                "patient_id": booking_data.patient_id,
+                                "doctor_id": doctor_id,
+                                "available_date": str(slot['available_date']),
+                                "start_time": str(slot['start_time']),
+                                "end_time": str(slot['end_time']),
+                                "doctor_name": slot['doctor_name'],
+                                "branch_name": slot['branch_name'],
+                                "timestamp": datetime.now().isoformat()
+                            }
+                        }
+                    )
+                    logger.info(f"📡 WebSocket broadcast sent for doctor {doctor_id}")
+                except Exception as ws_error:
+                    # Don't fail the booking if WebSocket broadcast fails
+                    logger.error(f"WebSocket broadcast failed (non-critical): {ws_error}")
+                
                 return AppointmentBookingResponse(
                     success=True,
                     message=error_message or "Appointment booked successfully",
@@ -264,7 +341,6 @@ def book_appointment(booking_data: AppointmentBookingRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An unexpected error occurred: {str(e)}"
         )
-
 
 @router.get("/", status_code=status.HTTP_200_OK)
 def get_all_appointments(
@@ -556,16 +632,19 @@ def get_appointments_by_date(appointment_date: date):
 # ============================================
 
 @router.patch("/{appointment_id}", status_code=status.HTTP_200_OK)
-def update_appointment(
+async def update_appointment(  # ← Changed to async
     appointment_id: str,
     update_data: AppointmentUpdateRequest
 ):
-    """Update appointment details (status, notes)"""
+    """Update appointment details (status, notes) with real-time WebSocket updates"""
     try:
         with get_db() as (cursor, connection):
-            # Check if appointment exists
+            # Check if appointment exists and get full details including doctor_id
             cursor.execute(
-                "SELECT * FROM appointment WHERE appointment_id = %s",
+                """SELECT a.*, ts.doctor_id, ts.available_date, ts.start_time, ts.end_time, ts.time_slot_id
+                   FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE a.appointment_id = %s""",
                 (appointment_id,)
             )
             appointment = cursor.fetchone()
@@ -575,6 +654,11 @@ def update_appointment(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Appointment with ID {appointment_id} not found"
                 )
+            
+            # Store values for WebSocket broadcast
+            doctor_id = appointment['doctor_id']
+            time_slot_id = appointment['time_slot_id']
+            old_status = appointment['status']
             
             # Build update query
             updates = []
@@ -603,6 +687,15 @@ def update_appointment(
             """
             
             cursor.execute(update_query, params)
+            
+            # 🔥 NEW: If status changed to 'Cancelled', free up the time slot
+            if update_data.status == 'Cancelled' and old_status != 'Cancelled':
+                cursor.execute(
+                    "UPDATE time_slot SET is_booked = FALSE WHERE time_slot_id = %s",
+                    (time_slot_id,)
+                )
+                logger.info(f"Time slot {time_slot_id} freed due to cancellation")
+            
             connection.commit()
             
             # Fetch updated record
@@ -612,7 +705,74 @@ def update_appointment(
             )
             updated_appointment = cursor.fetchone()
             
-            logger.info(f"Appointment {appointment_id} updated successfully")
+            logger.info(f"Appointment {appointment_id} updated successfully to status: {update_data.status}")
+            
+            # 🔥 NEW: BROADCAST WEBSOCKET UPDATE based on status change
+            try:
+                if update_data.status == 'Cancelled' and old_status != 'Cancelled':
+                    # Broadcast cancellation
+                    await manager.broadcast_to_doctor(
+                        doctor_id=doctor_id,
+                        message={
+                            "type": "appointment_cancelled",
+                            "data": {
+                                "appointment_id": appointment_id,
+                                "time_slot_id": time_slot_id,
+                                "is_booked": False,
+                                "available_date": str(appointment['available_date']),
+                                "start_time": str(appointment['start_time']),
+                                "end_time": str(appointment['end_time']),
+                                "old_status": old_status,
+                                "new_status": update_data.status,
+                                "timestamp": datetime.now().isoformat()
+                            }
+                        }
+                    )
+                    logger.info(f"📡 WebSocket broadcast sent: appointment_cancelled for doctor {doctor_id}")
+                
+                elif update_data.status == 'Completed' and old_status != 'Completed':
+                    # Broadcast completion
+                    await manager.broadcast_to_doctor(
+                        doctor_id=doctor_id,
+                        message={
+                            "type": "appointment_completed",
+                            "data": {
+                                "appointment_id": appointment_id,
+                                "time_slot_id": time_slot_id,
+                                "available_date": str(appointment['available_date']),
+                                "start_time": str(appointment['start_time']),
+                                "end_time": str(appointment['end_time']),
+                                "old_status": old_status,
+                                "new_status": update_data.status,
+                                "timestamp": datetime.now().isoformat()
+                            }
+                        }
+                    )
+                    logger.info(f"📡 WebSocket broadcast sent: appointment_completed for doctor {doctor_id}")
+                
+                elif update_data.status and update_data.status != old_status:
+                    # Broadcast generic status change
+                    await manager.broadcast_to_doctor(
+                        doctor_id=doctor_id,
+                        message={
+                            "type": "appointment_status_changed",
+                            "data": {
+                                "appointment_id": appointment_id,
+                                "time_slot_id": time_slot_id,
+                                "available_date": str(appointment['available_date']),
+                                "start_time": str(appointment['start_time']),
+                                "end_time": str(appointment['end_time']),
+                                "old_status": old_status,
+                                "new_status": update_data.status,
+                                "timestamp": datetime.now().isoformat()
+                            }
+                        }
+                    )
+                    logger.info(f"📡 WebSocket broadcast sent: appointment_status_changed for doctor {doctor_id}")
+                    
+            except Exception as ws_error:
+                # Don't fail the update if WebSocket broadcast fails
+                logger.error(f"WebSocket broadcast failed (non-critical): {ws_error}")
             
             return {
                 "success": True,
@@ -631,13 +791,16 @@ def update_appointment(
 
 
 @router.delete("/{appointment_id}", status_code=status.HTTP_200_OK)
-def cancel_appointment(appointment_id: str):
-    """Cancel an appointment and free up the time slot"""
+def cancel_appointment(appointment_id: str):  # ← Changed back to sync (no WebSocket)
+    """Cancel an appointment and free up the time slot (Hard delete alternative - use PATCH for status update)"""
     try:
         with get_db() as (cursor, connection):
             # Get appointment details
             cursor.execute(
-                "SELECT * FROM appointment WHERE appointment_id = %s",
+                """SELECT a.*, ts.time_slot_id
+                   FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE a.appointment_id = %s""",
                 (appointment_id,)
             )
             appointment = cursor.fetchone()
@@ -654,6 +817,8 @@ def cancel_appointment(appointment_id: str):
                     detail=f"Cannot cancel appointment with status: {appointment['status']}"
                 )
             
+            time_slot_id = appointment['time_slot_id']
+            
             # Update appointment status
             cursor.execute(
                 "UPDATE appointment SET status = 'Cancelled' WHERE appointment_id = %s",
@@ -663,16 +828,16 @@ def cancel_appointment(appointment_id: str):
             # Free up the time slot
             cursor.execute(
                 "UPDATE time_slot SET is_booked = FALSE WHERE time_slot_id = %s",
-                (appointment['time_slot_id'],)
+                (time_slot_id,)
             )
             
             connection.commit()
             
-            logger.info(f"Appointment {appointment_id} cancelled successfully")
+            logger.info(f"Appointment {appointment_id} cancelled successfully (via DELETE)")
             
             return {
                 "success": True,
-                "message": "Appointment cancelled successfully",
+                "message": "Appointment cancelled successfully. Note: Use PATCH /appointments/{id} for real-time updates.",
                 "appointment_id": appointment_id
             }
             
@@ -684,7 +849,6 @@ def cancel_appointment(appointment_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while cancelling appointment: {str(e)}"
         )
-
 
 # ============================================
 # TIME SLOT MANAGEMENT
@@ -804,4 +968,3 @@ def get_available_time_slots_by_branch(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {str(e)}"
         )
-
