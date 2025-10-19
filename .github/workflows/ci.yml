@@ -189,6 +189,11 @@ jobs:
           mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/6_branch_initialization.sql || exit 1
           echo "✅ Branches initialized successfully"
 
+      - name: Test indexes
+        run: |
+          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/7_indexes.sql || exit 1
+          echo "✅ Indexes created successfully"
+
       - name: Validate database structure
         run: |
           echo "📊 Validating database structure..."

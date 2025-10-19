@@ -60,6 +60,42 @@ BEGIN
     END IF;
 END$$
 
+-- Trigger: Auto-complete appointment on consultation record insert
+DROP TRIGGER IF EXISTS trg_appointment_complete_on_consult$$
+
+CREATE TRIGGER trg_appointment_complete_on_consult 
+AFTER INSERT ON consultation_record
+FOR EACH ROW
+BEGIN
+    UPDATE appointment 
+    SET status = 'Completed' 
+    WHERE appointment_id = NEW.appointment_id;
+END$$
+
+CREATE TRIGGER trg_insurance_auto_expire 
+AFTER UPDATE ON insurance
+FOR EACH ROW
+BEGIN
+    IF NEW.end_date < CURDATE() AND NEW.status != 'Expired' THEN
+        UPDATE insurance SET status = 'Expired' WHERE insurance_id = NEW.insurance_id;
+    END IF;
+END$$
+
+-- Trigger: Free time slot on appointment cancellation
+DROP TRIGGER IF EXISTS trg_appointment_cancel_free_slot$$
+
+CREATE TRIGGER trg_appointment_cancel_free_slot 
+AFTER UPDATE ON appointment
+FOR EACH ROW
+BEGIN
+    -- Only if status changed to 'Cancelled'
+    IF NEW.status = 'Cancelled' AND OLD.status != 'Cancelled' THEN
+        UPDATE time_slot 
+        SET is_booked = FALSE 
+        WHERE time_slot_id = NEW.time_slot_id;
+    END IF;
+END$$
+
 DELIMITER ;
 
 
