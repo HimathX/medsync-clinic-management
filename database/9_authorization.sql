@@ -92,7 +92,7 @@ GRANT SELECT ON medsync_db.conditions TO 'medsync_manager';
 GRANT SELECT ON medsync_db.conditions_category TO 'medsync_manager';
 
 -- Reports and analytics
-GRANT EXECUTE ON PROCEDURE medsync_db.GetBranchStatistics TO 'medsync_manager';
+--GRANT EXECUTE ON PROCEDURE medsync_db.GetBranchStatistics TO 'medsync_manager';
 GRANT EXECUTE ON PROCEDURE medsync_db.GetStaffByBranch TO 'medsync_manager';
 GRANT EXECUTE ON PROCEDURE medsync_db.RegisterDoctor TO 'medsync_manager';
 GRANT EXECUTE ON PROCEDURE medsync_db.RegisterStaff TO 'medsync_manager';
