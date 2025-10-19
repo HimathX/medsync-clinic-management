@@ -1,19 +1,17 @@
 import axios from 'axios';
 
-// Base API URL - configurable via environment variable
+// Read API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-// Create axios instance with default config
-const apiClient = axios.create({
+const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 seconds
 });
 
 // Request interceptor for adding auth tokens
-apiClient.interceptors.request.use(
+api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
     if (token) {
@@ -25,7 +23,7 @@ apiClient.interceptors.request.use(
 );
 
 // Response interceptor for handling errors
-apiClient.interceptors.response.use(
+api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
@@ -59,4 +57,4 @@ export const handleApiError = (error, defaultMsg = 'An error occurred') => {
   return error.response?.data?.detail || error.response?.data?.message || defaultMsg;
 };
 
-export default apiClient;
+export default api;

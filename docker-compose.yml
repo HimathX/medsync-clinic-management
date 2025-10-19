@@ -1,0 +1,84 @@
+
+
+services:
+  # ==================== MySQL Database ====================
+  mysql:
+    image: mysql:8.0
+    container_name: medsync_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 2003             # ✅ Match your password
+      MYSQL_DATABASE: medsync_db
+      MYSQL_USER: medsync_user              # Additional user for security
+      MYSQL_PASSWORD: medsync_password      # Password for medsync_user
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d  # Only executes files in database/ folder
+    networks:
+      - medsync_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p2003"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  # ==================== FastAPI Backend ====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medsync_backend
+    restart: always
+    environment:
+      # Use root user in Docker (matches your local setup)
+      DB_HOST: mysql                        # ✅ Docker service name
+      DB_USER: root                         # ✅ Match your .env
+      DB_PASSWORD: 2003                     # ✅ Match your .env
+      DB_NAME: medsync_db
+      DB_PORT: 3306
+      SECRET_KEY: group6                    # ✅ Match your .env
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    networks:
+      - medsync_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ==================== React Frontend ====================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: medsync_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      CHOKIDAR_USEPOLLING: true
+      WATCHPACK_POLLING: true
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - medsync_network
+    stdin_open: true
+    tty: true
+
+volumes:
+  mysql_data:
+
+networks:
+  medsync_network:
+    driver: bridge

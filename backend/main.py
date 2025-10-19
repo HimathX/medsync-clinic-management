@@ -9,7 +9,7 @@ from routers import (
     auth, doctor, appointment, branch, patient, conditions, 
     staff, timeslot, insurance, medication, prescription, 
     consultation, treatment_catalogue, treatment, payment, invoice, claims,
-    profile_patient, dashboard_patient, dashboard_doctor, dashboard_staff
+    profile_patient, dashboard_patient, dashboard_doctor
 )
 
 @asynccontextmanager

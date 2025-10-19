@@ -159,14 +159,17 @@ BEGIN
     DECLARE invoice_count INT;
     DECLARE invoice_number VARCHAR(20);
     
+    -- Get branch code
     SELECT UPPER(LEFT(branch_name, 3)) INTO branch_code
     FROM branch WHERE branch_id = p_branch_id;
     
+    -- FIX: Changed from 'bill' to 'invoice'
     SELECT COUNT(*) + 1 INTO invoice_count
-    FROM bill WHERE created_at >= CURDATE();
+    FROM invoice WHERE created_at >= CURDATE();
     
+    -- Generate invoice number format: BRN-YYYYMMDD-0001
     SET invoice_number = CONCAT(
-        branch_code, '-',
+        COALESCE(branch_code, 'UNK'), '-',
         DATE_FORMAT(NOW(), '%Y%m%d'), '-',
         LPAD(invoice_count, 4, '0')
     );
@@ -176,15 +179,17 @@ END$$
 
 -- Calculate Consultation Duration
 DROP FUNCTION IF EXISTS GetConsultationDuration$$
-CREATE FUNCTION GetConsultationDuration(p_consultation_id CHAR(36))
+CREATE FUNCTION GetConsultationDuration(p_consultation_rec_id CHAR(36))
 RETURNS INT
 READS SQL DATA
 BEGIN
     DECLARE duration_minutes INT;
     
+    -- FIX: Changed from 'consultation' to 'consultation_record'
+    -- Changed parameter name to match your schema
     SELECT TIMESTAMPDIFF(MINUTE, created_at, updated_at) INTO duration_minutes
-    FROM consultation
-    WHERE consultation_id = p_consultation_id;
+    FROM consultation_record
+    WHERE consultation_rec_id = p_consultation_rec_id;
     
     RETURN COALESCE(duration_minutes, 0);
 END$$

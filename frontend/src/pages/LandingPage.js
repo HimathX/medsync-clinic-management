@@ -360,25 +360,52 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <button 
-                  onClick={() => navigate('/staff-login')}
-                  style={{
-                    width: '100%',
-                    padding: '14px 24px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                >
-                  Doctor Login →
-                </button>
+                <div style={{display: 'flex', gap: '10px'}}>
+                  <button 
+                    onClick={() => navigate('/doctor-login')}
+                    style={{
+                      flex: 1,
+                      padding: '14px 24px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                  >
+                    Login
+                  </button>
+                  <button 
+                    onClick={() => navigate('/doctor-signup')}
+                    style={{
+                      flex: 1,
+                      padding: '14px 24px',
+                      background: 'white',
+                      color: '#10b981',
+                      border: '2px solid #10b981',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#10b981';
+                      e.target.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'white';
+                      e.target.style.color = '#10b981';
+                    }}
+                  >
+                    Register
+                  </button>
+                </div>
               </div>
             </div>
             

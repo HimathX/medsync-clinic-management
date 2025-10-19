@@ -163,3 +163,74 @@
   color: var(--accent-red);
   background: var(--accent-red-subtle);
 }
+
+/* Doctor Portal Specific Styles */
+.doctor-icon {
+  background: linear-gradient(135deg, #0093E9 0%, #80D0C7 100%) !important;
+}
+
+.btn-doctor {
+  background: linear-gradient(135deg, #0093E9 0%, #80D0C7 100%) !important;
+}
+
+.btn-doctor:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 147, 233, 0.3);
+}
+
+/* Large auth box for signup forms */
+.auth-box-large {
+  max-width: 900px !important;
+}
+
+.signup-form {
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.signup-form::-webkit-scrollbar {
+  width: 8px;
+}
+
+.signup-form::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.signup-form::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.signup-form::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.form-section {
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.form-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-section h3 i {
+  color: #667eea;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+

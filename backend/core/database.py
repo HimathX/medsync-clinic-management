@@ -4,17 +4,27 @@ import os
 import logging
 from typing import Optional, Tuple, Any, List, Dict
 from contextlib import contextmanager
+from dotenv import load_dotenv
+
+# Load .env file for local development
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Validate required environment variables
+required_vars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']
+missing = [var for var in required_vars if not os.getenv(var)]
+if missing:
+    raise EnvironmentError(f"❌ Missing environment variables: {', '.join(missing)}")
+
 # Database connection configuration
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
+    'host': os.getenv('DB_HOST'),           # No default - must be set
     'port': int(os.getenv('DB_PORT', '3306')),
-    'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', 'Himathavenge!23'),
-    'database': os.getenv('DB_NAME', 'medsync_db'),
+    'user': os.getenv('DB_USER'),           # No default - must be set
+    'password': os.getenv('DB_PASSWORD'),   # No default - must be set
+    'database': os.getenv('DB_NAME'),       # No default - must be set
     'charset': 'utf8mb4',
     'collation': 'utf8mb4_unicode_ci',
     'autocommit': False,

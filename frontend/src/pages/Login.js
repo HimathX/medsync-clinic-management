@@ -30,8 +30,8 @@ export default function Login({ onLogin, loginType = 'staff' }) {
     try {
       setLoading(true);
       
-      // Call backend authentication API
-      const response = await authService.login(email, password);
+      // Call backend authentication API with loginType
+      const response = await authService.login(email, password, loginType);
       
       if (response.success) {
         // ACCESS CONTROL: Check if user is trying to login from the correct portal
@@ -59,8 +59,14 @@ export default function Login({ onLogin, loginType = 'staff' }) {
           role = 'Doctor';
         } else if (userType === 'admin') {
           role = 'System Admin';
+        } else if (userType === 'manager') {
+          role = 'Manager';
+        } else if (userType === 'nurse') {
+          role = 'Nurse';
+        } else if (userType === 'receptionist') {
+          role = 'Receptionist';
         } else if (userType === 'employee' || userType === 'staff') {
-          role = 'Admin Staff';
+          role = 'Staff';
         }
 
         // Call the parent onLogin callback if provided
@@ -71,8 +77,10 @@ export default function Login({ onLogin, loginType = 'staff' }) {
         // Redirect based on user type
         if (userType === 'patient') {
           navigate('/patient/dashboard');
-        } else if (userType === 'doctor' || userType === 'employee' || userType === 'admin' || userType === 'staff') {
-          // Staff, doctor, admin, employee go to staff dashboard
+        } else if (userType === 'doctor' || userType === 'employee' || userType === 'admin' || 
+                   userType === 'staff' || userType === 'manager' || userType === 'nurse' || 
+                   userType === 'receptionist') {
+          // All staff types go to staff dashboard
           navigate('/');
         }
       }
@@ -186,6 +194,13 @@ export default function Login({ onLogin, loginType = 'staff' }) {
           {isStaffLogin ? (
             <p className="label" style={{textAlign: 'center', marginTop: 8, fontSize: 12}}>
               🔒 Secured with SSL • Staff Access Only
+              <br />
+              <span 
+                onClick={() => navigate('/staff-signup')} 
+                style={{color: 'var(--accent-red)', textDecoration: 'none', cursor: 'pointer', marginTop: 4, display: 'inline-block'}}
+              >
+                New Staff Registration
+              </span>
             </p>
           ) : (
             <p className="label" style={{textAlign: 'center', marginTop: 8, fontSize: 12}}>
