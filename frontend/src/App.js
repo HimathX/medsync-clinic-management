@@ -39,6 +39,8 @@ import DoctorSchedule from "./pages/doctor/DoctorSchedule";
 import DoctorPrescriptions from "./pages/doctor/DoctorPrescriptions";
 import DoctorTreatments from "./pages/doctor/DoctorTreatments";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
+import DoctorReports from "./pages/doctor/DoctorReports";
+import DoctorSettings from "./pages/doctor/DoctorSettings";
 
 // Patient Portal Pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
@@ -83,7 +85,46 @@ function App() {
       } else if (currentUser.userType === 'employee' || currentUser.userType === 'staff') {
         setUserRole('Staff');
       }
+<<<<<<< Updated upstream
     }
+=======
+
+      // Otherwise check authService
+      const currentUser = authService.getCurrentUser();
+      if (currentUser && currentUser.isAuthenticated) {
+        console.log('✅ Auth found in authService:', currentUser);
+        setIsAuthenticated(true);
+        setUserType(currentUser.userType);
+        setRoleFromUserType(currentUser.userType);
+      }
+      
+      setLoading(false);
+    };
+
+    checkAuth();
+<<<<<<< Updated upstream
+=======
+
+    // Listen for storage changes (e.g., when DoctorLogin sets localStorage and redirects)
+    const handleStorageChange = () => {
+      console.log('📝 Storage changed, re-checking authentication...');
+      checkAuth();
+    };
+
+    // Listen for custom auth change event
+    const handleAuthChange = () => {
+      console.log('🔐 Auth change event received, re-checking authentication...');
+      checkAuth();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('authChanged', handleAuthChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authChanged', handleAuthChange);
+    };
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
   }, []);
 
   const handleLogin = (role, type) => {
@@ -118,6 +159,7 @@ function App() {
 
   return (
     <div className="app">
+<<<<<<< Updated upstream
       {userType === 'patient' ? (
         // Patient Portal Layout (no header, full dashboard)
         <Routes>
@@ -142,6 +184,68 @@ function App() {
         (userType === 'receptionist' || userType === 'nurse' || userType === 'manager') ? (
           // Staff Portal - No Header
           <Routes>
+=======
+      <Routes>
+        {/* Public Routes - Unauthenticated */}
+        {!isAuthenticated && (
+          <>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/staff-login" element={<Login onLogin={handleLogin} loginType="staff" />} />
+            <Route path="/staff-signup" element={<StaffSignup />} />
+            <Route path="/doctor/login" element={<DoctorLogin />} />
+            <Route path="/doctor-login" element={<DoctorLogin />} />
+            <Route path="/doctor-signup" element={<DoctorSignup />} />
+            <Route path="/patient-login" element={<Login onLogin={handleLogin} loginType="patient" />} />
+            <Route path="/patient-signup" element={<PatientSignup />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        )}
+
+        {/* Patient Portal Routes */}
+        {isAuthenticated && userType === 'patient' && (
+          <>
+            <Route path="/" element={<PatientDashboard />} />
+            <Route path="/patient/dashboard" element={<PatientDashboard />} />
+            <Route path="/patient/book" element={<BookAppointment />} />
+            <Route path="/patient/appointments" element={<PatientMyAppointments />} />
+            <Route path="/patient/health-conditions" element={<HealthConditions />} />
+            <Route path="/patient/insurance" element={<Insurance />} />
+            <Route path="/patient/billing" element={<PatientBilling />} />
+            <Route path="/patient/records" element={<PatientMedicalRecords />} />
+            <Route path="/patient/prescriptions" element={<PatientPrescriptions />} />
+            <Route path="/patient/lab-results" element={<PatientLabResults />} />
+            <Route path="/patient/profile" element={<Profile />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        )}
+
+        {/* Doctor Portal Routes */}
+        {isAuthenticated && userType === 'doctor' && (
+          <>
+            <Route path="/" element={<DoctorDashboard />} />
+            <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+            <Route path="/doctor/appointments" element={<DoctorAppointments />} />
+            <Route path="/doctor/patients" element={<DoctorPatients />} />
+            <Route path="/doctor/consultations" element={<DoctorConsultations />} />
+            <Route path="/doctor/schedule" element={<DoctorSchedule />} />
+            <Route path="/doctor/prescriptions" element={<DoctorPrescriptions />} />
+            <Route path="/doctor/treatments" element={<DoctorTreatments />} />
+            <Route path="/doctor/profile" element={<DoctorProfile />} />
+<<<<<<< Updated upstream
+=======
+            <Route path="/doctor/reports" element={<DoctorReports />} />
+            <Route path="/doctor/settings" element={<DoctorSettings />} />
+>>>>>>> Stashed changes
+            <Route path="/profile" element={<DoctorProfile />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        )}
+
+        {/* Staff Portal Routes */}
+        {isAuthenticated && (userType === 'receptionist' || userType === 'nurse' || userType === 'manager' || userType === 'admin' || userType === 'employee' || userType === 'staff') && (
+          <>
+>>>>>>> Stashed changes
             <Route path="/" element={<StaffDashboard />} />
             <Route path="/staff/dashboard" element={<StaffDashboard />} />
             <Route path="/staff/appointments" element={<StaffAppointments />} />
