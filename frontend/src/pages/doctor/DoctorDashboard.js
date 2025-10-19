@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import authService from '../../services/authService';
 import appointmentService from '../../services/appointmentService';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
@@ -14,6 +15,8 @@ export default function DoctorDashboard() {
   const currentUser = authService.getCurrentUser();
   const doctorId = currentUser?.userId;
 =======
+=======
+>>>>>>> Stashed changes
 =======
 // src/pages/doctor/DoctorDashboard.js - Professional Doctor Dashboard
 import { useState, useEffect, useCallback } from 'react';
@@ -32,6 +35,9 @@ export default function DoctorDashboard() {
   const currentUser = authService.getCurrentUser();
   const doctorId = currentUser?.userId || currentUser?.doctor_id;
 >>>>>>> Stashed changes
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   
   const [loading, setLoading] = useState(true);
@@ -134,11 +140,15 @@ export default function DoctorDashboard() {
 
   const fetchDashboardData = useCallback(async () => {
 >>>>>>> Stashed changes
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     try {
       setLoading(true);
       setError(null);
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
       // Fetch doctor's appointments
       const appointmentsData = await appointmentService.getAppointments({
@@ -158,6 +168,8 @@ export default function DoctorDashboard() {
       });
 =======
 <<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
       // Fetch stats
       await fetchStats(doctorId);
       
@@ -170,6 +182,9 @@ export default function DoctorDashboard() {
       setLoading(false);
 =======
       console.log('📊 Fetching dashboard data for doctor:', doctorId);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
       // Fetch doctor dashboard stats
@@ -243,11 +258,14 @@ export default function DoctorDashboard() {
       console.log('✅ Dashboard data loaded successfully');
     } catch (err) {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       console.error('Error fetching dashboard data:', err);
       setError('Failed to load dashboard data. Please try again.');
     } finally {
 =======
 <<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
       console.error('💥 Error fetching dashboard data:', err);
       setError('Failed to load dashboard data. Please try again.');
 =======
@@ -255,10 +273,120 @@ export default function DoctorDashboard() {
       setError(err.message || 'Failed to load dashboard data');
     } finally {
 >>>>>>> Stashed changes
+<<<<<<< Updated upstream
 >>>>>>> Stashed changes
       setLoading(false);
     }
   }, [doctorId, currentUser]);
+=======
+      setLoading(false);
+    }
+  }, [doctorId, currentUser]);
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/doctor-login');
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    if (typeof timeStr === 'number') {
+      const hours = Math.floor(timeStr / 3600);
+      const minutes = Math.floor((timeStr % 3600) / 60);
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+    return timeStr.substring(0, 5);
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'Scheduled': '#3b82f6',
+      'Checked-in': '#f59e0b',
+      'Completed': '#10b981',
+      'Cancelled': '#ef4444',
+      'No-Show': '#6b7280'
+    };
+    return colors[status] || '#6b7280';
+  };
+
+  const fetchStats = async (doctorId) => {
+    try {
+      console.log('📊 Fetching dashboard stats...');
+      
+      const response = await fetch(
+        `${API_BASE_URL}/doctors/${doctorId}/dashboard/stats`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Stats fetched:', data);
+        setStats(data);
+      } else {
+        console.warn('⚠️ Could not fetch stats, status:', response.status);
+      }
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+  };
+
+  const fetchTodayAppointments = async (doctorId) => {
+    try {
+      console.log('📅 Fetching today\'s appointments...');
+      
+      const response = await fetch(
+        `${API_BASE_URL}/doctors/${doctorId}/dashboard/today-appointments`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Today\'s appointments fetched:', data);
+        setTodayAppointments(data.appointments || []);
+      } else {
+        console.warn('⚠️ Could not fetch today\'s appointments, status:', response.status);
+      }
+    } catch (err) {
+      console.error('Error fetching today\'s appointments:', err);
+    }
+  };
+
+  const fetchUpcomingAppointments = async (doctorId) => {
+    try {
+      console.log('📆 Fetching upcoming appointments...');
+      
+      const response = await fetch(
+        `${API_BASE_URL}/doctors/${doctorId}/dashboard/upcoming?days=7`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Upcoming appointments fetched:', data);
+        setUpcomingAppointments(data.appointments || []);
+      } else {
+        console.warn('⚠️ Could not fetch upcoming appointments, status:', response.status);
+      }
+    } catch (err) {
+      console.error('Error fetching upcoming appointments:', err);
+    }
+  };
+>>>>>>> Stashed changes
 
   const handleLogout = () => {
     authService.logout();
@@ -757,6 +885,9 @@ export default function DoctorDashboard() {
         </section>
       </main>
 >>>>>>> Stashed changes
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     </div>
   );

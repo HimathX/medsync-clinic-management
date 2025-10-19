@@ -124,6 +124,9 @@ function App() {
       window.removeEventListener('authChanged', handleAuthChange);
     };
 >>>>>>> Stashed changes
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   }, []);
 
