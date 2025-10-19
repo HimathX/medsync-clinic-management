@@ -94,6 +94,11 @@ GRANT SELECT ON medsync_db.conditions_category TO 'medsync_manager';
 -- Reports and analytics
 GRANT EXECUTE ON PROCEDURE medsync_db.GetBranchStatistics TO 'medsync_manager';
 GRANT EXECUTE ON PROCEDURE medsync_db.GetStaffByBranch TO 'medsync_manager';
+GRANT EXECUTE ON PROCEDURE medsync_db.RegisterDoctor TO 'medsync_manager';
+GRANT EXECUTE ON PROCEDURE medsync_db.RegisterStaff TO 'medsync_manager';
+GRANT EXECUTE ON PROCEDURE medsync_db.DeactivateStaff TO 'medsync_manager';
+GRANT EXECUTE ON PROCEDURE medsync_db.UpdateStaffSalary TO 'medsync_manager';
+GRANT EXECUTE ON PROCEDURE medsync_db.AddTimeSlot TO 'medsync_manager';
 
 -- ============================================
 -- SECTION 4: DOCTOR ROLE PERMISSIONS
@@ -141,6 +146,11 @@ GRANT SELECT ON medsync_db.specialization TO 'medsync_doctor';
 -- Procedures
 GRANT EXECUTE ON PROCEDURE medsync_db.GetMyPatientsAsDoctor TO 'medsync_doctor';
 GRANT EXECUTE ON PROCEDURE medsync_db.GetPatientMedicalHistory TO 'medsync_doctor';
+GRANT EXECUTE ON PROCEDURE medsync_db.CreateConsultationWithDetails TO 'medsync_doctor';
+GRANT EXECUTE ON PROCEDURE medsync_db.AddTreatment TO 'medsync_doctor';
+GRANT EXECUTE ON PROCEDURE medsync_db.AddPrescriptionWithItems TO 'medsync_doctor';
+GRANT EXECUTE ON PROCEDURE medsync_db.AddPatientAllergy TO 'medsync_doctor';
+GRANT EXECUTE ON PROCEDURE medsync_db.AddPatientCondition TO 'medsync_doctor';
 
 -- ============================================
 -- SECTION 5: NURSE ROLE PERMISSIONS
@@ -214,7 +224,11 @@ GRANT SELECT ON medsync_db.treatment_catalogue TO 'medsync_receptionist';
 -- Procedures
 GRANT EXECUTE ON PROCEDURE medsync_db.RegisterPatient TO 'medsync_receptionist';
 GRANT EXECUTE ON PROCEDURE medsync_db.BookAppointment TO 'medsync_receptionist';
-GRANT EXECUTE ON PROCEDURE medsync_db.GetAvailableTimeSlots TO 'medsync_receptionist';
+GRANT EXECUTE ON PROCEDURE medsync_db.CancelAppointment TO 'medsync_receptionist';
+GRANT EXECUTE ON PROCEDURE medsync_db.AddPatientInsurance TO 'medsync_receptionist';
+GRANT EXECUTE ON PROCEDURE medsync_db.AddPayment TO 'medsync_receptionist';
+GRANT EXECUTE ON PROCEDURE medsync_db.AddClaim TO 'medsync_receptionist';
+GRANT EXECUTE ON PROCEDURE medsync_db.GenerateInvoice TO 'medsync_receptionist';
 
 -- ============================================
 -- SECTION 7: PHARMACIST ROLE PERMISSIONS
@@ -242,6 +256,9 @@ GRANT SELECT ON medsync_db.appointment TO 'medsync_pharmacist';
 
 -- Reference data
 GRANT SELECT ON medsync_db.branch TO 'medsync_pharmacist';
+
+-- Grant only procedures that exist
+GRANT EXECUTE ON PROCEDURE medsync_db.AddMedication TO 'medsync_pharmacist';
 
 -- ============================================
 -- SECTION 8: PATIENT ROLE PERMISSIONS
@@ -588,12 +605,7 @@ DELIMITER ;
 
 -- Grant permissions on user_session table (created in 10_audit_security.sql)
 GRANT SELECT, INSERT, UPDATE, DELETE ON medsync_db.user_session TO 'medsync_admin';
-GRANT SELECT, INSERT, UPDATE ON medsync_db.user_session TO 'medsync_manager';
-GRANT SELECT, INSERT, UPDATE ON medsync_db.user_session TO 'medsync_doctor';
-GRANT SELECT, INSERT, UPDATE ON medsync_db.user_session TO 'medsync_nurse';
-GRANT SELECT, INSERT, UPDATE ON medsync_db.user_session TO 'medsync_receptionist';
-GRANT SELECT, INSERT, UPDATE ON medsync_db.user_session TO 'medsync_pharmacist';
-GRANT SELECT, INSERT, UPDATE ON medsync_db.user_session TO 'medsync_patient';
+GRANT SELECT, INSERT, UPDATE ON medsync_db.user_session TO 'medsync_manager', 'medsync_doctor', 'medsync_nurse', 'medsync_receptionist', 'medsync_pharmacist', 'medsync_patient';
 
 -- Grant execute permissions on RLS procedures/functions
 GRANT EXECUTE ON PROCEDURE medsync_db.SetUserContext TO 'medsync_admin', 'medsync_manager', 'medsync_doctor', 'medsync_nurse', 'medsync_receptionist', 'medsync_pharmacist', 'medsync_patient';
