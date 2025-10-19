@@ -1,4 +1,4 @@
-/* src/styles/patientDashboard.css - Professional Patient Portal Design */
+/* src/styles/patientDashboard.css - Modern Medical Portal Design */
 
 * {
   box-sizing: border-box;
@@ -8,22 +8,43 @@
 
 .patient-portal {
   min-height: 100vh;
-  background: #f8fafc;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+  position: relative;
+}
+
+.patient-portal::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(20, 184, 166, 0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .patient-container {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 40px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ==================== TOP NAVIGATION ==================== */
 .patient-top-nav {
-  background: #1a2332;
+  background: linear-gradient(135deg, #0c4a6e 0%, #075985 50%, #0369a1 100%);
   color: white;
-  padding: 12px 0;
+  padding: 14px 0;
   font-size: 14px;
+  box-shadow: 0 2px 10px rgba(14, 165, 233, 0.15);
+  position: relative;
+  z-index: 1001;
 }
 
 .patient-top-nav-content {
@@ -48,7 +69,8 @@
 }
 
 .patient-nav-links a:hover {
-  color: #0EA5E9;
+  color: #7dd3fc;
+  text-shadow: 0 0 10px rgba(125, 211, 252, 0.5);
 }
 
 .patient-nav-actions {
@@ -65,7 +87,8 @@
 }
 
 .patient-contact-link:hover {
-  color: #0EA5E9;
+  color: #7dd3fc;
+  text-shadow: 0 0 10px rgba(125, 211, 252, 0.5);
 }
 
 .patient-emergency-link {
@@ -87,11 +110,13 @@
 
 /* ==================== MAIN HEADER ==================== */
 .patient-main-header {
-  background: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.1);
   position: sticky;
   top: 0;
   z-index: 1000;
+  border-bottom: 2px solid rgba(14, 165, 233, 0.1);
 }
 
 .patient-header-content {
@@ -111,17 +136,23 @@
 }
 
 .patient-logo-cross {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  width: 55px;
+  height: 55px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: 34px;
   color: white;
-  border-radius: 8px;
+  border-radius: 14px;
   font-weight: 300;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+  transition: all 0.3s;
+}
+
+.patient-logo-cross:hover {
+  transform: scale(1.05) rotate(5deg);
+  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.5);
 }
 
 .patient-brand-name {
@@ -134,9 +165,12 @@
 
 .patient-brand-subtitle {
   font-size: 13px;
-  color: #7c3aed;
-  font-weight: 600;
-  letter-spacing: 1.5px;
+  background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  letter-spacing: 2px;
   text-transform: uppercase;
   margin: 0;
 }
@@ -173,9 +207,9 @@
 }
 
 .patient-avatar {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -183,14 +217,16 @@
   color: white;
   font-weight: 700;
   font-size: 18px;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 6px 15px rgba(14, 165, 233, 0.4);
   cursor: pointer;
   transition: all 0.3s;
+  border: 3px solid rgba(14, 165, 233, 0.2);
 }
 
 .patient-avatar:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+  transform: scale(1.08);
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.5);
+  border-color: rgba(14, 165, 233, 0.4);
 }
 
 .avatar-status-indicator {
@@ -240,7 +276,7 @@
 .dropdown-avatar {
   width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -248,6 +284,7 @@
   color: white;
   font-weight: 700;
   font-size: 18px;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
 }
 
 .dropdown-name {
@@ -284,8 +321,8 @@
 }
 
 .dropdown-item:hover {
-  background: #f8fafc;
-  color: #7c3aed;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  color: #0ea5e9;
 }
 
 .dropdown-item span {
@@ -303,11 +340,12 @@
 
 /* ==================== HERO SECTION ==================== */
 .patient-hero-section {
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 40%, #14b8a6 100%);
   color: white;
-  padding: 60px 0;
+  padding: 70px 0;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 10px 40px rgba(14, 165, 233, 0.2);
 }
 
 .patient-hero-section::before {
@@ -318,8 +356,20 @@
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    radial-gradient(circle at 15% 40%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 85% 70%, rgba(255, 255, 255, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 50% 30%, rgba(20, 184, 166, 0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.patient-hero-section::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to bottom, transparent, rgba(240, 249, 255, 0.5));
   pointer-events: none;
 }
 
@@ -354,11 +404,19 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  padding: 20px 30px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
+  padding: 24px 35px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.hero-stat-item:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
 }
 
 .hero-stat-icon {
@@ -407,13 +465,13 @@
   background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
   color: white;
   border: none;
-  padding: 12px 30px;
-  border-radius: 8px;
+  padding: 14px 35px;
+  border-radius: 12px;
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
 }
 
 .alert-action-btn:hover {
@@ -445,32 +503,59 @@
 }
 
 .quick-action-card {
-  background: white;
-  border: 2px solid transparent;
-  border-radius: 16px;
-  padding: 30px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(14, 165, 233, 0.1);
+  border-radius: 20px;
+  padding: 32px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 22px;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-action-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.quick-action-card:hover::before {
+  opacity: 1;
 }
 
 .quick-action-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 35px rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.3);
 }
 
 .action-icon-wrapper {
-  width: 70px;
-  height: 70px;
-  border-radius: 14px;
+  width: 75px;
+  height: 75px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
+  font-size: 38px;
   flex-shrink: 0;
+  transition: all 0.3s;
+  position: relative;
+  z-index: 1;
+}
+
+.quick-action-card:hover .action-icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .book-action {
@@ -482,7 +567,6 @@
 }
 
 .book-action:hover {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   border-color: #0EA5E9;
 }
 
@@ -495,7 +579,6 @@
 }
 
 .records-action:hover {
-  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
   border-color: #8B5CF6;
 }
 
@@ -508,7 +591,6 @@
 }
 
 .billing-action:hover {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
   border-color: #10B981;
 }
 
@@ -521,7 +603,6 @@
 }
 
 .prescriptions-action:hover {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
   border-color: #F59E0B;
 }
 
@@ -534,7 +615,6 @@
 }
 
 .lab-action:hover {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   border-color: #EF4444;
 }
 
@@ -547,7 +627,6 @@
 }
 
 .message-action:hover {
-  background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
   border-color: #EC4899;
 }
 
@@ -586,20 +665,25 @@
 }
 
 .dashboard-card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  box-shadow: 0 8px 30px rgba(14, 165, 233, 0.1);
+  border: 2px solid rgba(14, 165, 233, 0.08);
   overflow: hidden;
-  transition: all 0.3s;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dashboard-card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 40px rgba(14, 165, 233, 0.18);
+  transform: translateY(-4px);
+  border-color: rgba(14, 165, 233, 0.15);
 }
 
 .card-header {
-  padding: 25px 30px;
-  border-bottom: 2px solid #f1f5f9;
+  padding: 28px 32px;
+  border-bottom: 2px solid rgba(14, 165, 233, 0.1);
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.5) 0%, rgba(224, 242, 254, 0.3) 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -614,7 +698,7 @@
 .view-all-link {
   background: none;
   border: none;
-  color: #7c3aed;
+  color: #0ea5e9;
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
@@ -622,8 +706,9 @@
 }
 
 .view-all-link:hover {
-  color: #6d28d9;
-  transform: translateX(3px);
+  color: #0284c7;
+  transform: translateX(5px);
+  text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
 }
 
 .card-content {
@@ -686,14 +771,15 @@
 }
 
 .calendar-illustration {
-  width: 120px;
-  height: 120px;
-  background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.15);
+  width: 130px;
+  height: 130px;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-radius: 24px;
+  box-shadow: 0 12px 35px rgba(14, 165, 233, 0.2);
   position: relative;
   overflow: hidden;
   animation: float 3s ease-in-out infinite;
+  border: 3px solid rgba(14, 165, 233, 0.2);
 }
 
 @keyframes float {
@@ -702,9 +788,9 @@
 }
 
 .calendar-header {
-  height: 30px;
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-  border-radius: 20px 20px 0 0;
+  height: 35px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
+  border-radius: 21px 21px 0 0;
 }
 
 .calendar-body {
@@ -744,29 +830,29 @@
 }
 
 .btn-primary-large {
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
   color: white;
   border: none;
-  padding: 14px 32px;
-  border-radius: 12px;
+  padding: 16px 36px;
+  border-radius: 14px;
   font-weight: 700;
   font-size: 16px;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.35);
 }
 
 .btn-primary-large:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(14, 165, 233, 0.45);
 }
 
 .btn-secondary-outline {
   background: white;
-  color: #7c3aed;
-  border: 2px solid #7c3aed;
-  padding: 14px 32px;
-  border-radius: 12px;
+  color: #0ea5e9;
+  border: 2px solid #0ea5e9;
+  padding: 16px 36px;
+  border-radius: 14px;
   font-weight: 700;
   font-size: 16px;
   cursor: pointer;
@@ -774,9 +860,9 @@
 }
 
 .btn-secondary-outline:hover {
-  background: #faf5ff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.2);
 }
 
 .quick-info-grid {
@@ -800,8 +886,9 @@
 }
 
 .quick-info-item:hover {
-  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
 }
 
 .info-icon {
@@ -846,21 +933,21 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
   color: white;
   border: none;
-  padding: 12px 30px;
-  border-radius: 10px;
+  padding: 14px 32px;
+  border-radius: 12px;
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.45);
 }
 
 /* ==================== APPOINTMENTS LIST ==================== */
@@ -873,19 +960,20 @@
 .appointment-item {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 12px;
-  border: 2px solid transparent;
+  gap: 22px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 16px;
+  border: 2px solid rgba(14, 165, 233, 0.15);
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .appointment-item:hover {
-  border-color: #7c3aed;
+  border-color: #0ea5e9;
   background: white;
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.1);
+  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.15);
+  transform: translateX(5px);
 }
 
 .appointment-icon-badge {
@@ -1024,8 +1112,9 @@
 }
 
 .health-metric-item:hover {
-  border-color: #7c3aed;
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.1);
+  border-color: #0ea5e9;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.15);
+  transform: translateY(-3px);
 }
 
 .metric-icon {
@@ -1095,7 +1184,8 @@
 
 .info-notice {
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border: 2px solid #60a5fa;
+  border: 2px solid #0ea5e9;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
 }
 
 .warning-notice {
@@ -1122,10 +1212,25 @@
 
 /* ==================== FOOTER ==================== */
 .patient-footer {
-  background: #0f1419;
+  background: linear-gradient(135deg, #0c4a6e 0%, #075985 50%, #0369a1 100%);
   color: white;
   padding: 60px 0 30px;
   margin-top: auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.patient-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 .patient-footer-content {
@@ -1138,10 +1243,11 @@
 .footer-column h4 {
   font-size: 16px;
   font-weight: 700;
-  color: #7c3aed;
+  color: #7dd3fc;
   margin-bottom: 20px;
   letter-spacing: 1px;
   text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(125, 211, 252, 0.3);
 }
 
 .footer-logo-section {
@@ -1154,13 +1260,14 @@
 .footer-logo-cross {
   width: 45px;
   height: 45px;
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 28px;
   color: white;
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
 }
 
 .footer-logo-section h3 {
@@ -1205,8 +1312,9 @@
 }
 
 .footer-links a:hover {
-  color: #7c3aed;
+  color: #7dd3fc;
   padding-left: 5px;
+  text-shadow: 0 0 10px rgba(125, 211, 252, 0.5);
 }
 
 .footer-bottom {
@@ -1239,8 +1347,9 @@
 }
 
 .footer-social a:hover {
-  background: #7c3aed;
+  background: linear-gradient(135deg, #0ea5e9, #14b8a6);
   transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
 }
 
 /* ==================== MODAL ==================== */
@@ -1344,11 +1453,12 @@
 .status-badge-confirmed {
   background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
   color: white;
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 6px 14px;
+  border-radius: 14px;
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .modal-footer {
@@ -1399,25 +1509,27 @@
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
   color: white;
   border: none;
-  width: 60px;
-  height: 60px;
+  width: 65px;
+  height: 65px;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
   transition: all 0.3s;
   z-index: 999;
+  border: 3px solid rgba(255, 255, 255, 0.2);
 }
 
 .fixed-help-btn:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 35px rgba(124, 58, 237, 0.5);
+  transform: translateY(-6px) scale(1.05);
+  box-shadow: 0 15px 40px rgba(14, 165, 233, 0.5);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .help-icon {
