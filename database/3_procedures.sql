@@ -2075,7 +2075,8 @@ proc_label: BEGIN
     
     SELECT branch_id INTO v_branch_id 
     FROM branch 
-    WHERE branch_name = TRIM(p_registered_branch_name) AND is_active = TRUE;
+    WHERE branch_name = TRIM(p_registered_branch_name) AND is_active = TRUE
+    LIMIT 1;
     
     IF v_branch_id IS NULL THEN
         SET p_error_message = 'Invalid or inactive branch';
@@ -2622,9 +2623,9 @@ END proc_label$$
 
 
 -- Procedure: CancelAppointment
-DROP DEFINER=`root`@`localhost` PROCEDURE IF EXISTS CancelAppointment$$
+DROP PROCEDURE IF EXISTS `CancelAppointment`$$
 
-CREATE PROCEDURE CancelAppointment(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CancelAppointment`(
     IN p_appointment_id CHAR(36),
     IN p_cancel_reason TEXT,  -- Optional notes
     OUT p_error_message VARCHAR(255),
