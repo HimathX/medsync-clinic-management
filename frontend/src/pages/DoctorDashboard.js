@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import specializationService from '../services/specializationService';
+import appointmentService from '../services/appointmentService';
+import timeSlotService from '../services/timeSlotService';
 import '../styles/dashboard.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -10,8 +13,19 @@ const DoctorDashboard = () => {
   
   const [doctorInfo, setDoctorInfo] = useState(null);
   const [appointments, setAppointments] = useState([]);
+  const [specializations, setSpecializations] = useState([]);
+  const [timeSlots, setTimeSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [loadingSpecializations, setLoadingSpecializations] = useState(false);
+  const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
+  const [appointmentStats, setAppointmentStats] = useState({
+    total: 0,
+    scheduled: 0,
+    completed: 0,
+    cancelled: 0,
+    noShow: 0
+  });
 
   useEffect(() => {
     // Check authentication only once
@@ -57,8 +71,11 @@ const DoctorDashboard = () => {
         branchName,
       });
 
-      // Fetch appointments after auth check passes
+      // Fetch appointments, specializations, and time slots after auth check passes
       fetchDoctorAppointments();
+      fetchDoctorSpecializations();
+      fetchDoctorTimeSlots();
+      fetchAppointmentStats();
       return true;
     };
 
@@ -106,6 +123,54 @@ const DoctorDashboard = () => {
     }
   };
 
+  const fetchDoctorSpecializations = async () => {
+    setLoadingSpecializations(true);
+    try {
+      const doctorId = localStorage.getItem('doctor_id');
+      console.log('📡 Fetching specializations for doctor:', doctorId);
+      
+      const data = await specializationService.getDoctorSpecializations(doctorId);
+      console.log('✅ Specializations fetched:', data);
+      setSpecializations(data.specializations || []);
+    } catch (err) {
+      console.error('Error fetching specializations:', err);
+      // Don't set error for specializations as it's not critical
+    } finally {
+      setLoadingSpecializations(false);
+    }
+  };
+
+  const fetchDoctorTimeSlots = async () => {
+    setLoadingTimeSlots(true);
+    try {
+      const doctorId = localStorage.getItem('doctor_id');
+      console.log('📡 Fetching time slots for doctor:', doctorId);
+      
+      const data = await timeSlotService.getDoctorTimeSlots(doctorId, false);
+      console.log('✅ Time slots fetched:', data);
+      setTimeSlots(data.time_slots || []);
+    } catch (err) {
+      console.error('Error fetching time slots:', err);
+      // Don't set error for time slots as it's not critical
+    } finally {
+      setLoadingTimeSlots(false);
+    }
+  };
+
+  const fetchAppointmentStats = async () => {
+    try {
+      const doctorId = localStorage.getItem('doctor_id');
+      console.log('📡 Fetching appointment stats for doctor:', doctorId);
+      
+      const stats = await appointmentService.getDoctorAppointmentStats(doctorId);
+      console.log('✅ Appointment stats fetched:', stats);
+      setAppointmentStats(stats);
+    } catch (err) {
+      console.error('Error fetching appointment stats:', err);
+      // Don't set error for stats as it's not critical
+    }
+  };
+
   const handleLogout = () => {
     // Clear localStorage
     localStorage.clear();
@@ -150,6 +215,14 @@ const DoctorDashboard = () => {
 
   return (
     <div className="doctor-dashboard">
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
       {/* Header */}
       <header className="dashboard-header">
         <div className="header-left">
@@ -190,7 +263,7 @@ const DoctorDashboard = () => {
           <div className="stat-card">
             <div className="stat-icon">📅</div>
             <div className="stat-content">
-              <h3>{appointments.length}</h3>
+              <h3>{appointmentStats.total}</h3>
               <p>Total Appointments</p>
             </div>
           </div>
@@ -198,7 +271,7 @@ const DoctorDashboard = () => {
           <div className="stat-card">
             <div className="stat-icon">✅</div>
             <div className="stat-content">
-              <h3>{appointments.filter(a => a.status === 'Completed').length}</h3>
+              <h3>{appointmentStats.completed}</h3>
               <p>Completed</p>
             </div>
           </div>
@@ -206,7 +279,7 @@ const DoctorDashboard = () => {
           <div className="stat-card">
             <div className="stat-icon">⏳</div>
             <div className="stat-content">
-              <h3>{appointments.filter(a => a.status === 'Scheduled' || a.status === 'Pending').length}</h3>
+              <h3>{appointmentStats.scheduled}</h3>
               <p>Scheduled</p>
             </div>
           </div>
@@ -214,9 +287,231 @@ const DoctorDashboard = () => {
           <div className="stat-card">
             <div className="stat-icon">❌</div>
             <div className="stat-content">
-              <h3>{appointments.filter(a => a.status === 'Cancelled').length}</h3>
+              <h3>{appointmentStats.cancelled}</h3>
               <p>Cancelled</p>
             </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">⏰</div>
+            <div className="stat-content">
+              <h3>{timeSlots.length}</h3>
+              <p>Time Slots</p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">🏥</div>
+            <div className="stat-content">
+              <h3>{specializations.length}</h3>
+              <p>Specializations</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Specializations Section */}
+        <section className="specializations-section" style={{ marginBottom: '40px' }}>
+          <div className="section-header">
+            <h2>My Specializations</h2>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                className="btn-refresh" 
+                onClick={fetchDoctorSpecializations}
+                disabled={loadingSpecializations}
+              >
+                <i className="fas fa-sync-alt"></i> Refresh
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={() => navigate('/doctor/specializations')}
+                style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                <i className="fas fa-plus"></i> Manage
+              </button>
+            </div>
+          </div>
+
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            {loadingSpecializations ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ display: 'inline-block', width: '20px', height: '20px', border: '2px solid #e5e7eb', borderTop: '2px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <p style={{ marginTop: '10px', color: '#64748b' }}>Loading specializations...</p>
+              </div>
+            ) : specializations.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {specializations.map((spec, index) => (
+                  <div 
+                    key={spec.specialization_id || index}
+                    style={{ 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: '#fff',
+                      padding: '10px 20px',
+                      borderRadius: '25px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <span>🏥</span>
+                    <span>{spec.specialization_title}</span>
+                    {spec.certification_date && (
+                      <span style={{ fontSize: '12px', opacity: '0.8' }}>
+                        ({new Date(spec.certification_date).getFullYear()})
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                <i className="fas fa-stethoscope" style={{ fontSize: '48px', marginBottom: '16px', opacity: '0.5' }}></i>
+                <p>No specializations added yet</p>
+                <button 
+                  onClick={() => navigate('/doctor/specializations')}
+                  style={{ 
+                    marginTop: '10px',
+                    padding: '10px 20px', 
+                    background: '#10b981', 
+                    color: '#fff', 
+                    border: 'none', 
+                    borderRadius: '6px', 
+                    cursor: 'pointer', 
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  Add Specializations
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Time Slots Section */}
+        <section className="time-slots-section" style={{ marginBottom: '40px' }}>
+          <div className="section-header">
+            <h2>My Time Slots</h2>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                className="btn-refresh" 
+                onClick={fetchDoctorTimeSlots}
+                disabled={loadingTimeSlots}
+              >
+                <i className="fas fa-sync-alt"></i> Refresh
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={() => navigate('/doctor/time-slots')}
+                style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                <i className="fas fa-plus"></i> Manage Time Slots
+              </button>
+            </div>
+          </div>
+
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            {loadingTimeSlots ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ display: 'inline-block', width: '20px', height: '20px', border: '2px solid #e5e7eb', borderTop: '2px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <p style={{ marginTop: '10px', color: '#64748b' }}>Loading time slots...</p>
+              </div>
+            ) : timeSlots.length > 0 ? (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
+                  {timeSlots.slice(0, 6).map((slot, index) => {
+                    const today = new Date();
+                    const slotDate = new Date(slot.available_date);
+                    const isPast = slotDate < today;
+                    const isBooked = slot.is_booked;
+                    
+                    return (
+                      <div 
+                        key={slot.time_slot_id || index}
+                        style={{ 
+                          padding: '15px', 
+                          background: isBooked ? '#fef3c7' : isPast ? '#f3f4f6' : '#d1fae5',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1a2332', margin: '0' }}>
+                            {new Date(slot.available_date).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </h4>
+                          <span style={{ 
+                            padding: '4px 8px', 
+                            borderRadius: '12px', 
+                            fontSize: '12px', 
+                            fontWeight: '600',
+                            background: isBooked ? '#fbbf24' : isPast ? '#9ca3af' : '#10b981',
+                            color: isBooked ? '#92400e' : isPast ? '#6b7280' : '#065f46'
+                          }}>
+                            {isBooked ? 'Booked' : isPast ? 'Past' : 'Available'}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '14px', color: '#64748b', margin: '0' }}>
+                          {new Date(`2000-01-01T${slot.start_time}`).toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })} - {new Date(`2000-01-01T${slot.end_time}`).toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+                {timeSlots.length > 6 && (
+                  <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                    <button 
+                      onClick={() => navigate('/doctor/time-slots')}
+                      style={{ 
+                        padding: '8px 16px', 
+                        background: '#3b82f6', 
+                        color: '#fff', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        cursor: 'pointer', 
+                        fontSize: '14px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      View All Time Slots ({timeSlots.length})
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                <i className="fas fa-clock" style={{ fontSize: '48px', marginBottom: '16px', opacity: '0.5' }}></i>
+                <p>No time slots created yet</p>
+                <button 
+                  onClick={() => navigate('/doctor/time-slots')}
+                  style={{ 
+                    marginTop: '10px',
+                    padding: '10px 20px', 
+                    background: '#10b981', 
+                    color: '#fff', 
+                    border: 'none', 
+                    borderRadius: '6px', 
+                    cursor: 'pointer', 
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  Create Time Slots
+                </button>
+              </div>
+            )}
           </div>
         </section>
 

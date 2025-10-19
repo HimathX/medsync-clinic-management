@@ -224,7 +224,13 @@ export default function DoctorDashboard() {
             <div className="patient-info-display" onClick={() => setShowProfileMenu(!showProfileMenu)}>
               <div className="patient-info-text">
                 <div className="patient-name-display">Dr. {data.doctor.name}</div>
-                <div className="patient-id-display">{data.doctor.specializations[0] || 'Physician'}</div>
+                <div className="patient-id-display">
+                  {data.doctor.specializations && data.doctor.specializations.length > 0 
+                    ? (typeof data.doctor.specializations[0] === 'object' 
+                        ? data.doctor.specializations[0].specialization_title 
+                        : data.doctor.specializations[0])
+                    : 'Physician'}
+                </div>
               </div>
               <div className="patient-avatar-wrapper">
                 <div className="patient-avatar">
