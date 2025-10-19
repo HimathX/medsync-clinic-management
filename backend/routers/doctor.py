@@ -54,6 +54,7 @@ class DoctorLoginResponse(BaseModel):
     room_no: Optional[str] = None
     consultation_fee: Optional[Decimal] = None
     specializations: Optional[List[str]] = None
+    branch_id: Optional[str] = None
     branch_name: Optional[str] = None
     
     class Config:
@@ -168,7 +169,7 @@ def doctor_login(credentials: DoctorLoginRequest):
             # Get doctor-specific details
             cursor.execute(
                 """SELECT d.doctor_id, d.room_no, d.consultation_fee, d.is_available,
-                          b.branch_name
+                          b.branch_id, b.branch_name
                    FROM doctor d
                    LEFT JOIN employee e ON d.doctor_id = e.employee_id
                    LEFT JOIN branch b ON e.branch_id = b.branch_id
@@ -214,6 +215,7 @@ def doctor_login(credentials: DoctorLoginRequest):
                 room_no=doctor_data['room_no'],
                 consultation_fee=doctor_data['consultation_fee'],
                 specializations=specializations,
+                branch_id=doctor_data['branch_id'],
                 branch_name=doctor_data['branch_name']
             )
             
@@ -929,5 +931,226 @@ def search_specializations(search_term: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to search specializations: {str(e)}"
+        )
+
+
+# ============================================
+# DOCTOR DASHBOARD ENDPOINTS
+# ============================================
+
+@router.get("/{doctor_id}/dashboard/stats", status_code=status.HTTP_200_OK)
+def get_doctor_dashboard_stats(doctor_id: str):
+    """
+    Get doctor dashboard statistics
+    
+    Returns:
+    - today_appointments: Number of appointments today
+    - pending_consultations: Consultations not yet completed
+    - completed_today: Completed consultations today
+    - patients_seen: Unique patients seen today
+    - upcoming_appointments: Appointments in next 7 days
+    - total_patients: Total unique patients all-time
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Verify doctor exists
+            cursor.execute("SELECT doctor_id FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            if not cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Today's appointments count
+            cursor.execute(
+                """SELECT COUNT(*) as count FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s 
+                   AND ts.available_date = CURDATE()""",
+                (doctor_id,)
+            )
+            today_result = cursor.fetchone()
+            today_appointments = today_result['count'] if today_result else 0
+            
+            # Pending consultations (appointments with status Scheduled or Checked-in)
+            cursor.execute(
+                """SELECT COUNT(*) as count FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s 
+                   AND a.status IN ('Scheduled', 'Checked-in')""",
+                (doctor_id,)
+            )
+            pending_result = cursor.fetchone()
+            pending_consultations = pending_result['count'] if pending_result else 0
+            
+            # Completed today
+            cursor.execute(
+                """SELECT COUNT(*) as count FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s 
+                   AND ts.available_date = CURDATE()
+                   AND a.status = 'Completed'""",
+                (doctor_id,)
+            )
+            completed_result = cursor.fetchone()
+            completed_today = completed_result['count'] if completed_result else 0
+            
+            # Patients seen today (unique)
+            cursor.execute(
+                """SELECT COUNT(DISTINCT a.patient_id) as count FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s 
+                   AND ts.available_date = CURDATE()""",
+                (doctor_id,)
+            )
+            patients_today_result = cursor.fetchone()
+            patients_seen = patients_today_result['count'] if patients_today_result else 0
+            
+            # Upcoming appointments (next 7 days, excluding today)
+            cursor.execute(
+                """SELECT COUNT(*) as count FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s 
+                   AND ts.available_date > CURDATE()
+                   AND ts.available_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+                   AND a.status NOT IN ('Cancelled', 'No-Show')""",
+                (doctor_id,)
+            )
+            upcoming_result = cursor.fetchone()
+            upcoming_appointments = upcoming_result['count'] if upcoming_result else 0
+            
+            # Total unique patients all-time
+            cursor.execute(
+                """SELECT COUNT(DISTINCT a.patient_id) as count FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s""",
+                (doctor_id,)
+            )
+            total_patients_result = cursor.fetchone()
+            total_patients = total_patients_result['count'] if total_patients_result else 0
+            
+            return {
+                "today_appointments": today_appointments,
+                "pending_consultations": pending_consultations,
+                "completed_today": completed_today,
+                "patients_seen": patients_seen,
+                "upcoming_appointments": upcoming_appointments,
+                "total_patients": total_patients
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching dashboard stats for doctor {doctor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch dashboard stats: {str(e)}"
+        )
+
+
+@router.get("/{doctor_id}/dashboard/today-appointments", status_code=status.HTTP_200_OK)
+def get_doctor_today_appointments(doctor_id: str):
+    """
+    Get today's appointments for a doctor with patient details
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Verify doctor exists
+            cursor.execute("SELECT doctor_id FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            if not cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Get today's appointments with patient info
+            cursor.execute(
+                """SELECT 
+                    a.appointment_id,
+                    a.patient_id,
+                    a.status,
+                    a.notes,
+                    ts.start_time,
+                    ts.end_time,
+                    ts.available_date,
+                    u.full_name as patient_name,
+                    p.chronic_conditions,
+                    p.allergies
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN user u ON p.patient_id = u.user_id
+                WHERE ts.doctor_id = %s 
+                AND ts.available_date = CURDATE()
+                ORDER BY ts.start_time""",
+                (doctor_id,)
+            )
+            appointments = cursor.fetchall()
+            
+            return {
+                "appointments": appointments or []
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching today's appointments for doctor {doctor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch today's appointments: {str(e)}"
+        )
+
+
+@router.get("/{doctor_id}/dashboard/upcoming", status_code=status.HTTP_200_OK)
+def get_doctor_upcoming_appointments(doctor_id: str, days: int = 7):
+    """
+    Get upcoming appointments for a doctor (excluding today)
+    
+    - **days**: Number of days to look ahead (default 7)
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Verify doctor exists
+            cursor.execute("SELECT doctor_id FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            if not cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Get upcoming appointments
+            cursor.execute(
+                """SELECT 
+                    a.appointment_id,
+                    a.patient_id,
+                    a.status,
+                    ts.start_time,
+                    ts.end_time,
+                    ts.available_date,
+                    u.full_name as patient_name
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN user u ON p.patient_id = u.user_id
+                WHERE ts.doctor_id = %s 
+                AND ts.available_date > CURDATE()
+                AND ts.available_date <= DATE_ADD(CURDATE(), INTERVAL %s DAY)
+                AND a.status NOT IN ('Cancelled', 'No-Show')
+                ORDER BY ts.available_date, ts.start_time""",
+                (doctor_id, days)
+            )
+            appointments = cursor.fetchall()
+            
+            return {
+                "appointments": appointments or []
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching upcoming appointments for doctor {doctor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch upcoming appointments: {str(e)}"
         )
 

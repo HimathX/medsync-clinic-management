@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field, validator
 import hashlib
@@ -80,6 +80,8 @@ class ErrorResponse(BaseModel):
     message: str
     details: Optional[str] = None
     timestamp: str
+
+
 
 
 @router.post("/login", status_code=status.HTTP_200_OK, response_model=LoginResponse)
@@ -192,7 +194,7 @@ def login(credentials: LoginRequest):
                     result = cursor.fetchone()
                     
                 except mysql.connector.Error as db_err:
-                    logger.error(f"Database error during authentication: db_err.msg if hasattr(db_err, 'msg') else str(db_err)")
+                    logger.error(f"Database error during authentication: {db_err.msg if hasattr(db_err, 'msg') else str(db_err)}")
                     
                     if db_err.errno == 1305:  # PROCEDURE does not exist
                         raise HTTPException(
@@ -354,7 +356,7 @@ def verify_user(user_id: str):
         
         with get_db() as (cursor, connection):
             cursor.execute(
-                """SELECT user_id, email, full_name, user_type, 
+                """SELECT user_id, email, full_name, role as user_type, 
                           created_at, updated_at 
                    FROM user 
                    WHERE user_id = %s""",

@@ -184,7 +184,7 @@ export default function PatientSignup() {
       const response = await patientService.registerPatient(registrationData);
 
       if (response.success) {
-        alert(`Registration successful! 🎉\n\nYour Patient ID: ${response.patient_id}\n\nYou can now login with your email and password.`);
+        alert(`Registration successful! 🎉`);
         navigate('/patient-login');
       } else {
         setError(response.message || 'Registration failed');
@@ -204,88 +204,29 @@ export default function PatientSignup() {
   };
 
   return (
-    <div className="auth" style={{
-      minHeight:'100vh', 
-      display:'flex', 
-      alignItems:'center', 
-      justifyContent:'center', 
-      background:'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%)', 
-      padding: '20px'
-    }}>
-      <section className="card" style={{ 
-        maxWidth: 750, 
-        width: '100%', 
-        padding: '3rem', 
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        background: 'white',
-        borderRadius: '20px'
-      }}>
+    <div className="auth" style={{minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px'}}>
+      <section className="card" style={{ maxWidth: 700, width: '100%', padding: '2.5rem', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
         {/* Header */}
-        <div style={{textAlign: 'center', marginBottom: '2.5rem'}}>
-          <div style={{
-            fontSize: '56px', 
-            marginBottom: '15px',
-            background: 'linear-gradient(135deg, #0ea5e9, #14b8a6)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            display: 'inline-block'
-          }}>🏥</div>
-          <h2 style={{ 
-            marginTop: 0, 
-            marginBottom: 10, 
-            fontSize: '32px',
-            fontWeight: '700',
-            color: '#0f172a',
-            letterSpacing: '-0.5px'
-          }}>
+        <div style={{textAlign: 'center', marginBottom: '2rem'}}>
+          <div style={{fontSize: '48px', marginBottom: '10px'}}>🏥</div>
+          <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: '28px' }}>
             Patient Registration
           </h2>
-          <p className="label" style={{
-            fontSize: '16px',
-            color: '#64748b',
-            fontWeight: '400'
-          }}>
+          <p className="label" style={{fontSize: '15px'}}>
             Create your account to access our healthcare services
           </p>
-          
-          {/* Progress Steps */}
-          <div style={{marginTop: '25px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px'}}>
+          <div style={{marginTop: '15px', display: 'flex', justifyContent: 'center', gap: '10px'}}>
             {[1, 2, 3].map(s => (
-              <div key={s} style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  background: step >= s ? 'linear-gradient(135deg, #0ea5e9, #14b8a6)' : '#e2e8f0',
-                  color: step >= s ? 'white' : '#94a3b8',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  transition: 'all 0.3s',
-                  boxShadow: step >= s ? '0 4px 12px rgba(14, 165, 233, 0.3)' : 'none'
-                }}>
-                  {step > s ? '✓' : s}
-                </div>
-                {s < 3 && (
-                  <div style={{
-                    width: '50px',
-                    height: '3px',
-                    borderRadius: '2px',
-                    background: step > s ? 'linear-gradient(90deg, #0ea5e9, #14b8a6)' : '#e2e8f0',
-                    transition: 'all 0.3s'
-                  }} />
-                )}
-              </div>
+              <div key={s} style={{
+                width: '40px',
+                height: '4px',
+                borderRadius: '2px',
+                background: step >= s ? '#667eea' : '#e0e0e0',
+                transition: 'all 0.3s'
+              }} />
             ))}
           </div>
-          <p className="label" style={{
-            marginTop: '15px', 
-            fontSize: '14px',
-            color: '#0ea5e9',
-            fontWeight: '600'
-          }}>
+          <p className="label" style={{marginTop: '10px', fontSize: '13px'}}>
             Step {step} of 3
           </p>
         </div>
@@ -294,9 +235,7 @@ export default function PatientSignup() {
           {/* Step 1: Personal Information */}
           {step === 1 && (
             <div style={{animation: 'fadeIn 0.3s'}}>
-              <h3 style={{marginBottom: '24px', fontSize: '22px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <span style={{fontSize: '24px'}}>👤</span> Personal Information
-              </h3>
+              <h3 style={{marginBottom: '20px', fontSize: '20px'}}>👤 Personal Information</h3>
               
               <div style={{marginBottom: '15px'}}>
                 <label className="label">Full Name *</label>
@@ -397,9 +336,7 @@ export default function PatientSignup() {
           {/* Step 2: Contact & Address */}
           {step === 2 && (
             <div style={{animation: 'fadeIn 0.3s'}}>
-              <h3 style={{marginBottom: '24px', fontSize: '22px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <span style={{fontSize: '24px'}}>📍</span> Contact & Address
-              </h3>
+              <h3 style={{marginBottom: '20px', fontSize: '20px'}}>📍 Contact & Address</h3>
               
               <div className="grid grid-2" style={{gap: '15px', marginBottom: '15px'}}>
                 <div>
@@ -525,9 +462,7 @@ export default function PatientSignup() {
           {/* Step 3: Security & Branch */}
           {step === 3 && (
             <div style={{animation: 'fadeIn 0.3s'}}>
-              <h3 style={{marginBottom: '24px', fontSize: '22px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <span style={{fontSize: '24px'}}>🔒</span> Security & Branch Selection
-              </h3>
+              <h3 style={{marginBottom: '20px', fontSize: '20px'}}>🔒 Security & Branch Selection</h3>
               
               <div style={{marginBottom: '15px'}}>
                 <label className="label">Password * (minimum 8 characters)</label>
@@ -585,13 +520,13 @@ export default function PatientSignup() {
               </div>
 
               <div style={{
-                padding: '16px',
-                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-                borderRadius: '12px',
-                border: '2px solid #bae6fd',
+                padding: '15px',
+                background: '#f0f9ff',
+                borderRadius: '8px',
+                border: '1px solid #bae6fd',
                 marginBottom: '15px'
               }}>
-                <p style={{fontSize: '14px', margin: 0, color: '#075985', fontWeight: '500'}}>
+                <p style={{fontSize: '13px', margin: 0, color: '#0c4a6e'}}>
                   ℹ️ By registering, you agree to our Terms of Service and Privacy Policy
                 </p>
               </div>
@@ -601,19 +536,15 @@ export default function PatientSignup() {
           {/* Error Message */}
           {error && (
             <div style={{
-              padding: '14px',
-              background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-              border: '2px solid #fca5a5',
-              borderRadius: '12px',
-              color: '#991b1b',
+              padding: '12px',
+              background: '#fee',
+              border: '1px solid #fcc',
+              borderRadius: '8px',
+              color: '#c33',
               marginBottom: '20px',
-              fontSize: '14px',
-              fontWeight: '500',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
+              fontSize: '14px'
             }}>
-              <span style={{fontSize: '18px'}}>⚠️</span> {error}
+              ⚠️ {error}
             </div>
           )}
 
@@ -625,18 +556,7 @@ export default function PatientSignup() {
                 className="btn"
                 onClick={handleBack}
                 disabled={loading}
-                style={{
-                  flex: 1,
-                  padding: '14px 24px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  borderRadius: '12px',
-                  border: '2px solid #e2e8f0',
-                  background: 'white',
-                  color: '#475569',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
+                style={{flex: 1}}
               >
                 ← Back
               </button>
@@ -648,19 +568,7 @@ export default function PatientSignup() {
                 className="btn primary"
                 onClick={handleNext}
                 disabled={loading}
-                style={{
-                  flex: 2,
-                  padding: '14px 24px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #0ea5e9, #14b8a6)',
-                  color: 'white',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)'
-                }}
+                style={{flex: 2}}
               >
                 Next →
               </button>
@@ -669,19 +577,7 @@ export default function PatientSignup() {
                 type="submit"
                 className="btn primary"
                 disabled={loading}
-                style={{
-                  flex: 2,
-                  padding: '14px 24px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: loading ? '#94a3b8' : 'linear-gradient(135deg, #0ea5e9, #14b8a6)',
-                  color: 'white',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: loading ? 'none' : '0 4px 12px rgba(14, 165, 233, 0.3)'
-                }}
+                style={{flex: 2}}
               >
                 {loading ? '⏳ Registering...' : '✓ Complete Registration'}
               </button>
@@ -690,28 +586,17 @@ export default function PatientSignup() {
         </form>
 
         {/* Footer Links */}
-        <div style={{marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '2px solid #e2e8f0', textAlign: 'center'}}>
-          <p className="label" style={{fontSize: '15px', color: '#64748b', marginBottom: '15px'}}>
+        <div style={{marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #e0e0e0', textAlign: 'center'}}>
+          <p className="label" style={{fontSize: '14px'}}>
             Already have an account?{' '}
-            <a href="/patient-login" style={{color: '#0ea5e9', textDecoration: 'none', fontWeight: 600, borderBottom: '2px solid transparent', transition: 'border-color 0.2s'}}>
+            <a href="/patient-login" style={{color: '#667eea', textDecoration: 'none', fontWeight: 600}}>
               Login here
             </a>
           </p>
           <button 
             className="btn" 
             onClick={() => navigate('/')}
-            style={{
-              marginTop: '10px',
-              padding: '10px 20px',
-              fontSize: '14px',
-              fontWeight: '600',
-              borderRadius: '10px',
-              border: '2px solid #e2e8f0',
-              background: 'white',
-              color: '#64748b',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
+            style={{marginTop: '10px'}}
           >
             ← Back to Home
           </button>

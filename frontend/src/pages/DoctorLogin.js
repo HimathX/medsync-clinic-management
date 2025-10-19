@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/auth.css';
 import '../styles/DoctorLogin.css';
@@ -12,6 +12,23 @@ const DoctorLogin = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+
+  // Ensure browser history is properly maintained for back button
+  useEffect(() => {
+    // Push a new history entry when component mounts
+    window.history.pushState(null, '', window.location.href);
+    
+    const handlePopState = () => {
+      // If user clicks browser back button, navigate to home
+      navigate('/');
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -56,6 +73,7 @@ const DoctorLogin = () => {
         localStorage.setItem('doctor_id', data.doctor_id || data.user_id);
         localStorage.setItem('room_no', data.room_no || '');
         localStorage.setItem('consultation_fee', data.consultation_fee || 0);
+        localStorage.setItem('branch_id', data.branch_id || '');
         localStorage.setItem('branch_name', data.branch_name || '');
         localStorage.setItem('specializations', JSON.stringify(data.specializations || []));
 
@@ -66,13 +84,14 @@ const DoctorLogin = () => {
         console.log('   - Email:', data.email);
         console.log('   - Doctor ID:', data.doctor_id);
         console.log('   - Room:', data.room_no);
-        console.log('   - Branch:', data.branch_name);
+        console.log('   - Branch ID:', data.branch_id);
+        console.log('   - Branch Name:', data.branch_name);
         console.log('   - Specializations:', data.specializations);
 
         // Use a small delay to ensure localStorage is written
         setTimeout(() => {
           console.log('🚀 Redirecting to /doctor/dashboard');
-          navigate('/doctor/dashboard', { replace: true });
+          navigate('/doctor/dashboard');
         }, 500);
 
       } else {

@@ -143,7 +143,7 @@ class TreatmentService {
    */
   async addTreatment(treatmentData) {
     try {
-      const response = await apiClient.post('/treatments/', treatmentData);
+      const response = await apiClient.post('/treatment-records/', treatmentData);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to add treatment'));
@@ -158,7 +158,7 @@ class TreatmentService {
    */
   async addTreatmentsBulk(consultationRecId, treatments) {
     try {
-      const response = await apiClient.post('/treatments/bulk', {
+      const response = await apiClient.post('/treatment-records/bulk', {
         consultation_rec_id: consultationRecId,
         treatments
       });
@@ -176,7 +176,7 @@ class TreatmentService {
    */
   async getAllTreatments(skip = 0, limit = 100) {
     try {
-      const response = await apiClient.get(`/treatments/?skip=${skip}&limit=${limit}`);
+      const response = await apiClient.get(`/treatment-records/?skip=${skip}&limit=${limit}`);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch treatments'));
@@ -190,7 +190,7 @@ class TreatmentService {
    */
   async getTreatmentById(treatmentId) {
     try {
-      const response = await apiClient.get(`/treatments/${treatmentId}`);
+      const response = await apiClient.get(`/treatment-records/${treatmentId}`);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch treatment'));
@@ -204,7 +204,7 @@ class TreatmentService {
    */
   async getTreatmentsByConsultation(consultationRecId) {
     try {
-      const response = await apiClient.get(`/treatments/consultation/${consultationRecId}`);
+      const response = await apiClient.get(`/treatment-records/consultation/${consultationRecId}`);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch treatments for consultation'));
@@ -219,7 +219,7 @@ class TreatmentService {
    */
   async updateTreatment(treatmentId, notes) {
     try {
-      const response = await apiClient.patch(`/treatments/${treatmentId}`, { notes });
+      const response = await apiClient.patch(`/treatment-records/${treatmentId}`, { notes });
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to update treatment'));
@@ -233,7 +233,7 @@ class TreatmentService {
    */
   async deleteTreatment(treatmentId) {
     try {
-      const response = await apiClient.delete(`/treatments/${treatmentId}`);
+      const response = await apiClient.delete(`/treatment-records/${treatmentId}`);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to delete treatment'));
@@ -247,7 +247,7 @@ class TreatmentService {
    */
   async getTreatmentStatistics(limit = 10) {
     try {
-      const response = await apiClient.get(`/treatments/statistics/by-service?limit=${limit}`);
+      const response = await apiClient.get(`/treatment-records/statistics/by-service?limit=${limit}`);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch treatment statistics'));

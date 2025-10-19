@@ -35,10 +35,12 @@ import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import DoctorAppointments from "./pages/doctor/DoctorAppointments";
 import DoctorPatients from "./pages/doctor/DoctorPatients";
 import DoctorConsultations from "./pages/doctor/DoctorConsultations";
+import DoctorConsultation from "./pages/doctor/DoctorConsultation";
 import DoctorSchedule from "./pages/doctor/DoctorSchedule";
 import DoctorPrescriptions from "./pages/doctor/DoctorPrescriptions";
 import DoctorTreatments from "./pages/doctor/DoctorTreatments";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
+import DoctorTreatmentCatalogue from "./pages/doctor/DoctorTreatmentCatalogue"
 
 // Patient Portal Pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
@@ -83,11 +85,18 @@ function App() {
   useEffect(() => {
     const checkAuth = () => {
       const currentUser = authService.getCurrentUser();
+      console.log('🔍 Checking auth on app load. currentUser:', currentUser);
+      
       if (currentUser && currentUser.isAuthenticated) {
         console.log('✅ Auth found in authService:', currentUser);
+        console.log('   userType:', currentUser.userType);
+        console.log('   userId:', currentUser.userId);
         setIsAuthenticated(true);
         setUserType(currentUser.userType);
         setRoleFromUserType(currentUser.userType);
+      } else {
+        console.log('❌ No valid auth found. Will show LandingPage.');
+        setIsAuthenticated(false);
       }
       
       setLoading(false);
@@ -130,7 +139,37 @@ function App() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <h2>Loading MedSync...</h2>
+          <p style={{ fontSize: '14px', opacity: 0.9 }}>Please wait</p>
+          <button 
+            onClick={() => { localStorage.clear(); window.location.reload(); }}
+            style={{
+              marginTop: '20px',
+              padding: '10px 20px',
+              background: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: '1px solid white',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Clear Session (if stuck)
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -179,14 +218,13 @@ function App() {
             <Route path="/" element={<DoctorDashboard />} />
             <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
             <Route path="/doctor/appointments" element={<DoctorAppointments />} />
+            <Route path="/doctor/consultation" element={<DoctorConsultation />} />
             <Route path="/doctor/patients" element={<DoctorPatients />} />
             <Route path="/doctor/consultations" element={<DoctorConsultations />} />
             <Route path="/doctor/schedule" element={<DoctorSchedule />} />
             <Route path="/doctor/prescriptions" element={<DoctorPrescriptions />} />
             <Route path="/doctor/treatments" element={<DoctorTreatments />} />
             <Route path="/doctor/profile" element={<DoctorProfile />} />
-            <Route path="/doctor/reports" element={<DoctorReports />} />
-            <Route path="/doctor/settings" element={<DoctorSettings />} />
             <Route path="/profile" element={<DoctorProfile />} />
             <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />
           </>

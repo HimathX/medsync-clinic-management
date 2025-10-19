@@ -14,6 +14,7 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
   const [data, setData] = useState({
     doctor: {
       name: 'Doctor',
@@ -31,7 +32,10 @@ export default function DoctorDashboard() {
       total_patients: 0
     },
     todayAppointments: [],
-    upcomingAppointments: []
+    upcomingAppointments: [],
+    specializations: [],
+    timeSlots: [],
+    recentActivity: []
   });
 
   useEffect(() => {
@@ -130,20 +134,64 @@ export default function DoctorDashboard() {
 
       if (doctorResponse.ok) {
         const doctorData = await doctorResponse.json();
+        const doctor = doctorData.doctor || doctorData;
         doctorInfo = {
-          name: doctorData.full_name || doctorInfo.name,
-          email: doctorData.email || doctorInfo.email,
+          name: doctor.full_name || doctorInfo.name,
+          email: doctor.email || doctorInfo.email,
           specializations: doctorData.specializations || [],
-          room: doctorData.room_no || doctorInfo.room,
-          branch: doctorData.branch_name || doctorInfo.branch
+          room: doctor.room_no || doctorInfo.room,
+          branch: doctor.branch_name || doctorInfo.branch
         };
       }
+
+      // Fetch specializations with certification dates
+      let specializationsData = [];
+      try {
+        const specResponse = await fetch(`${API_BASE_URL}/doctors/${doctorId}/specializations`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (specResponse.ok) {
+          const specData = await specResponse.json();
+          specializationsData = specData.specializations || [];
+        }
+      } catch (err) {
+        console.log('Could not fetch specializations');
+      }
+
+      // Fetch available time slots
+      let timeSlotsData = [];
+      try {
+        const slotsResponse = await fetch(`${API_BASE_URL}/doctors/${doctorId}/time-slots?available_only=true`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (slotsResponse.ok) {
+          const slotsData = await slotsResponse.json();
+          timeSlotsData = (slotsData.time_slots || []).slice(0, 10); // Next 10 slots
+        }
+      } catch (err) {
+        console.log('Could not fetch time slots');
+      }
+
+      // Generate recent activity from appointments
+      const recentActivity = [
+        ...todayData.appointments.slice(0, 5).map(apt => ({
+          type: 'appointment',
+          icon: '📅',
+          title: `Appointment with ${apt.patient_name}`,
+          time: new Date().toISOString(),
+          status: apt.status
+        })),
+        { type: 'login', icon: '🔐', title: 'Logged into system', time: new Date().toISOString(), status: 'Success' }
+      ];
 
       setData({
         doctor: doctorInfo,
         stats: stats,
         todayAppointments: todayData.appointments || [],
-        upcomingAppointments: upcomingData.appointments || []
+        upcomingAppointments: upcomingData.appointments || [],
+        specializations: specializationsData,
+        timeSlots: timeSlotsData,
+        recentActivity: recentActivity
       });
 
       console.log('✅ Dashboard data loaded successfully');
@@ -181,6 +229,27 @@ export default function DoctorDashboard() {
     return colors[status] || '#6b7280';
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const getTimeAgo = (dateString) => {
+    if (!dateString) return '';
+    const now = new Date();
+    const then = new Date(dateString);
+    const seconds = Math.floor((now - then) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hrs ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
+  };
+
   if (loading) {
     return (
       <div className="patient-portal">
@@ -198,9 +267,9 @@ export default function DoctorDashboard() {
       <nav className="patient-top-nav">
         <div className="patient-top-nav-content">
           <div className="patient-nav-links">
-            <a href="#overview">Overview</a>
-            <a href="#appointments">Appointments</a>
-            <a href="#patients">Patients</a>
+            <a href="#/doctor/dashboard" onClick={(e) => { e.preventDefault(); navigate('/doctor/dashboard'); }}>Dashboard</a>
+            <a href="#/doctor/appointments" onClick={(e) => { e.preventDefault(); navigate('/doctor/appointments'); }}>Appointments</a>
+            <a href="#/doctor/patients" onClick={(e) => { e.preventDefault(); navigate('/doctor/patients'); }}>Patients</a>
           </div>
           <div className="patient-nav-actions">
             <a href="tel:+94112345678" className="patient-contact-link">📞 +94 11 234 5678</a>
@@ -224,7 +293,13 @@ export default function DoctorDashboard() {
             <div className="patient-info-display" onClick={() => setShowProfileMenu(!showProfileMenu)}>
               <div className="patient-info-text">
                 <div className="patient-name-display">Dr. {data.doctor.name}</div>
-                <div className="patient-id-display">{data.doctor.specializations[0] || 'Physician'}</div>
+                <div className="patient-id-display">
+                  {data.doctor.specializations && data.doctor.specializations[0] 
+                    ? (typeof data.doctor.specializations[0] === 'object' 
+                      ? data.doctor.specializations[0].specialization_title 
+                      : data.doctor.specializations[0])
+                    : 'Physician'}
+                </div>
               </div>
               <div className="patient-avatar-wrapper">
                 <div className="patient-avatar">
@@ -279,140 +354,265 @@ export default function DoctorDashboard() {
           )}
         </section>
 
-        {/* Stats Grid */}
-        <section className="dashboard-stats-grid" style={{ marginBottom: '40px' }}>
-          <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-            <div className="stat-icon">📅</div>
-            <div className="stat-value">{data.stats.today_appointments}</div>
-            <div className="stat-label">Today's Appointments</div>
-          </div>
 
-          <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-            <div className="stat-icon">⏳</div>
-            <div className="stat-value">{data.stats.pending_consultations}</div>
-            <div className="stat-label">Pending Consultations</div>
-          </div>
-
-          <div className="stat-card" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-            <div className="stat-icon">✅</div>
-            <div className="stat-value">{data.stats.completed_today}</div>
-            <div className="stat-label">Completed Today</div>
-          </div>
-
-          <div className="stat-card" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>
-            <div className="stat-icon">👥</div>
-            <div className="stat-value">{data.stats.patients_seen}</div>
-            <div className="stat-label">Patients Seen Today</div>
-          </div>
-
-          <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' }}>
-            <div className="stat-icon">📆</div>
-            <div className="stat-value">{data.stats.upcoming_appointments}</div>
-            <div className="stat-label">Upcoming</div>
-          </div>
-
-          <div className="stat-card" style={{ background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)' }}>
-            <div className="stat-icon">🩺</div>
-            <div className="stat-value">{data.stats.total_patients}</div>
-            <div className="stat-label">Total Patients</div>
-          </div>
-        </section>
-
-        {/* Today's Appointments */}
-        <section className="dashboard-section" style={{ marginBottom: '40px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a2332' }}>Today's Schedule</h2>
-            <button className="btn-view-all" onClick={() => navigate('/doctor/appointments')}>
-              View All →
+        {/* Tabbed Sections */}
+        <section style={{ marginBottom: '40px' }}>
+          {/* Tab Navigation */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '10px', 
+            marginBottom: '24px',
+            borderBottom: '2px solid #e2e8f0',
+            paddingBottom: '8px'
+          }}>
+            <button
+              onClick={() => setActiveTab('overview')}
+              style={{
+                padding: '12px 24px',
+                background: activeTab === 'overview' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                color: activeTab === 'overview' ? 'white' : '#64748b',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+            >
+              📊 Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('specializations')}
+              style={{
+                padding: '12px 24px',
+                background: activeTab === 'specializations' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                color: activeTab === 'specializations' ? 'white' : '#64748b',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+            >
+              🎓 Specializations
+            </button>
+            <button
+              onClick={() => setActiveTab('availability')}
+              style={{
+                padding: '12px 24px',
+                background: activeTab === 'availability' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                color: activeTab === 'availability' ? 'white' : '#64748b',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+            >
+              🕒 Availability
+            </button>
+            <button
+              onClick={() => setActiveTab('activity')}
+              style={{
+                padding: '12px 24px',
+                background: activeTab === 'activity' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                color: activeTab === 'activity' ? 'white' : '#64748b',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+            >
+              🔔 Activity
             </button>
           </div>
 
-          {data.todayAppointments.length === 0 ? (
-            <div className="empty-state-card">
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>📭</div>
-              <h3 style={{ fontSize: '20px', marginBottom: '8px', color: '#1a2332' }}>No appointments today</h3>
-              <p style={{ color: '#64748b' }}>You have no scheduled appointments for today</p>
-            </div>
-          ) : (
-            <div className="appointments-list">
-              {data.todayAppointments.map((appt, index) => (
-                <div key={appt.appointment_id || index} className="appointment-card-modern">
-                  <div className="appointment-time-badge">
-                    <div className="time-large">{formatTime(appt.start_time)}</div>
-                    <div className="time-small">to {formatTime(appt.end_time)}</div>
-                  </div>
-
-                  <div className="appointment-details-section">
-                    <div className="patient-info-row">
-                      <div className="patient-avatar-small">
-                        {appt.patient_name ? appt.patient_name.charAt(0).toUpperCase() : 'P'}
-                      </div>
-                      <div>
-                        <div className="patient-name-large">{appt.patient_name || 'Patient'}</div>
-                        <div className="patient-id-small">ID: {appt.patient_id}</div>
-                      </div>
+          {/* Tab Content */}
+          <div style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+            {activeTab === 'overview' && (
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1a2332', marginBottom: '20px' }}>
+                  Performance Overview
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                  <div style={{ padding: '20px', background: 'linear-gradient(135deg, #667eea20 0%, #764ba220 100%)', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>Completion Rate</div>
+                    <div style={{ fontSize: '28px', fontWeight: '700', color: '#667eea' }}>
+                      {data.stats.today_appointments > 0 
+                        ? Math.round((data.stats.completed_today / data.stats.today_appointments) * 100) 
+                        : 0}%
                     </div>
-
-                    {(appt.chronic_conditions || appt.allergies) && (
-                      <div className="medical-alerts">
-                        {appt.chronic_conditions && (
-                          <span className="alert-badge-warning">🩺 {appt.chronic_conditions}</span>
-                        )}
-                        {appt.allergies && (
-                          <span className="alert-badge-danger">⚠️ Allergies: {appt.allergies}</span>
-                        )}
-                      </div>
-                    )}
                   </div>
-
-                  <div className="appointment-actions-section">
-                    <div className="status-badge" style={{ backgroundColor: getStatusColor(appt.status), color: 'white' }}>
-                      {appt.status}
+                  <div style={{ padding: '20px', background: 'linear-gradient(135deg, #43e97b20 0%, #38f9d720 100%)', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>Avg. Patients/Day</div>
+                    <div style={{ fontSize: '28px', fontWeight: '700', color: '#43e97b' }}>
+                      {data.stats.patients_seen}
                     </div>
-                    <button 
-                      className="btn-action-primary"
-                      onClick={() => navigate(`/doctor/consultations/${appt.appointment_id}`)}
+                  </div>
+                  <div style={{ padding: '20px', background: 'linear-gradient(135deg, #4facfe20 0%, #00f2fe20 100%)', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>Total Patients</div>
+                    <div style={{ fontSize: '28px', fontWeight: '700', color: '#4facfe' }}>
+                      {data.stats.total_patients}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'specializations' && (
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1a2332', marginBottom: '20px' }}>
+                  My Specializations & Certifications
+                </h3>
+                {data.specializations.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎓</div>
+                    <p>No specializations found</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gap: '16px' }}>
+                    {data.specializations.map((spec, index) => (
+                      <div key={index} style={{
+                        padding: '20px',
+                        border: '2px solid #e2e8f0',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        transition: 'all 0.3s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                      >
+                        <div>
+                          <div style={{ fontSize: '18px', fontWeight: '600', color: '#1a2332', marginBottom: '4px' }}>
+                            🎓 {spec.specialization_title}
+                          </div>
+                          <div style={{ fontSize: '14px', color: '#64748b' }}>
+                            {spec.other_details || 'Professional certification'}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Certified</div>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#667eea' }}>
+                            {formatDate(spec.certification_date)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'availability' && (
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1a2332', marginBottom: '20px' }}>
+                  My Available Time Slots
+                </h3>
+                {data.timeSlots.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📅</div>
+                    <p>No available time slots</p>
+                    <button
+                      onClick={() => navigate('/doctor/schedule')}
+                      style={{
+                        marginTop: '16px',
+                        padding: '12px 24px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
                     >
-                      View Details →
+                      Create Time Slots
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                    {data.timeSlots.map((slot, index) => (
+                      <div key={index} style={{
+                        padding: '16px',
+                        background: slot.is_booked ? '#fff3e0' : '#e8f5e9',
+                        borderLeft: `4px solid ${slot.is_booked ? '#f59e0b' : '#10b981'}`,
+                        borderRadius: '8px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a2332' }}>
+                            📅 {formatDate(slot.available_date)}
+                          </div>
+                          <div style={{
+                            padding: '4px 12px',
+                            background: slot.is_booked ? '#f59e0b' : '#10b981',
+                            color: 'white',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: '600'
+                          }}>
+                            {slot.is_booked ? 'Booked' : 'Available'}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: '#1a2332' }}>
+                          🕒 {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-        {/* Upcoming Appointments */}
-        <section className="dashboard-section" style={{ marginBottom: '40px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a2332' }}>Upcoming Appointments</h2>
+            {activeTab === 'activity' && (
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1a2332', marginBottom: '20px' }}>
+                  Recent Activity
+                </h3>
+                {data.recentActivity.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔔</div>
+                    <p>No recent activity</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {data.recentActivity.map((activity, index) => (
+                      <div key={index} style={{
+                        padding: '16px',
+                        background: '#f8fafc',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ fontSize: '32px' }}>{activity.icon}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a2332', marginBottom: '4px' }}>
+                            {activity.title}
+                          </div>
+                          <div style={{ fontSize: '14px', color: '#64748b' }}>
+                            {getTimeAgo(activity.time)}
+                          </div>
+                        </div>
+                        <div style={{
+                          padding: '6px 12px',
+                          background: getStatusColor(activity.status) + '20',
+                          color: getStatusColor(activity.status),
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {activity.status}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
-          {data.upcomingAppointments.length === 0 ? (
-            <div className="empty-state-card">
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>📅</div>
-              <p style={{ color: '#64748b' }}>No upcoming appointments in the next 7 days</p>
-            </div>
-          ) : (
-            <div className="upcoming-appointments-grid">
-              {data.upcomingAppointments.slice(0, 6).map((appt, index) => (
-                <div key={appt.appointment_id || index} className="upcoming-appointment-card">
-                  <div className="upcoming-date-section">
-                    <div className="date-day">
-                      {new Date(appt.available_date).getDate()}
-                    </div>
-                    <div className="date-month">
-                      {new Date(appt.available_date).toLocaleDateString('en-US', { month: 'short' })}
-                    </div>
-                  </div>
-                  <div className="upcoming-info-section">
-                    <div className="upcoming-time">{formatTime(appt.start_time)}</div>
-                    <div className="upcoming-patient">{appt.patient_name || 'Patient'}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
 
         {/* Quick Actions */}
@@ -420,35 +620,398 @@ export default function DoctorDashboard() {
           <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a2332', marginBottom: '20px' }}>Quick Actions</h2>
           
           <div className="quick-actions-grid">
-            <button className="quick-action-card" onClick={() => navigate('/doctor/appointments')}>
+            <button 
+              type="button"
+              className="quick-action-card" 
+              onClick={() => {
+                console.log('📅 Navigating to appointments');
+                navigate('/doctor/appointments');
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="quick-action-icon" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>📅</div>
               <div className="quick-action-label">View Schedule</div>
             </button>
 
-            <button className="quick-action-card" onClick={() => navigate('/doctor/patients')}>
+            <button 
+              type="button"
+              className="quick-action-card" 
+              onClick={() => {
+                console.log('👥 Navigating to patients');
+                navigate('/doctor/patients');
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="quick-action-icon" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>👥</div>
               <div className="quick-action-label">Patient List</div>
             </button>
 
-            <button className="quick-action-card" onClick={() => navigate('/doctor/consultations')}>
+            <button 
+              type="button"
+              className="quick-action-card" 
+              onClick={() => {
+                console.log('📋 Navigating to consultations');
+                navigate('/doctor/consultations');
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="quick-action-icon" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>📋</div>
               <div className="quick-action-label">Consultations</div>
             </button>
 
-            <button className="quick-action-card" onClick={() => navigate('/doctor/prescriptions')}>
+            <button 
+              type="button"
+              className="quick-action-card" 
+              onClick={() => {
+                console.log('💊 Navigating to prescriptions');
+                navigate('/doctor/prescriptions');
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="quick-action-icon" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>💊</div>
               <div className="quick-action-label">Prescriptions</div>
             </button>
 
-            <button className="quick-action-card" onClick={() => navigate('/doctor/schedule')}>
+            <button 
+              type="button"
+              className="quick-action-card" 
+              onClick={() => {
+                console.log('⚙️ Navigating to schedule');
+                navigate('/doctor/schedule');
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="quick-action-icon" style={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' }}>⚙️</div>
               <div className="quick-action-label">Manage Schedule</div>
             </button>
 
-            <button className="quick-action-card" onClick={() => navigate('/doctor/profile')}>
+            <button 
+              type="button"
+              className="quick-action-card" 
+              onClick={() => {
+                console.log('👤 Navigating to profile');
+                navigate('/doctor/profile');
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="quick-action-icon" style={{ background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)' }}>👤</div>
               <div className="quick-action-label">My Profile</div>
             </button>
+          </div>
+        </section>
+
+        {/* Stats Grid */}
+        <section style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a2332', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📊</span>
+            Dashboard Statistics
+          </h2>
+
+          <div className="dashboard-stats-grid" style={{ 
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '24px',
+            padding: '0 4px'
+          }}>
+  <div className="stat-card stat-card-hover" style={{ 
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    borderRadius: '20px',
+    padding: '32px 28px',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: '200px'
+  }}>
+    <div style={{ 
+      position: 'absolute', 
+      top: '-20px', 
+      right: '-20px', 
+      fontSize: '120px', 
+      opacity: '0.1',
+      lineHeight: '1',
+      pointerEvents: 'none'
+    }}>📅</div>
+    <div>
+      <div style={{ fontSize: '48px', marginBottom: '16px', display: 'flex', alignItems: 'center' }}>📅</div>
+      <div style={{ 
+        fontSize: '42px', 
+        fontWeight: '700', 
+        marginBottom: '12px',
+        letterSpacing: '-1px'
+      }}>{data.stats.today_appointments}</div>
+    </div>
+    <div style={{ 
+      fontSize: '15px', 
+      opacity: '0.95',
+      fontWeight: '500',
+      letterSpacing: '0.3px',
+      marginTop: 'auto'
+    }}>Today's Appointments</div>
+    <div style={{
+      fontSize: '12px',
+      opacity: '0.75',
+      marginTop: '8px',
+      paddingTop: '12px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.2)'
+    }}>Active Schedule</div>
+  </div>
+
+  <div className="stat-card stat-card-hover" style={{ 
+    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    borderRadius: '20px',
+    padding: '32px 28px',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: '0 10px 30px rgba(240, 147, 251, 0.3)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: '200px'
+  }}>
+    <div style={{ 
+      position: 'absolute', 
+      top: '-20px', 
+      right: '-20px', 
+      fontSize: '120px', 
+      opacity: '0.1',
+      lineHeight: '1',
+      pointerEvents: 'none'
+    }}>⏳</div>
+    <div>
+      <div style={{ fontSize: '48px', marginBottom: '16px', display: 'flex', alignItems: 'center' }}>⏳</div>
+      <div style={{ 
+        fontSize: '42px', 
+        fontWeight: '700', 
+        marginBottom: '12px',
+        letterSpacing: '-1px'
+      }}>{data.stats.pending_consultations}</div>
+    </div>
+    <div style={{ 
+      fontSize: '15px', 
+      opacity: '0.95',
+      fontWeight: '500',
+      letterSpacing: '0.3px',
+      marginTop: 'auto'
+    }}>Pending Consultations</div>
+    <div style={{
+      fontSize: '12px',
+      opacity: '0.75',
+      marginTop: '8px',
+      paddingTop: '12px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.2)'
+    }}>Awaiting Action</div>
+  </div>
+
+  <div className="stat-card stat-card-hover" style={{ 
+    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    borderRadius: '20px',
+    padding: '32px 28px',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: '0 10px 30px rgba(79, 172, 254, 0.3)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: '200px'
+  }}>
+    <div style={{ 
+      position: 'absolute', 
+      top: '-20px', 
+      right: '-20px', 
+      fontSize: '120px', 
+      opacity: '0.1',
+      lineHeight: '1',
+      pointerEvents: 'none'
+    }}>✅</div>
+    <div>
+      <div style={{ fontSize: '48px', marginBottom: '16px', display: 'flex', alignItems: 'center' }}>✅</div>
+      <div style={{ 
+        fontSize: '42px', 
+        fontWeight: '700', 
+        marginBottom: '12px',
+        letterSpacing: '-1px'
+      }}>{data.stats.completed_today}</div>
+    </div>
+    <div style={{ 
+      fontSize: '15px', 
+      opacity: '0.95',
+      fontWeight: '500',
+      letterSpacing: '0.3px',
+      marginTop: 'auto'
+    }}>Completed Today</div>
+    <div style={{
+      fontSize: '12px',
+      opacity: '0.75',
+      marginTop: '8px',
+      paddingTop: '12px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.2)'
+    }}>All Done</div>
+  </div>
+
+  <div className="stat-card stat-card-hover" style={{ 
+    background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    borderRadius: '20px',
+    padding: '32px 28px',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: '0 10px 30px rgba(67, 233, 123, 0.3)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: '200px'
+  }}>
+    <div style={{ 
+      position: 'absolute', 
+      top: '-20px', 
+      right: '-20px', 
+      fontSize: '120px', 
+      opacity: '0.1',
+      lineHeight: '1',
+      pointerEvents: 'none'
+    }}>👥</div>
+    <div>
+      <div style={{ fontSize: '48px', marginBottom: '16px', display: 'flex', alignItems: 'center' }}>👥</div>
+      <div style={{ 
+        fontSize: '42px', 
+        fontWeight: '700', 
+        marginBottom: '12px',
+        letterSpacing: '-1px'
+      }}>{data.stats.patients_seen}</div>
+    </div>
+    <div style={{ 
+      fontSize: '15px', 
+      opacity: '0.95',
+      fontWeight: '500',
+      letterSpacing: '0.3px',
+      marginTop: 'auto'
+    }}>Patients Seen Today</div>
+    <div style={{
+      fontSize: '12px',
+      opacity: '0.75',
+      marginTop: '8px',
+      paddingTop: '12px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.2)'
+    }}>Active Consultations</div>
+  </div>
+
+  <div className="stat-card stat-card-hover" style={{ 
+    background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    borderRadius: '20px',
+    padding: '32px 28px',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: '0 10px 30px rgba(250, 112, 154, 0.3)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: '200px'
+  }}>
+    <div style={{ 
+      position: 'absolute', 
+      top: '-20px', 
+      right: '-20px', 
+      fontSize: '120px', 
+      opacity: '0.1',
+      lineHeight: '1',
+      pointerEvents: 'none'
+    }}>📆</div>
+    <div>
+      <div style={{ fontSize: '48px', marginBottom: '16px', display: 'flex', alignItems: 'center' }}>📆</div>
+      <div style={{ 
+        fontSize: '42px', 
+        fontWeight: '700', 
+        marginBottom: '12px',
+        letterSpacing: '-1px'
+      }}>{data.stats.upcoming_appointments}</div>
+    </div>
+    <div style={{ 
+      fontSize: '15px', 
+      opacity: '0.95',
+      fontWeight: '500',
+      letterSpacing: '0.3px',
+      marginTop: 'auto'
+    }}>Upcoming</div>
+    <div style={{
+      fontSize: '12px',
+      opacity: '0.75',
+      marginTop: '8px',
+      paddingTop: '12px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.2)'
+    }}>Scheduled</div>
+  </div>
+
+  <div className="stat-card stat-card-hover" style={{ 
+    background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+    borderRadius: '20px',
+    padding: '32px 28px',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: '0 10px 30px rgba(48, 207, 208, 0.3)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: '200px'
+  }}>
+    <div style={{ 
+      position: 'absolute', 
+      top: '-20px', 
+      right: '-20px', 
+      fontSize: '120px', 
+      opacity: '0.1',
+      lineHeight: '1',
+      pointerEvents: 'none'
+    }}>🩺</div>
+    <div>
+      <div style={{ fontSize: '48px', marginBottom: '16px', display: 'flex', alignItems: 'center' }}>🩺</div>
+      <div style={{ 
+        fontSize: '42px', 
+        fontWeight: '700', 
+        marginBottom: '12px',
+        letterSpacing: '-1px'
+      }}>{data.stats.total_patients}</div>
+    </div>
+    <div style={{ 
+      fontSize: '15px', 
+      opacity: '0.95',
+      fontWeight: '500',
+      letterSpacing: '0.3px',
+      marginTop: 'auto'
+    }}>Total Patients</div>
+    <div style={{
+      fontSize: '12px',
+      opacity: '0.75',
+      marginTop: '8px',
+      paddingTop: '12px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.2)'
+    }}>Under Care</div>
+  </div>
           </div>
         </section>
       </main>

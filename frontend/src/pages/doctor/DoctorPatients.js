@@ -13,29 +13,86 @@ const DoctorPatients = () => {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
-      return;
-    }
-    fetchPatients();
+    // Check doctor authentication
+    const checkAuth = () => {
+      console.log('🔐 Checking doctor authentication...');
+      
+      const userId = localStorage.getItem('user_id');
+      const userType = localStorage.getItem('user_type');
+      const doctorId = localStorage.getItem('doctor_id');
+      const token = localStorage.getItem('token');
+
+      console.log('Auth data:', { userId, userType, doctorId });
+
+      // Check if user is authenticated as a doctor
+      if (!userId || !token) {
+        console.log('❌ No authentication found, redirecting to login');
+        navigate('/doctor-login', { replace: true });
+        return;
+      }
+
+      if (userType !== 'doctor') {
+        console.log('❌ User type is not doctor:', userType);
+        navigate('/doctor-login', { replace: true });
+        return;
+      }
+
+      console.log('✅ Auth verified, fetching patients for doctor:', doctorId);
+      if (doctorId) {
+        fetchPatients(doctorId);
+      }
+    };
+
+    checkAuth();
   }, [navigate]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (doctorId) => {
     setLoading(true);
+    setError('');
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/patients/`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      console.log('📡 Fetching patients for doctor:', doctorId);
+      
+      // Fetch consultations for this doctor to get list of unique patients
+      const response = await fetch(`${API_BASE_URL}/consultations/?doctor_id=${doctorId}`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`, 
+          'Content-Type': 'application/json' 
+        }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setPatients(data);
-      } else {
-        throw new Error('Failed to fetch patients');
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch consultations: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log('📥 Fetched consultations response:', data);
+
+      // Extract unique patients from consultations
+      const uniquePatients = {};
+      const consultations = data.consultations || data || [];
+      
+      if (Array.isArray(consultations)) {
+        consultations.forEach(consultation => {
+          if (consultation.patient_id && !uniquePatients[consultation.patient_id]) {
+            uniquePatients[consultation.patient_id] = {
+              patient_id: consultation.patient_id,
+              first_name: consultation.patient_first_name || consultation.patient_name?.split(' ')[0] || 'Patient',
+              last_name: consultation.patient_name?.split(' ').slice(1).join(' ') || '',
+              email: consultation.patient_email || 'N/A',
+              phone_no: consultation.patient_phone || 'N/A',
+              date_of_birth: consultation.patient_dob || 'N/A'
+            };
+          }
+        });
+      }
+
+      const patientList = Object.values(uniquePatients);
+      console.log('✅ Extracted patients:', patientList);
+      setPatients(patientList);
     } catch (err) {
-      setError('Failed to load patients');
+      console.error('Error loading patients:', err);
+      setError(err.message || 'Failed to load patients');
     } finally {
       setLoading(false);
     }
