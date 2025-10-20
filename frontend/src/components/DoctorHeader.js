@@ -14,6 +14,7 @@ const DoctorHeader = ({ doctorName, branch, setBranch, onLogout }) => {
     { to: "/doctor/patients", label: "Patients" },
     { to: "/doctor/consultations", label: "Consultations" },
     { to: "/doctor/schedule", label: "Schedule" },
+    { to: "/doctor/financial-metrics", label: "Financial Metrics" },
   ];
 
   return (

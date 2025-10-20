@@ -11,12 +11,15 @@ const DoctorConsultation = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const appointmentId = searchParams.get('appointment');
+  const consultationId = searchParams.get('id');
 
   // State for appointment details
   const [appointment, setAppointment] = useState(null);
+  const [consultation, setConsultation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [isViewMode, setIsViewMode] = useState(false);
 
   // Consultation form state
   const [symptoms, setSymptoms] = useState('');
@@ -36,17 +39,63 @@ const DoctorConsultation = () => {
   const [treatmentResults, setTreatmentResults] = useState([]);
   const [selectedTreatments, setSelectedTreatments] = useState([]);
 
-  // Load appointment details
+  // Load appointment or consultation details
   useEffect(() => {
-    if (!appointmentId) {
-      setError('No appointment ID provided');
+    console.log('🔍 Checking params - appointmentId:', appointmentId, 'consultationId:', consultationId);
+    
+    if (consultationId) {
+      // View existing consultation
+      console.log('📖 Loading existing consultation:', consultationId);
+      setIsViewMode(true);
+      fetchConsultationDetails(consultationId);
+    } else if (appointmentId) {
+      // Create new consultation from appointment
+      console.log('✍️ Creating new consultation for appointment:', appointmentId);
+      setIsViewMode(false);
+      fetchAppointmentDetails();
+    } else {
+      setError('No appointment ID or consultation ID provided');
       setLoading(false);
       return;
     }
-    fetchAppointmentDetails();
+    
     loadMedications();
     loadTreatments();
-  }, [appointmentId]);
+  }, [appointmentId, consultationId]);
+
+  const fetchConsultationDetails = async (conId) => {
+    try {
+      setLoading(true);
+      const data = await consultationService.getConsultationById(conId);
+      console.log('✅ Consultation data loaded:', data);
+      
+      const consultationData = data.consultation || data;
+      setConsultation(consultationData);
+      
+      // Pre-fill form with existing data
+      setSymptoms(consultationData.symptoms || '');
+      setDiagnoses(consultationData.diagnoses || '');
+      setFollowUpRequired(consultationData.follow_up_required || false);
+      setFollowUpDate(consultationData.follow_up_date || '');
+      
+      // Load prescriptions if any
+      if (consultationData.prescriptions && Array.isArray(consultationData.prescriptions)) {
+        setPrescriptions(consultationData.prescriptions);
+      }
+      
+      // Load treatments if any
+      if (consultationData.treatments && Array.isArray(consultationData.treatments)) {
+        setSelectedTreatments(consultationData.treatments);
+      }
+      
+      setError('');
+    } catch (err) {
+      console.error('❌ Failed to load consultation:', err);
+      setError(`Failed to load consultation details: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchAppointmentDetails = async () => {
     try {
@@ -214,7 +263,6 @@ const DoctorConsultation = () => {
       setSaving(true);
 
       const consultationData = {
-        appointment_id: appointmentId,
         symptoms: symptoms.trim(),
         diagnoses: diagnoses.trim(),
         follow_up_required: followUpRequired,
@@ -232,11 +280,20 @@ const DoctorConsultation = () => {
         }))
       };
 
-      console.log('Saving consultation:', consultationData);
-      const result = await consultationService.createConsultation(consultationData);
-      
-      alert('✅ Consultation saved successfully!');
-      navigate('/doctor/appointments');
+      if (isViewMode && consultationId) {
+        // Update existing consultation
+        console.log('📝 Updating consultation:', consultationId, consultationData);
+        const result = await consultationService.updateConsultation(consultationId, consultationData);
+        alert('✅ Consultation updated successfully!');
+        navigate('/doctor/consultations');
+      } else if (appointmentId) {
+        // Create new consultation
+        consultationData.appointment_id = appointmentId;
+        console.log('✍️ Creating new consultation:', consultationData);
+        const result = await consultationService.createConsultation(consultationData);
+        alert('✅ Consultation saved successfully!');
+        navigate('/doctor/appointments');
+      }
     } catch (err) {
       console.error('Failed to save consultation:', err);
       alert(`❌ Failed to save consultation: ${err.message}`);
@@ -251,22 +308,24 @@ const DoctorConsultation = () => {
         <DoctorHeader />
         <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
           <div className="spinner"></div>
-          <p style={{ color: '#64748b', fontSize: '16px', fontWeight: '500' }}>Loading appointment...</p>
+          <p style={{ color: '#64748b', fontSize: '16px', fontWeight: '500' }}>
+            {isViewMode ? 'Loading consultation...' : 'Loading appointment...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error || !appointment) {
+  if (error || (!appointment && !consultation)) {
     return (
       <div className="doctor-container">
         <DoctorHeader />
         <div className="doctor-content">
           <div className="error-message">
             <i className="fas fa-exclamation-circle"></i>
-            {error || 'Appointment not found'}
-            <button onClick={() => navigate('/doctor/appointments')} className="btn-primary">
-              Back to Appointments
+            {error || (isViewMode ? 'Consultation not found' : 'Appointment not found')}
+            <button onClick={() => navigate(isViewMode ? '/doctor/consultations' : '/doctor/appointments')} className="btn-primary">
+              Back to {isViewMode ? 'Consultations' : 'Appointments'}
             </button>
           </div>
         </div>
@@ -281,10 +340,13 @@ const DoctorConsultation = () => {
         {/* Header */}
         <div className="doctor-header" style={{ marginBottom: '24px' }}>
           <div>
-            <h1>New Consultation</h1>
-            <p>Record consultation details, prescriptions, and treatments</p>
+            <h1>{isViewMode ? '📖 View Consultation' : '✍️ New Consultation'}</h1>
+            <p>{isViewMode ? 'Review consultation details, prescriptions, and treatments' : 'Record consultation details, prescriptions, and treatments'}</p>
           </div>
-          <button onClick={() => navigate('/doctor/appointments')} className="btn-secondary">
+          <button 
+            onClick={() => navigate(isViewMode ? '/doctor/consultations' : '/doctor/appointments')} 
+            className="btn-secondary"
+          >
             <i className="fas fa-arrow-left"></i> Back
           </button>
         </div>
@@ -296,16 +358,16 @@ const DoctorConsultation = () => {
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
             <div>
-              <strong>Name:</strong> {appointment?.patient_name || appointment?.full_name || 'N/A'}
+              <strong>Name:</strong> {appointment?.patient_name || consultation?.patient_name || appointment?.full_name || 'N/A'}
             </div>
             <div>
-              <strong>ID:</strong> {appointment?.patient_id || 'N/A'}
+              <strong>ID:</strong> {appointment?.patient_id || consultation?.patient_id || 'N/A'}
             </div>
             <div>
-              <strong>Email:</strong> {appointment?.patient_email || appointment?.email || 'N/A'}
+              <strong>Email:</strong> {appointment?.patient_email || consultation?.patient_email || appointment?.email || 'N/A'}
             </div>
             <div>
-              <strong>Blood Group:</strong> {appointment?.blood_group || 'N/A'}
+              <strong>Blood Group:</strong> {appointment?.blood_group || consultation?.blood_group || 'N/A'}
             </div>
             <div>
               <strong>Date:</strong> {appointment?.available_date ? new Date(appointment.available_date).toLocaleDateString() : 'N/A'}
@@ -628,11 +690,11 @@ const DoctorConsultation = () => {
             >
               {saving ? (
                 <>
-                  <i className="fas fa-spinner fa-spin"></i> Saving...
+                  <i className="fas fa-spinner fa-spin"></i> {isViewMode ? 'Updating...' : 'Saving...'}
                 </>
               ) : (
                 <>
-                  <i className="fas fa-save"></i> Save Consultation
+                  <i className="fas fa-save"></i> {isViewMode ? 'Update Consultation' : 'Save Consultation'}
                 </>
               )}
             </button>

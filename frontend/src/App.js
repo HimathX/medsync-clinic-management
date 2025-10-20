@@ -43,6 +43,7 @@ import DoctorProfile from "./pages/doctor/DoctorProfile";
 import DoctorTreatmentCatalogue from "./pages/doctor/DoctorTreatmentCatalogue";
 import DoctorMedications from "./pages/doctor/DoctorMedications";
 import DoctorTreatmentManagement from "./pages/doctor/DoctorTreatmentManagement"
+import DoctorFinancialMetrics from "./pages/doctor/DoctorFinancialMetrics";
 
 // Patient Portal Pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
@@ -228,6 +229,7 @@ function App() {
             <Route path="/doctor/treatments" element={<DoctorTreatments />} />
             <Route path="/doctor/medications" element={<DoctorMedications />} />
             <Route path="/doctor/treatment-management" element={<DoctorTreatmentManagement />} />
+            <Route path="/doctor/financial-metrics" element={<DoctorFinancialMetrics />} />
             <Route path="/doctor/profile" element={<DoctorProfile />} />
             <Route path="/profile" element={<DoctorProfile />} />
             <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />
