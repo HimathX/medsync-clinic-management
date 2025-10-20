@@ -90,6 +90,28 @@ class PrescriptionService {
     }
   }
 
+  /**
+   * Get all prescriptions for a patient with pagination and sorting
+   * @param {string} patientId - Patient ID
+   * @param {number} skip - Pagination offset (default: 0)
+   * @param {number} limit - Maximum records (default: 10)
+   * @param {string} sortBy - Sort option: recent, oldest, medication (default: recent)
+   * @returns {Promise} Prescriptions grouped by consultation
+   */
+  async getPatientPrescriptions(patientId, skip = 0, limit = 10, sortBy = 'recent') {
+    try {
+      const params = new URLSearchParams();
+      params.append('skip', skip);
+      params.append('limit', limit);
+      params.append('sort_by', sortBy);
+      
+      const response = await apiClient.get(`/prescriptions/patient/${patientId}?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch patient prescriptions'));
+    }
+  }
+
   // ============================================
   // UPDATE PRESCRIPTION
   // ============================================

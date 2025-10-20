@@ -3,38 +3,131 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 export default function Profile() {
   const navigate = useNavigate();
   const currentUser = authService.getCurrentUser();
+  const patientId = currentUser?.patientId || localStorage.getItem('patientId');
   const [tab, setTab] = useState('personal');
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [error, setError] = useState('');
   
   const [form, setForm] = useState({
-    name: currentUser?.fullName || '', 
-    gender: 'Male', 
-    nationality: 'Sri Lankan',
-    dob: '1995-01-01',
-    phone: '+94', 
+    name: '', 
+    gender: '', 
+    nationality: '',
+    dob: '',
+    nic: '',
+    bloodGroup: '',
+    phone: '', 
     phone2: '', 
-    email: currentUser?.email || '',
+    email: '',
     address: '', 
-    mailingSame: true,
-    e1: {name:'', relation:'Spouse', phone:'', email:''},
-    e2: {name:'', relation:'Parent', phone:'', email:''},
-    insurer: '', 
-    policy: '', 
-    group: '', 
-    coverageType: 'Individual', 
-    effectiveFrom: '', 
+    address2: '',
+    city: '',
+    province: '',
+    postalCode: '',
+    country: '',
+    emergencyName: '',
+    emergencyRelation: '',
+    emergencyPhone: '',
+    allergies: '',
+    chronicConditions: '',
+    e1: {name: '', relation: 'Spouse', phone: '', email: ''},
+    e2: {name: '', relation: 'Parent', phone: '', email: ''},
+    insurer: '',
+    policy: '',
+    group: '',
+    coverageType: 'Individual',
+    effectiveFrom: '',
     effectiveTo: '',
+    mailingSame: true,
     twoFA: true,
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
+
+  // Fetch profile data on mount
+  useEffect(() => {
+    if (!patientId) {
+      navigate('/patient-login');
+      return;
+    }
+    fetchProfileData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId]);
+
+  const fetchProfileData = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${API_BASE_URL}/profile-patient/patients/${patientId}/profile`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Profile data:', data);
+        
+        setForm({
+          name: data.full_name || '',
+          gender: data.gender || '',
+          nationality: data.country || 'Sri Lankan',
+          dob: data.DOB || '',
+          nic: data.NIC || '',
+          bloodGroup: data.blood_group || '',
+          phone: data.contact_num1 || '',
+          phone2: data.contact_num2 || '',
+          email: data.email || '',
+          address: data.address_line1 || '',
+          address2: data.address_line2 || '',
+          city: data.city || '',
+          province: data.province || '',
+          postalCode: data.postal_code || '',
+          country: data.country || 'Sri Lanka',
+          emergencyName: data.emergency_contact_name || '',
+          emergencyRelation: data.emergency_contact_relationship || '',
+          emergencyPhone: data.emergency_contact_phone || '',
+          allergies: data.allergies || '',
+          chronicConditions: data.chronic_conditions || '',
+          e1: {name: '', relation: 'Spouse', phone: '', email: ''},
+          e2: {name: '', relation: 'Parent', phone: '', email: ''},
+          insurer: '',
+          policy: '',
+          group: '',
+          coverageType: 'Individual',
+          effectiveFrom: '',
+          effectiveTo: '',
+          mailingSame: true,
+          twoFA: true,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } else {
+        throw new Error('Failed to fetch profile');
+      }
+    } catch (err) {
+      console.error('❌ Error fetching profile:', err);
+      setError('Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -44,15 +137,67 @@ export default function Profile() {
     }
   };
 
-  const handleSave = () => {
-    setLoading(true);
-    // TODO: Implement API call to save profile
-    setTimeout(() => {
-      setSaveSuccess(true);
-      setLoading(false);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    }, 1000);
+  const handleSave = async () => {
+    setSaveLoading(true);
+    setError('');
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${API_BASE_URL}/profile-patient/patients/${patientId}/profile`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            full_name: form.name,
+            email: form.email,
+            contact_num1: form.phone,
+            contact_num2: form.phone2,
+            address_line1: form.address,
+            address_line2: form.address2,
+            city: form.city,
+            province: form.province,
+            postal_code: form.postalCode,
+            country: form.country,
+            emergency_contact_name: form.emergencyName,
+            emergency_contact_relationship: form.emergencyRelation,
+            emergency_contact_phone: form.emergencyPhone,
+            allergies: form.allergies,
+            chronic_conditions: form.chronicConditions
+          })
+        }
+      );
+
+      if (response.ok) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+        // Refresh profile data
+        fetchProfileData();
+      } else {
+        throw new Error('Failed to update profile');
+      }
+    } catch (err) {
+      console.error('❌ Error updating profile:', err);
+      setError('Failed to update profile');
+    } finally {
+      setSaveLoading(false);
+    }
   };
+
+  // Loading screen
+  if (loading) {
+    return (
+      <div className="profile-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⏳</div>
+          <h2>Loading Profile...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-page">
@@ -250,9 +395,20 @@ export default function Profile() {
                   <label htmlFor="mailing-same">Mailing address same as current address</label>
                 </div>
 
+                {error && (
+                  <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '16px' }}>
+                    {error}
+                  </div>
+                )}
+                {saveSuccess && (
+                  <div style={{ padding: '12px', background: '#d1fae5', color: '#065f46', borderRadius: '8px', marginBottom: '16px' }}>
+                    ✅ Profile updated successfully!
+                  </div>
+                )}
+
                 <div className="form-actions">
-                  <button className="btn-save" onClick={handleSave} disabled={loading}>
-                    {loading ? '💾 Saving...' : '💾 Save Changes'}
+                  <button className="btn-save" onClick={handleSave} disabled={saveLoading}>
+                    {saveLoading ? '💾 Saving...' : '💾 Save Changes'}
                   </button>
                 </div>
               </div>
@@ -363,9 +519,20 @@ export default function Profile() {
               </div>
             </div>
 
+            {error && (
+              <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '16px' }}>
+                {error}
+              </div>
+            )}
+            {saveSuccess && (
+              <div style={{ padding: '12px', background: '#d1fae5', color: '#065f46', borderRadius: '8px', marginBottom: '16px' }}>
+                ✅ Profile updated successfully!
+              </div>
+            )}
+
             <div className="form-actions">
-              <button className="btn-save" onClick={handleSave} disabled={loading}>
-                {loading ? '💾 Saving...' : '💾 Save Changes'}
+              <button className="btn-save" onClick={handleSave} disabled={saveLoading}>
+                {saveLoading ? '💾 Saving...' : '💾 Save Changes'}
               </button>
             </div>
           </div>
@@ -413,9 +580,20 @@ export default function Profile() {
                 <input type="date" className="form-input" value={form.effectiveTo} onChange={(e) => setForm({...form, effectiveTo: e.target.value})} />
               </div>
             </div>
+            {error && (
+              <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '16px' }}>
+                {error}
+              </div>
+            )}
+            {saveSuccess && (
+              <div style={{ padding: '12px', background: '#d1fae5', color: '#065f46', borderRadius: '8px', marginBottom: '16px' }}>
+                ✅ Profile updated successfully!
+              </div>
+            )}
+
             <div className="form-actions">
-              <button className="btn-save" onClick={handleSave} disabled={loading}>
-                {loading ? '💾 Saving...' : '💾 Save Changes'}
+              <button className="btn-save" onClick={handleSave} disabled={saveLoading}>
+                {saveLoading ? '💾 Saving...' : '💾 Save Changes'}
               </button>
             </div>
           </div>
@@ -491,9 +669,20 @@ export default function Profile() {
                 </label>
               </div>
             </div>
+            {error && (
+              <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '16px' }}>
+                {error}
+              </div>
+            )}
+            {saveSuccess && (
+              <div style={{ padding: '12px', background: '#d1fae5', color: '#065f46', borderRadius: '8px', marginBottom: '16px' }}>
+                ✅ Profile updated successfully!
+              </div>
+            )}
+
             <div className="form-actions">
-              <button className="btn-save" onClick={handleSave} disabled={loading}>
-                {loading ? '💾 Saving...' : '💾 Save Changes'}
+              <button className="btn-save" onClick={handleSave} disabled={saveLoading}>
+                {saveLoading ? '💾 Saving...' : '💾 Save Changes'}
               </button>
             </div>
           </div>

@@ -712,3 +712,172 @@ def get_medication_usage_statistics(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {str(e)}"
         )
+
+
+# ============================================
+# GET ALL PRESCRIPTIONS FOR A PATIENT
+# ============================================
+
+@router.get("/patient/{patient_id}", status_code=status.HTTP_200_OK)
+def get_patient_prescriptions(
+    patient_id: str,
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(10, ge=1, le=100, description="Maximum number of records to return"),
+    sort_by: str = Query("recent", description="Sort by: recent, oldest, medication")
+):
+    """
+    Get all prescriptions for a specific patient
+    
+    Parameters:
+    - patient_id: Patient UUID
+    - skip: Pagination offset (default: 0)
+    - limit: Maximum records to return (default: 10, max: 100)
+    - sort_by: Sorting option - recent (newest first), oldest (oldest first), medication (by medication name)
+    
+    Returns:
+    - List of prescriptions with medication details
+    - Consultation information
+    - Prescription dates and status
+    """
+    try:
+        # Validate UUID format
+        try:
+            uuid.UUID(patient_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid patient ID format: {patient_id}"
+            )
+        
+        with get_db() as (cursor, connection):
+            # Check if patient exists
+            cursor.execute(
+                "SELECT patient_id, blood_group FROM patient WHERE patient_id = %s",
+                (patient_id,)
+            )
+            patient = cursor.fetchone()
+            
+            if not patient:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Patient with ID {patient_id} not found"
+                )
+            
+            # Build query with sorting
+            sort_order = ""
+            if sort_by == "oldest":
+                sort_order = "ORDER BY pi.created_at ASC"
+            elif sort_by == "medication":
+                sort_order = "ORDER BY m.generic_name ASC"
+            else:  # recent (default)
+                sort_order = "ORDER BY pi.created_at DESC"
+            
+            # Get total count of prescriptions for the patient
+            cursor.execute(
+                """SELECT COUNT(DISTINCT pi.prescription_item_id) as total
+                FROM prescription_item pi
+                JOIN consultation_record cr ON pi.consultation_rec_id = cr.consultation_rec_id
+                JOIN appointment a ON cr.appointment_id = a.appointment_id
+                WHERE a.patient_id = %s""",
+                (patient_id,)
+            )
+            count_result = cursor.fetchone()
+            total_count = count_result['total'] if count_result else 0
+            
+            # Get prescriptions with medication and consultation details
+            query = f"""SELECT 
+                    pi.prescription_item_id,
+                    pi.consultation_rec_id,
+                    pi.medication_id,
+                    pi.dosage,
+                    pi.frequency,
+                    pi.duration_days,
+                    pi.instructions,
+                    pi.created_at as prescribed_date,
+                    m.generic_name,
+                    m.manufacturer,
+                    m.form,
+                    m.contraindications,
+                    m.side_effects,
+                    cr.appointment_id,
+                    cr.symptoms,
+                    cr.diagnoses,
+                    cr.follow_up_required,
+                    cr.follow_up_date,
+                    cr.created_at as consultation_date,
+                    a.status as appointment_status,
+                    d.doctor_id,
+                    u.full_name as doctor_name
+                FROM prescription_item pi
+                JOIN medication m ON pi.medication_id = m.medication_id
+                JOIN consultation_record cr ON pi.consultation_rec_id = cr.consultation_rec_id
+                JOIN appointment a ON cr.appointment_id = a.appointment_id
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN doctor d ON ts.doctor_id = d.doctor_id
+                JOIN user u ON d.doctor_id = u.user_id
+                WHERE a.patient_id = %s
+                {sort_order}
+                LIMIT %s OFFSET %s"""
+            
+            cursor.execute(query, (patient_id, limit, skip))
+            prescriptions = cursor.fetchall()
+            
+            # Group prescriptions by consultation for better organization
+            prescriptions_grouped = {}
+            for prescription in prescriptions:
+                consultation_id = prescription['consultation_rec_id']
+                if consultation_id not in prescriptions_grouped:
+                    prescriptions_grouped[consultation_id] = {
+                        "consultation_rec_id": consultation_id,
+                        "appointment_id": prescription['appointment_id'],
+                        "appointment_status": prescription['appointment_status'],
+                        "consultation_date": str(prescription['consultation_date']),
+                        "symptoms": prescription['symptoms'],
+                        "diagnoses": prescription['diagnoses'],
+                        "follow_up_required": prescription['follow_up_required'],
+                        "follow_up_date": str(prescription['follow_up_date']) if prescription['follow_up_date'] else None,
+                        "doctor_id": prescription['doctor_id'],
+                        "doctor_name": prescription['doctor_name'],
+                        "medications": []
+                    }
+                
+                prescriptions_grouped[consultation_id]["medications"].append({
+                    "prescription_item_id": prescription['prescription_item_id'],
+                    "medication_id": prescription['medication_id'],
+                    "generic_name": prescription['generic_name'],
+                    "manufacturer": prescription['manufacturer'],
+                    "form": prescription['form'],
+                    "dosage": prescription['dosage'],
+                    "frequency": prescription['frequency'],
+                    "duration_days": prescription['duration_days'],
+                    "instructions": prescription['instructions'],
+                    "contraindications": prescription['contraindications'],
+                    "side_effects": prescription['side_effects'],
+                    "prescribed_date": str(prescription['prescribed_date'])
+                })
+            
+            logger.info(f"Retrieved {len(prescriptions_grouped)} consultations with prescriptions for patient {patient_id}")
+            
+            return {
+                "success": True,
+                "patient_id": patient_id,
+                "patient_blood_group": patient['blood_group'],
+                "pagination": {
+                    "skip": skip,
+                    "limit": limit,
+                    "total": total_count,
+                    "returned": len(prescriptions)
+                },
+                "sort_by": sort_by,
+                "consultations_with_prescriptions": list(prescriptions_grouped.values())
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching prescriptions for patient {patient_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
+

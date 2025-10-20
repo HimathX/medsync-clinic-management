@@ -105,14 +105,33 @@ export default function PatientDashboard() {
         };
       })
       
-      // Format prescriptions
-      const prescriptions = (dashboardData.prescriptions || []).map(rx => ({
-        id: rx.prescription_id,
-        name: rx.medication_name || 'Medication',
-        dosage: rx.dosage || 'As prescribed',
-        refills: rx.refills_remaining || 0,
-        doctor: rx.prescribed_by || 'Doctor'
-      }))
+      // Format prescriptions - handle new API structure
+      let prescriptions = [];
+      const prescriptionData = dashboardData.prescriptions || {};
+      
+      // Check if it's the new format with consultations_with_prescriptions
+      if (prescriptionData.consultations_with_prescriptions && Array.isArray(prescriptionData.consultations_with_prescriptions)) {
+        // Flatten medications from all consultations
+        prescriptions = prescriptionData.consultations_with_prescriptions.flatMap(consultation => {
+          const medications = consultation.medications || [];
+          return medications.map(med => ({
+            id: med.prescription_item_id || med.id,
+            name: med.medication_name || 'Medication',
+            dosage: med.dosage || 'As prescribed',
+            refills: 0, // Not in current schema
+            doctor: consultation.doctor_name || 'Doctor'
+          }));
+        });
+      } else if (Array.isArray(prescriptionData)) {
+        // Handle old format if it's directly an array
+        prescriptions = prescriptionData.map(rx => ({
+          id: rx.prescription_id,
+          name: rx.medication_name || 'Medication',
+          dosage: rx.dosage || 'As prescribed',
+          refills: rx.refills_remaining || 0,
+          doctor: rx.prescribed_by || 'Doctor'
+        }));
+      }
       
       // Get health metrics from patient record
       const healthMetrics = {
@@ -195,11 +214,11 @@ export default function PatientDashboard() {
       <nav className="patient-top-nav">
         <div className="patient-top-nav-content">
           <div className="patient-nav-links">
-            <a href="#home">Home</a>
-            <a href="#appointments">Appointments</a>
-            <a href="#records">Medical Records</a>
-            <a href="#billing">Billing</a>
-            <a href="#contact">Contact</a>
+            <a onClick={() => navigate('/patient/dashboard')} style={{cursor: 'pointer'}}>Home</a>
+            <a onClick={() => navigate('/patient/appointments')} style={{cursor: 'pointer'}}>Appointments</a>
+            <a onClick={() => navigate('/patient/records')} style={{cursor: 'pointer'}}>Medical Records</a>
+            <a onClick={() => navigate('/patient/insurance')} style={{cursor: 'pointer'}}>Insurance</a>
+            <a onClick={() => navigate('/patient/billing')} style={{cursor: 'pointer'}}>Billing</a>
           </div>
           <div className="patient-nav-actions">
             <a href="tel:+94115430000" className="patient-contact-link">📞 +94 11 543 0000</a>
@@ -354,7 +373,7 @@ export default function PatientDashboard() {
                   <span className="action-icon">💳</span>
                 </div>
                 <div className="action-content">
-                  <h4 className="action-title">Pay Bills</h4>
+                  <h4 className="action-title">Bills</h4>
                   <p className="action-description">Manage payments online</p>
                 </div>
                 <div className="action-arrow">→</div>
@@ -371,13 +390,13 @@ export default function PatientDashboard() {
                 <div className="action-arrow">→</div>
               </button>
 
-              <button className="quick-action-card lab-action" onClick={() => navigate('/patient/lab-results')}>
+              <button className="quick-action-card insurance-action" onClick={() => navigate('/patient/insurance')}>
                 <div className="action-icon-wrapper">
-                  <span className="action-icon">🧪</span>
+                  <span className="action-icon">💼</span>
                 </div>
                 <div className="action-content">
-                  <h4 className="action-title">Lab Results</h4>
-                  <p className="action-description">View test results</p>
+                  <h4 className="action-title">Insurance</h4>
+                  <p className="action-description">View coverage details</p>
                 </div>
                 <div className="action-arrow">→</div>
               </button>
