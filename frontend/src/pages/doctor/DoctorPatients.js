@@ -140,56 +140,290 @@ const DoctorPatients = () => {
       <DoctorNavBar />
       <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
       <main className="patient-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-        <div className="doctor-header">
-          <h1>My Patients</h1>
-          <p>View your patient records</p>
+        {/* Page Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          borderRadius: '16px',
+          padding: '32px',
+          marginBottom: '32px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e2e8f0'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+            <div style={{ fontSize: '48px' }}>👥</div>
+            <div>
+              <h1 style={{ 
+                fontSize: '32px', 
+                fontWeight: '700',
+                background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '8px'
+              }}>
+                My Patients
+              </h1>
+              <p style={{ fontSize: '16px', color: '#64748b', margin: 0 }}>
+                View and manage your patient records
+              </p>
+            </div>
+          </div>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div style={{
+            padding: '16px 20px',
+            marginBottom: '24px',
+            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+            border: '2px solid #fca5a5',
+            borderRadius: '12px',
+            color: '#991b1b',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: '0 2px 4px rgba(239, 68, 68, 0.1)'
+          }}>
+            <i className="fas fa-exclamation-circle" style={{ fontSize: '20px', color: '#ef4444' }}></i>
+            <span style={{ fontWeight: '600' }}>{error}</span>
+          </div>
+        )}
 
-        {/* Search */}
-        <div className="search-bar">
-          <i className="fas fa-search"></i>
+        {/* Search Bar */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e2e8f0'
+        }}>
+          <label style={{ 
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#475569'
+          }}>
+            <i className="fas fa-search" style={{ marginRight: '8px', color: '#10b981' }}></i>
+            Search Patients
+          </label>
           <input 
             type="text"
             placeholder="Search patients by name or ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '14px 18px',
+              border: '2px solid #e2e8f0',
+              borderRadius: '10px',
+              fontSize: '15px',
+              transition: 'all 0.2s ease',
+              outline: 'none'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#10b981'}
+            onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
           />
         </div>
 
-        {/* Patients Grid */}
-        <div className="patients-grid">
-          {filteredPatients.length === 0 ? (
-            <div className="empty-state">
-              <i className="fas fa-user-injured"></i>
-              <p>No patients found</p>
+        {/* Stats Card */}
+        <div style={{
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '32px',
+          color: 'white',
+          boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ fontSize: '14px', opacity: '0.9', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>
+              Total Patients
             </div>
-          ) : (
-            filteredPatients.map((patient) => (
-              <div key={patient.patient_id} className="patient-card">
-                <div className="patient-avatar">
-                  <i className="fas fa-user"></i>
-                </div>
-                <div className="patient-info">
-                  <h3>{patient.first_name} {patient.last_name}</h3>
-                  <p><i className="fas fa-id-card"></i> ID: #{patient.patient_id}</p>
-                  <p><i className="fas fa-envelope"></i> {patient.email || 'N/A'}</p>
-                  <p><i className="fas fa-phone"></i> {patient.phone_no || 'N/A'}</p>
-                  <p><i className="fas fa-birthday-cake"></i> DOB: {formatDate(patient.date_of_birth)}</p>
-                </div>
-                <div className="patient-actions">
-                  <button 
-                    className="btn-primary"
-                    onClick={() => navigate(`/doctor/consultations?patient=${patient.patient_id}`)}
-                  >
-                    <i className="fas fa-stethoscope"></i> Consult
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+            <div style={{ fontSize: '36px', fontWeight: '700' }}>
+              {filteredPatients.length}
+            </div>
+          </div>
+          <div style={{ fontSize: '64px', opacity: '0.2' }}>👥</div>
         </div>
+
+        {/* Patients Grid */}
+        {filteredPatients.length === 0 ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '80px 40px', 
+            background: 'white', 
+            borderRadius: '16px',
+            border: '2px dashed #e2e8f0'
+          }}>
+            <div style={{ fontSize: '64px', marginBottom: '24px' }}>👥</div>
+            <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', marginBottom: '12px' }}>No patients found</h3>
+            <p style={{ fontSize: '16px', color: '#64748b' }}>
+              {search ? 'Try adjusting your search criteria' : 'No patients have been assigned to you yet'}
+            </p>
+          </div>
+        ) : (
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
+            gap: '24px' 
+          }}>
+            {filteredPatients.map((patient) => (
+              <div 
+                key={patient.patient_id} 
+                style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #e2e8f0',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                }}
+              >
+                {/* Patient Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '28px',
+                    color: 'white',
+                    boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)'
+                  }}>
+                    <i className="fas fa-user"></i>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ 
+                      fontSize: '20px', 
+                      fontWeight: '700', 
+                      color: '#1e293b',
+                      marginBottom: '4px'
+                    }}>
+                      {patient.first_name} {patient.last_name}
+                    </h3>
+                    <div style={{ 
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '13px',
+                      color: '#64748b',
+                      background: '#f1f5f9',
+                      padding: '4px 10px',
+                      borderRadius: '6px'
+                    }}>
+                      <i className="fas fa-id-card"></i>
+                      <span>ID: #{patient.patient_id}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Patient Details */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '12px',
+                  marginBottom: '20px',
+                  paddingBottom: '20px',
+                  borderBottom: '1px solid #f1f5f9'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#475569' }}>
+                    <div style={{ 
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#10b981'
+                    }}>
+                      <i className="fas fa-envelope"></i>
+                    </div>
+                    <span style={{ flex: 1, wordBreak: 'break-all' }}>{patient.email || 'N/A'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#475569' }}>
+                    <div style={{ 
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#10b981'
+                    }}>
+                      <i className="fas fa-phone"></i>
+                    </div>
+                    <span>{patient.phone_no || 'N/A'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#475569' }}>
+                    <div style={{ 
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#10b981'
+                    }}>
+                      <i className="fas fa-birthday-cake"></i>
+                    </div>
+                    <span>DOB: {formatDate(patient.date_of_birth)}</span>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <button 
+                  onClick={() => navigate(`/doctor/consultations?patient=${patient.patient_id}`)}
+                  style={{
+                    width: '100%',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 20px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.2)';
+                  }}
+                >
+                  <i className="fas fa-stethoscope"></i>
+                  <span>View Consultations</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

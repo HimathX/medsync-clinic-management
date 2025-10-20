@@ -1,9 +1,10 @@
 // src/pages/doctor/DoctorFinancialMetrics.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
+import DoctorNavBar from '../../components/DoctorNavBar';
+import DoctorPageHeader from '../../components/DoctorPageHeader';
 import authService from '../../services/authService';
-import '../../styles/doctor.css';
+import '../../styles/patientDashboard.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -16,8 +17,21 @@ const DoctorFinancialMetrics = () => {
   const [error, setError] = useState('');
   const [metrics, setMetrics] = useState(null);
   const [timeFilter, setTimeFilter] = useState('all'); // all, month, week
+  
+  // Doctor data state
+  const [doctorData, setDoctorData] = useState({
+    name: 'Doctor',
+    specialization: 'Physician'
+  });
 
   useEffect(() => {
+    // Load doctor data from localStorage
+    const fullName = localStorage.getItem('full_name') || 'Doctor';
+    setDoctorData({
+      name: fullName,
+      specialization: localStorage.getItem('specialization') || 'Physician'
+    });
+    
     if (!currentUser) {
       navigate('/doctor-login', { replace: true });
       return;
@@ -66,27 +80,37 @@ const DoctorFinancialMetrics = () => {
 
   if (loading) {
     return (
-      <div className="doctor-container">
-        <DoctorHeader />
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Loading financial metrics...</p>
-        </div>
+      <div className="patient-portal">
+        <DoctorNavBar />
+        <DoctorPageHeader 
+          doctorName={doctorData.name}
+          specialization={doctorData.specialization}
+        />
+        <main className="patient-container">
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Loading financial metrics...</p>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (error || !metrics) {
     return (
-      <div className="doctor-container">
-        <DoctorHeader />
-        <div className="doctor-content">
+      <div className="patient-portal">
+        <DoctorNavBar />
+        <DoctorPageHeader 
+          doctorName={doctorData.name}
+          specialization={doctorData.specialization}
+        />
+        <main className="patient-container">
           <div className="error-message">
             <i className="fas fa-exclamation-circle"></i>
             {error || 'No financial data available'}
             <button onClick={fetchFinancialMetrics}>Retry</button>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -94,27 +118,75 @@ const DoctorFinancialMetrics = () => {
   const { financial_summary, consultation_metrics, treatment_metrics, invoice_metrics } = metrics;
 
   return (
-    <div className="doctor-container">
-      <DoctorHeader />
-      <div className="doctor-content">
+    <div className="patient-portal">
+      <DoctorNavBar />
+      <DoctorPageHeader 
+        doctorName={doctorData.name}
+        specialization={doctorData.specialization}
+      />
+      <main className="patient-container">
         {/* Header Section */}
-        <div className="doctor-header" style={{ marginBottom: '32px' }}>
-          <div>
-            <h1>💰 Financial Metrics</h1>
-            <p style={{ fontSize: '16px', color: '#64748b', marginTop: '8px' }}>
-              Comprehensive overview of your revenue and financial performance
-            </p>
+        <div style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          borderRadius: '16px',
+          padding: '32px',
+          marginBottom: '32px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '20px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ fontSize: '48px' }}>💰</div>
+            <div>
+              <h1 style={{ 
+                fontSize: '32px', 
+                fontWeight: '700',
+                background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '8px'
+              }}>
+                Financial Metrics
+              </h1>
+              <p style={{ fontSize: '16px', color: '#64748b', margin: 0 }}>
+                Comprehensive overview of your revenue and financial performance
+              </p>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <button 
-              className="btn-secondary"
-              onClick={fetchFinancialMetrics}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <i className="fas fa-sync-alt"></i>
-              Refresh
-            </button>
-          </div>
+          <button 
+            onClick={fetchFinancialMetrics}
+            style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 4px rgba(99, 102, 241, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 4px rgba(99, 102, 241, 0.2)';
+            }}
+          >
+            <i className="fas fa-sync-alt"></i>
+            Refresh
+          </button>
         </div>
 
         {/* Total Revenue Hero Card */}
@@ -544,7 +616,7 @@ const DoctorFinancialMetrics = () => {
             <strong style={{ color: '#1a2332' }}>Note:</strong> Financial metrics are calculated based on all consultations, treatments, and invoices generated. Data is updated in real-time.
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
