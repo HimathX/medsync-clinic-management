@@ -20,9 +20,11 @@ const StaffReports = () => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
+    const userId = localStorage.getItem('user_id');
+    const userType = localStorage.getItem('user_type');
+    
+    if (!userId || !userType) {
+      navigate('/staff-login');
       return;
     }
     fetchReports();

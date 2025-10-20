@@ -48,7 +48,7 @@ const StaffDashboard = () => {
 
     if (!userId || !userType) {
       console.log('No auth found, redirecting to login');
-      navigate('/staff/login', { replace: true });
+      navigate('/staff-login', { replace: true });
       return;
     }
 

@@ -184,7 +184,8 @@ export default function PatientDashboard() {
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
-      navigate('/')
+      authService.logout(); // ✅ Clean all localStorage and sessionStorage
+      navigate('/'); // ✅ Redirect to landing page
     }
   }
 
@@ -479,7 +480,6 @@ export default function PatientDashboard() {
               </div>
             </div>
 
-            {/* Active Prescriptions */}
             <div className="dashboard-card prescriptions-card">
               <div className="card-header">
                 <h3 className="card-title">Active Prescriptions</h3>
@@ -514,7 +514,7 @@ export default function PatientDashboard() {
             </div>
 
             {/* Health Summary */}
-            <div className="dashboard-card health-card">
+            {/* <div className="dashboard-card health-card">
               <div className="card-header">
                 <h3 className="card-title">Health Summary</h3>
                 <button className="view-all-link" onClick={() => navigate('/patient/records')}>
@@ -553,10 +553,10 @@ export default function PatientDashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Important Notices */}
-            <div className="dashboard-card notices-card">
+            {/* <div className="dashboard-card notices-card">
               <div className="card-header">
                 <h3 className="card-title">Important Notices</h3>
               </div>
@@ -574,7 +574,7 @@ export default function PatientDashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </main>

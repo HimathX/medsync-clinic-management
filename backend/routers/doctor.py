@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from core.database import get_db
 import hashlib
@@ -448,6 +448,218 @@ def get_all_doctors(skip: int = 0, limit: int = 100):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {str(e)}"
         )
+
+
+# ============================================
+# SYSTEM-WIDE REPORTS (MUST BE BEFORE /{doctor_id})
+# ============================================
+
+@router.get("/performance-report", status_code=status.HTTP_200_OK)
+def get_all_doctors_performance_report(
+    period: str = Query("monthly", description="Period: daily, weekly, monthly, yearly"),
+    top_count: int = Query(10, description="Number of top/bottom performers to return"),
+    sort_by: str = Query("revenue", description="Sort by: revenue, completion_rate, no_show_rate, consultations")
+):
+    """
+    Get comprehensive performance report comparing all doctors
+    
+    Parameters:
+    - period: daily, weekly, monthly, yearly
+    - top_count: Number of top performers to display
+    - sort_by: Sort criteria (revenue, completion_rate, no_show_rate, consultations)
+    
+    Returns:
+    - List of all doctors with performance metrics
+    - Top performers
+    - Bottom performers
+    - Average metrics across all doctors
+    - Trends
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Get all active doctors with their metrics
+            cursor.execute(
+                """SELECT 
+                    d.doctor_id,
+                    u.full_name,
+                    d.consultation_fee,
+                    e.branch_id,
+                    b.branch_name,
+                    COUNT(DISTINCT a.appointment_id) as total_consultations,
+                    COUNT(DISTINCT CASE WHEN a.status = 'Completed' THEN a.appointment_id END) as completed,
+                    COUNT(DISTINCT CASE WHEN a.status = 'No-Show' THEN a.appointment_id END) as no_shows,
+                    COUNT(DISTINCT CASE WHEN a.status = 'Cancelled' THEN a.appointment_id END) as cancelled,
+                    COUNT(DISTINCT a.patient_id) as unique_patients,
+                    COALESCE(SUM(i.sub_total + COALESCE(i.tax_amount, 0)), 0) as total_revenue
+                FROM doctor d
+                JOIN user u ON d.doctor_id = u.user_id
+                JOIN employee e ON d.doctor_id = e.employee_id
+                LEFT JOIN branch b ON e.branch_id = b.branch_id
+                LEFT JOIN time_slot ts ON d.doctor_id = ts.doctor_id
+                LEFT JOIN appointment a ON ts.time_slot_id = a.time_slot_id
+                LEFT JOIN consultation_record cr ON a.appointment_id = cr.appointment_id
+                LEFT JOIN invoice i ON cr.consultation_rec_id = i.consultation_rec_id
+                WHERE e.is_active = TRUE
+                GROUP BY d.doctor_id, u.full_name, d.consultation_fee, e.branch_id, b.branch_name
+                ORDER BY total_revenue DESC"""
+            )
+            doctors_data = cursor.fetchall()
+            
+            # Process doctors data to calculate additional metrics
+            doctors_metrics = []
+            for doctor in doctors_data:
+                total_consults = doctor['total_consultations'] or 0
+                completed = doctor['completed'] or 0
+                no_shows = doctor['no_shows'] or 0
+                
+                completion_rate = (completed / total_consults * 100) if total_consults > 0 else 0
+                no_show_rate = (no_shows / total_consults * 100) if total_consults > 0 else 0
+                avg_revenue = (doctor['total_revenue'] / completed) if completed > 0 else 0
+                
+                doctors_metrics.append({
+                    "doctor_id": doctor['doctor_id'],
+                    "doctor_name": doctor['full_name'],
+                    "branch_name": doctor['branch_name'],
+                    "consultation_fee": float(doctor['consultation_fee']) if doctor['consultation_fee'] else 0.0,
+                    "total_consultations": total_consults,
+                    "completed_consultations": completed,
+                    "no_shows": no_shows,
+                    "cancelled": doctor['cancelled'] or 0,
+                    "unique_patients": doctor['unique_patients'] or 0,
+                    "completion_rate": round(completion_rate, 2),
+                    "no_show_rate": round(no_show_rate, 2),
+                    "total_revenue": round(doctor['total_revenue'], 2),
+                    "avg_revenue_per_consultation": round(avg_revenue, 2)
+                })
+            
+            # Sort based on criteria
+            if sort_by == "revenue":
+                doctors_metrics.sort(key=lambda x: x['total_revenue'], reverse=True)
+            elif sort_by == "completion_rate":
+                doctors_metrics.sort(key=lambda x: x['completion_rate'], reverse=True)
+            elif sort_by == "no_show_rate":
+                doctors_metrics.sort(key=lambda x: x['no_show_rate'], reverse=False)
+            else:  # consultations
+                doctors_metrics.sort(key=lambda x: x['total_consultations'], reverse=True)
+            
+            # Calculate averages
+            if doctors_metrics:
+                avg_consultations = sum(d['total_consultations'] for d in doctors_metrics) / len(doctors_metrics)
+                avg_completion_rate = sum(d['completion_rate'] for d in doctors_metrics) / len(doctors_metrics)
+                avg_no_show_rate = sum(d['no_show_rate'] for d in doctors_metrics) / len(doctors_metrics)
+                avg_revenue = sum(d['total_revenue'] for d in doctors_metrics) / len(doctors_metrics)
+            else:
+                avg_consultations = avg_completion_rate = avg_no_show_rate = avg_revenue = 0
+            
+            logger.info(f"Retrieved performance report for {len(doctors_metrics)} doctors")
+            
+            return {
+                "success": True,
+                "total_doctors": len(doctors_metrics),
+                "period": period,
+                "sort_by": sort_by,
+                "summary": {
+                    "average_consultations": round(avg_consultations, 2),
+                    "average_completion_rate": round(avg_completion_rate, 2),
+                    "average_no_show_rate": round(avg_no_show_rate, 2),
+                    "average_revenue": round(avg_revenue, 2)
+                },
+                "top_performers": doctors_metrics[:top_count],
+                "bottom_performers": doctors_metrics[-top_count:] if len(doctors_metrics) > top_count else [],
+                "all_doctors": doctors_metrics
+            }
+            
+    except Exception as e:
+        logger.error(f"Error fetching performance report: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch performance report: {str(e)}"
+        )
+
+
+@router.get("/availability-report", status_code=status.HTTP_200_OK)
+def get_availability_report(branch_id: Optional[str] = None):
+    """
+    Get availability report across all doctors (optionally filtered by branch)
+    
+    Parameters:
+    - branch_id: Optional branch UUID to filter doctors
+    
+    Returns:
+    - Doctor availability status
+    - Schedule coverage gaps
+    - Availability by specialization
+    - Branch-wise coverage
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Build query
+            query = """SELECT 
+                d.doctor_id,
+                u.full_name,
+                d.is_available,
+                e.branch_id,
+                b.branch_name,
+                COUNT(DISTINCT CASE WHEN ts.available_date >= CURDATE() AND ts.is_booked = FALSE THEN ts.time_slot_id END) as available_slots,
+                COUNT(DISTINCT CASE WHEN ts.available_date >= CURDATE() AND ts.is_booked = TRUE THEN ts.time_slot_id END) as booked_slots,
+                GROUP_CONCAT(DISTINCT s.specialization_title SEPARATOR ', ') as specializations
+            FROM doctor d
+            JOIN user u ON d.doctor_id = u.user_id
+            JOIN employee e ON d.doctor_id = e.employee_id
+            LEFT JOIN branch b ON e.branch_id = b.branch_id
+            LEFT JOIN time_slot ts ON d.doctor_id = ts.doctor_id
+            LEFT JOIN doctor_specialization ds ON d.doctor_id = ds.doctor_id
+            LEFT JOIN specialization s ON ds.specialization_id = s.specialization_id
+            WHERE e.is_active = TRUE"""
+            
+            params = []
+            if branch_id:
+                query += " AND e.branch_id = %s"
+                params.append(branch_id)
+            
+            query += """ GROUP BY d.doctor_id, u.full_name, d.is_available, e.branch_id, b.branch_name
+                        ORDER BY b.branch_name, u.full_name"""
+            
+            cursor.execute(query, params)
+            availability_data = cursor.fetchall()
+            
+            # Group by branch
+            by_branch = {}
+            for doctor in availability_data:
+                branch_key = doctor['branch_name'] or 'Unassigned'
+                if branch_key not in by_branch:
+                    by_branch[branch_key] = []
+                
+                total_slots = (doctor['available_slots'] or 0) + (doctor['booked_slots'] or 0)
+                utilization = ((doctor['booked_slots'] or 0) / total_slots * 100) if total_slots > 0 else 0
+                
+                by_branch[branch_key].append({
+                    "doctor_id": doctor['doctor_id'],
+                    "doctor_name": doctor['full_name'],
+                    "is_available": doctor['is_available'],
+                    "specializations": doctor['specializations'],
+                    "available_slots": doctor['available_slots'] or 0,
+                    "booked_slots": doctor['booked_slots'] or 0,
+                    "total_slots": total_slots,
+                    "utilization_rate": round(utilization, 2)
+                })
+            
+            logger.info(f"Retrieved availability report for {len(availability_data)} doctors")
+            
+            return {
+                "success": True,
+                "total_doctors": len(availability_data),
+                "branch_filter": branch_id,
+                "availability_by_branch": by_branch
+            }
+            
+    except Exception as e:
+        logger.error(f"Error fetching availability report: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch availability report: {str(e)}"
+        )
+
 
 @router.get("/{doctor_id}", status_code=status.HTTP_200_OK)
 def get_doctor_by_id(doctor_id: str):
@@ -1153,4 +1365,369 @@ def get_doctor_upcoming_appointments(doctor_id: str, days: int = 7):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch upcoming appointments: {str(e)}"
         )
+
+
+# ============================================
+# 1. PERFORMANCE METRICS ENDPOINTS (SYSTEM-WIDE)
+# ============================================
+
+@router.get("/{doctor_id}/metrics", status_code=status.HTTP_200_OK)
+def get_doctor_performance_metrics(doctor_id: str):
+    """
+    Get comprehensive performance metrics for a specific doctor
+    
+    Returns:
+    - Total consultations
+    - Average consultation rating
+    - Patient satisfaction score
+    - Appointment completion rate
+    - No-show rate
+    - Average revenue per consultation
+    - Total revenue generated
+    - Performance trend
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Verify doctor exists
+            cursor.execute("SELECT doctor_id, is_available FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            doctor = cursor.fetchone()
+            
+            if not doctor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Total consultations
+            cursor.execute(
+                """SELECT COUNT(*) as total FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s""",
+                (doctor_id,)
+            )
+            total_consultations = cursor.fetchone()['total'] or 0
+            
+            # Completed consultations
+            cursor.execute(
+                """SELECT COUNT(*) as total FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s AND a.status = 'Completed'""",
+                (doctor_id,)
+            )
+            completed_consultations = cursor.fetchone()['total'] or 0
+            
+            # No-show appointments
+            cursor.execute(
+                """SELECT COUNT(*) as total FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s AND a.status = 'No-Show'""",
+                (doctor_id,)
+            )
+            no_shows = cursor.fetchone()['total'] or 0
+            
+            # Cancelled appointments
+            cursor.execute(
+                """SELECT COUNT(*) as total FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s AND a.status = 'Cancelled'""",
+                (doctor_id,)
+            )
+            cancelled = cursor.fetchone()['total'] or 0
+            
+            # Unique patients
+            cursor.execute(
+                """SELECT COUNT(DISTINCT a.patient_id) as total FROM appointment a
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s""",
+                (doctor_id,)
+            )
+            unique_patients = cursor.fetchone()['total'] or 0
+            
+            # Total revenue (from invoices linked to consultations)
+            cursor.execute(
+                """SELECT SUM(i.sub_total + COALESCE(i.tax_amount, 0)) as total_revenue
+                   FROM invoice i
+                   JOIN consultation_record cr ON i.consultation_rec_id = cr.consultation_rec_id
+                   JOIN appointment a ON cr.appointment_id = a.appointment_id
+                   JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                   WHERE ts.doctor_id = %s""",
+                (doctor_id,)
+            )
+            revenue_result = cursor.fetchone()
+            total_revenue = float(revenue_result['total_revenue']) if revenue_result['total_revenue'] else 0.0
+            
+            # Average consultation fee
+            cursor.execute(
+                """SELECT d.consultation_fee FROM doctor d WHERE d.doctor_id = %s""",
+                (doctor_id,)
+            )
+            fee_result = cursor.fetchone()
+            avg_fee = float(fee_result['consultation_fee']) if fee_result and fee_result['consultation_fee'] else 0.0
+            
+            # Calculate metrics
+            completion_rate = (completed_consultations / total_consultations * 100) if total_consultations > 0 else 0
+            no_show_rate = (no_shows / total_consultations * 100) if total_consultations > 0 else 0
+            avg_revenue_per_consultation = (total_revenue / completed_consultations) if completed_consultations > 0 else 0
+            
+            logger.info(f"Retrieved metrics for doctor {doctor_id}")
+            
+            return {
+                "success": True,
+                "doctor_id": doctor_id,
+                "total_consultations": total_consultations,
+                "completed_consultations": completed_consultations,
+                "cancelled_appointments": cancelled,
+                "no_shows": no_shows,
+                "unique_patients": unique_patients,
+                "completion_rate": round(completion_rate, 2),
+                "no_show_rate": round(no_show_rate, 2),
+                "consultation_fee": avg_fee,
+                "total_revenue": round(total_revenue, 2),
+                "avg_revenue_per_consultation": round(avg_revenue_per_consultation, 2),
+                "is_available": doctor['is_available']
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+            logger.error(f"Error fetching doctor metrics for {doctor_id}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to fetch metrics: {str(e)}"
+            )
+@router.get("/{doctor_id}/consultation-analytics", status_code=status.HTTP_200_OK)
+def get_doctor_consultation_analytics(
+    doctor_id: str,
+    days: int = Query(30, description="Number of days to analyze")
+):
+    """
+    Get detailed consultation analytics for a doctor
+    
+    Parameters:
+    - doctor_id: Doctor UUID
+    - days: Number of days to analyze (default 30)
+    
+    Returns:
+    - Consultations per day/week
+    - Peak hours and days
+    - Most common conditions treated
+    - Patient demographics
+    - Trend analysis
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Verify doctor exists
+            cursor.execute("SELECT doctor_id FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            if not cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Consultations per day in the last N days
+            cursor.execute(
+                f"""SELECT 
+                    ts.available_date as consultation_date,
+                    COUNT(*) as total_consultations,
+                    COUNT(CASE WHEN a.status = 'Completed' THEN 1 END) as completed,
+                    COUNT(CASE WHEN a.status = 'No-Show' THEN 1 END) as no_shows
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                WHERE ts.doctor_id = %s 
+                AND ts.available_date >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                GROUP BY ts.available_date
+                ORDER BY ts.available_date DESC""",
+                (doctor_id, days)
+            )
+            daily_analytics = cursor.fetchall()
+            
+            # Peak hours analysis
+            cursor.execute(
+                """SELECT 
+                    HOUR(ts.start_time) as hour,
+                    COUNT(*) as total_consultations,
+                    COUNT(CASE WHEN a.status = 'Completed' THEN 1 END) as completed
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                WHERE ts.doctor_id = %s 
+                AND ts.available_date >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                GROUP BY HOUR(ts.start_time)
+                ORDER BY total_consultations DESC
+                LIMIT 5""",
+                (doctor_id, days)
+            )
+            peak_hours = cursor.fetchall()
+            
+            # Most treated conditions
+            cursor.execute(
+                """SELECT 
+                    c.condition_name,
+                    cc.category_name,
+                    COUNT(*) as frequency
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN patient_condition pc ON p.patient_id = pc.patient_id
+                JOIN conditions c ON pc.condition_id = c.condition_id
+                JOIN conditions_category cc ON c.condition_category_id = cc.condition_category_id
+                WHERE ts.doctor_id = %s 
+                AND ts.available_date >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                GROUP BY c.condition_id, cc.category_name
+                ORDER BY frequency DESC
+                LIMIT 10""",
+                (doctor_id, days)
+            )
+            conditions = cursor.fetchall()
+            
+            # Patient demographics
+            cursor.execute(
+                """SELECT 
+                    u.gender,
+                    COUNT(DISTINCT a.patient_id) as patient_count,
+                    AVG(TIMESTAMPDIFF(YEAR, u.DOB, CURDATE())) as avg_age
+                FROM appointment a
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN user u ON p.patient_id = u.user_id
+                WHERE ts.doctor_id = %s 
+                AND ts.available_date >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                GROUP BY u.gender""",
+                (doctor_id, days)
+            )
+            demographics = cursor.fetchall()
+            
+            logger.info(f"Retrieved consultation analytics for doctor {doctor_id}")
+            
+            return {
+                "success": True,
+                "doctor_id": doctor_id,
+                "analysis_period_days": days,
+                "daily_analytics": daily_analytics or [],
+                "peak_hours": peak_hours or [],
+                "most_treated_conditions": conditions or [],
+                "patient_demographics": demographics or []
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching consultation analytics for {doctor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch analytics: {str(e)}"
+        )
+
+
+# ============================================
+# 2. SCHEDULE MANAGEMENT ENDPOINTS
+# ============================================
+
+@router.get("/{doctor_id}/schedule", status_code=status.HTTP_200_OK)
+def get_doctor_schedule(
+    doctor_id: str,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    include_booked: bool = True
+):
+    """
+    Get doctor's complete schedule overview
+    
+    Parameters:
+    - doctor_id: Doctor UUID
+    - start_date: Start date for schedule (default: today)
+    - end_date: End date for schedule (default: 30 days from start)
+    - include_booked: Include booked slots (default: true)
+    
+    Returns:
+    - Full schedule with time slots
+    - Booked vs available slots
+    - Availability status
+    - Break times
+    """
+    try:
+        with get_db() as (cursor, connection):
+            # Verify doctor exists
+            cursor.execute("SELECT doctor_id FROM doctor WHERE doctor_id = %s", (doctor_id,))
+            if not cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Set default dates
+            if not start_date:
+                start_date = date.today()
+            if not end_date:
+                end_date = start_date + timedelta(days=30)
+            
+            # Get time slots
+            query = """SELECT 
+                ts.time_slot_id,
+                ts.available_date,
+                ts.start_time,
+                ts.end_time,
+                ts.is_booked,
+                ts.branch_id,
+                b.branch_name,
+                a.appointment_id,
+                a.patient_id,
+                u.full_name as patient_name,
+                a.status as appointment_status
+            FROM time_slot ts
+            LEFT JOIN branch b ON ts.branch_id = b.branch_id
+            LEFT JOIN appointment a ON ts.time_slot_id = a.time_slot_id
+            LEFT JOIN patient p ON a.patient_id = p.patient_id
+            LEFT JOIN user u ON p.patient_id = u.user_id
+            WHERE ts.doctor_id = %s 
+            AND ts.available_date BETWEEN %s AND %s"""
+            
+            if not include_booked:
+                query += " AND ts.is_booked = FALSE"
+            
+            query += " ORDER BY ts.available_date, ts.start_time"
+            
+            cursor.execute(query, (doctor_id, start_date, end_date))
+            time_slots = cursor.fetchall()
+            
+            # Calculate statistics
+            total_slots = len(time_slots)
+            booked_slots = len([ts for ts in time_slots if ts['is_booked']])
+            available_slots = total_slots - booked_slots
+            
+            # Group by date
+            schedule_by_date = {}
+            for slot in time_slots:
+                date_key = str(slot['available_date'])
+                if date_key not in schedule_by_date:
+                    schedule_by_date[date_key] = []
+                schedule_by_date[date_key].append(slot)
+            
+            logger.info(f"Retrieved schedule for doctor {doctor_id}")
+            
+            return {
+                "success": True,
+                "doctor_id": doctor_id,
+                "start_date": str(start_date),
+                "end_date": str(end_date),
+                "statistics": {
+                    "total_slots": total_slots,
+                    "booked_slots": booked_slots,
+                    "available_slots": available_slots,
+                    "utilization_rate": round((booked_slots / total_slots * 100) if total_slots > 0 else 0, 2)
+                },
+                "schedule_by_date": schedule_by_date
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching schedule for doctor {doctor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch schedule: {str(e)}"
+        )
+
+
+
+
 

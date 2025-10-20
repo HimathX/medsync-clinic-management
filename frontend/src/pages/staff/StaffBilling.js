@@ -23,9 +23,11 @@ const StaffBilling = () => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
+    const userId = localStorage.getItem('user_id');
+    const userType = localStorage.getItem('user_type');
+    
+    if (!userId || !userType) {
+      navigate('/staff-login');
       return;
     }
     fetchBillingData();
@@ -47,12 +49,18 @@ const StaffBilling = () => {
       const paymentsData = paymentsRes.ok ? await paymentsRes.json() : [];
       const invoiceStats = invoiceStatsRes.ok ? await invoiceStatsRes.json() : {};
 
-      setInvoices(invoicesData);
-      setPayments(paymentsData);
+      // Ensure data is always an array
+      const invoicesArray = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
+      const paymentsArray = Array.isArray(paymentsData) ? paymentsData : (paymentsData.payments || paymentsData.data || []);
+
+      console.log(`💰 Loaded ${invoicesArray.length} invoices, ${paymentsArray.length} payments`);
+      
+      setInvoices(invoicesArray);
+      setPayments(paymentsArray);
       setStats({
         totalRevenue: invoiceStats.total_revenue || 0,
-        totalInvoices: invoicesData.length,
-        totalPayments: paymentsData.length
+        totalInvoices: invoicesArray.length,
+        totalPayments: paymentsArray.length
       });
     } catch (err) {
       setError('Failed to load billing data');

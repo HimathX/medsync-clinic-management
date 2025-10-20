@@ -1,6 +1,6 @@
 // src/components/StaffHeader.js
 import React from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 /**
  * StaffHeader Component
@@ -8,6 +8,8 @@ import { Link, NavLink } from "react-router-dom";
  * Shows staff-relevant menu items only
  */
 const StaffHeader = ({ staffName, staffRole, branch, setBranch, onLogout }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const navLinks = [
     { to: "/staff/dashboard", label: "Dashboard" },
     { to: "/staff/appointments", label: "Appointments" },
@@ -56,18 +58,31 @@ const StaffHeader = ({ staffName, staffRole, branch, setBranch, onLogout }) => {
 
       <nav className="ms-nav" aria-label="Primary navigation">
         <ul className="ms-nav-list">
-          {navLinks.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                end={item.to === "/staff/dashboard"}
-                className={({ isActive }) => "ms-link" + (isActive ? " is-active" : "")}
-              >
-                <span>{item.label}</span>
-                <i className="u" aria-hidden="true" />
-              </NavLink>
-            </li>
-          ))}
+          {navLinks.map((item) => {
+            const isActive = location.pathname === item.to;
+            return (
+              <li key={item.to}>
+                <div
+                  className={`ms-link${isActive ? ' is-active' : ''}`}
+                  onClick={() => {
+                    console.log('🔗 Navigating to:', item.to);
+                    navigate(item.to);
+                  }}
+                  style={{ cursor: 'pointer' }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      navigate(item.to);
+                    }
+                  }}
+                >
+                  <span>{item.label}</span>
+                  <i className="u" aria-hidden="true" style={{ pointerEvents: 'none' }} />
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </header>

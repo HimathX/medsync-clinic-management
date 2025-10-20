@@ -89,6 +89,11 @@ function App() {
     const checkAuth = () => {
       const currentUser = authService.getCurrentUser();
       console.log('🔍 Checking auth on app load. currentUser:', currentUser);
+      console.log('   localStorage data:', {
+        user_id: localStorage.getItem('user_id'),
+        user_type: localStorage.getItem('user_type'),
+        token: localStorage.getItem('token') ? 'exists' : 'missing'
+      });
       
       if (currentUser && currentUser.isAuthenticated) {
         console.log('✅ Auth found in authService:', currentUser);
@@ -97,8 +102,10 @@ function App() {
         setIsAuthenticated(true);
         setUserType(currentUser.userType);
         setRoleFromUserType(currentUser.userType);
+        console.log('✅ State updated - isAuthenticated: true, userType:', currentUser.userType);
       } else {
         console.log('❌ No valid auth found. Will show LandingPage.');
+        console.log('   currentUser:', currentUser);
         setIsAuthenticated(false);
       }
       

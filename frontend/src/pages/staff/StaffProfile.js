@@ -20,13 +20,14 @@ const StaffProfile = () => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
+    const userId = localStorage.getItem('user_id');
+    const userType = localStorage.getItem('user_type');
+    
+    if (!userId || !userType) {
+      navigate('/staff-login');
       return;
     }
-    const user = JSON.parse(storedUser);
-    fetchStaffProfile(user.staff_id || user.id);
+    fetchStaffProfile(userId);
   }, [navigate]);
 
   const fetchStaffProfile = async (staffId) => {

@@ -22,15 +22,24 @@ const StaffSchedule = () => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
+    const userId = localStorage.getItem('user_id');
+    const userType = localStorage.getItem('user_type');
+    
+    if (!userId || !userType) {
+      navigate('/staff-login');
       return;
     }
     fetchTimeSlots();
   }, [navigate]);
 
   const applyFilters = useCallback(() => {
+    // Safety check: ensure timeSlots is an array
+    if (!Array.isArray(timeSlots)) {
+      console.warn('⚠️ timeSlots is not an array:', timeSlots);
+      setFilteredSlots([]);
+      return;
+    }
+    
     let filtered = [...timeSlots];
     if (filters.date) {
       filtered = filtered.filter(slot => {
@@ -51,19 +60,39 @@ const StaffSchedule = () => {
 
   const fetchTimeSlots = async () => {
     setLoading(true);
+    setError('');
+    
     try {
       const token = localStorage.getItem('token');
+      console.log('📅 Fetching time slots from API...');
+      
       const response = await fetch(`${API_BASE_URL}/timeslots/`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
+      
       if (response.ok) {
         const data = await response.json();
-        setTimeSlots(data);
+        console.log('✅ Time slots response:', data);
+        
+        // Handle different response formats
+        let slotsArray = [];
+        if (Array.isArray(data)) {
+          slotsArray = data;
+        } else if (data.timeslots && Array.isArray(data.timeslots)) {
+          slotsArray = data.timeslots;
+        } else if (data.data && Array.isArray(data.data)) {
+          slotsArray = data.data;
+        }
+        
+        console.log(`✅ Loaded ${slotsArray.length} time slots`);
+        setTimeSlots(slotsArray);
       } else {
         throw new Error('Failed to fetch time slots');
       }
     } catch (err) {
+      console.error('❌ Error fetching time slots:', err);
       setError('Failed to load schedule');
+      setTimeSlots([]); // Ensure it's always an array
     } finally {
       setLoading(false);
     }

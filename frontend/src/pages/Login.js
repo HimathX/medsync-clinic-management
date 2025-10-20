@@ -77,15 +77,27 @@ export default function Login({ onLogin, loginType = 'staff' }) {
           onLogin(role, userType);
         }
 
-        // Redirect based on user type
-        if (userType === 'patient') {
-          navigate('/patient/dashboard');
-        } else if (userType === 'doctor' || userType === 'employee' || userType === 'admin' || 
-                   userType === 'staff' || userType === 'manager' || userType === 'nurse' || 
-                   userType === 'receptionist') {
-          // All staff types go to staff dashboard
-          navigate('/');
-        }
+        // Dispatch custom event to notify App.js of auth change
+        window.dispatchEvent(new Event('authChanged'));
+        console.log('🔔 Dispatched authChanged event');
+        
+        // Force a full page reload to ensure App.js re-checks authentication
+        console.log('🔄 Forcing page reload to refresh authentication state');
+
+        // Small delay to ensure localStorage is synced
+        setTimeout(() => {
+          // Redirect based on user type
+          if (userType === 'patient') {
+            console.log('✅ Redirecting patient to /patient/dashboard');
+            window.location.href = '/patient/dashboard';
+          } else if (userType === 'doctor' || userType === 'employee' || userType === 'admin' || 
+                     userType === 'staff' || userType === 'manager' || userType === 'nurse' || 
+                     userType === 'receptionist') {
+            // All staff types go to staff dashboard
+            console.log('✅ Redirecting staff to /staff/dashboard');
+            window.location.href = '/staff/dashboard';
+          }
+        }, 100);
       }
     } catch (err) {
       console.error('Login error:', err);
