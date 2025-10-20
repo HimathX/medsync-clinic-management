@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from typing import Optional
 from core.database import get_db
+from core.auth import get_current_user
 import logging
 
 router = APIRouter(tags=["branch"])
@@ -14,7 +15,8 @@ logger = logging.getLogger(__name__)
 def get_all_branches(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    is_active: Optional[bool] = True
+    is_active: Optional[bool] = True,
+    current_user: dict = Depends(get_current_user)  # ✅ All authenticated
 ):
     """Get all branches with pagination"""
     try:
@@ -54,7 +56,10 @@ def get_all_branches(
 
 
 @router.get("/{branch_id}", status_code=status.HTTP_200_OK)
-def get_branch_by_id(branch_id: str):
+def get_branch_by_id(
+    branch_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     """Get branch details by ID with full address and contact info"""
     try:
         with get_db() as (cursor, connection):

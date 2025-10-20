@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from typing import Optional, List
 from pydantic import BaseModel, Field, validator
 from core.database import get_db
 from datetime import date, datetime
 import logging
 import uuid
+from core.auth import get_current_user
 
 router = APIRouter(tags=["payments"])
 
@@ -61,13 +62,37 @@ class PaymentResponse(BaseModel):
 
 
 # ============================================
+# ROLE DEPENDENCIES
+# ============================================
+
+def require_roles(allowed_roles: list[str]):
+    """Dependency to require specific roles for a route"""
+    def role_checker(current_user: dict = Depends(get_current_user)):
+        if not current_user or 'role' not in current_user:
+            raise HTTPException(status_code=403, detail="Not authenticated")
+        
+        user_roles = current_user['role'] if isinstance(current_user['role'], list) else [current_user['role']]
+        
+        for role in allowed_roles:
+            if role in user_roles:
+                return current_user
+        
+        raise HTTPException(status_code=403, detail="Operation not permitted")
+    
+    return role_checker
+
+
+# ============================================
 # CREATE PAYMENT
 # ============================================
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=PaymentResponse)
-def create_payment(payment_data: PaymentCreate):
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def create_payment(
+    payment_data: PaymentCreate,
+    current_user: dict = Depends(require_roles(['admin', 'receptionist']))
+):
     """
-    Record a new payment
+    Record a new payment (Receptionist/Admin only)
     
     - Validates patient exists
     - Creates payment record with Pending status
@@ -134,14 +159,11 @@ def create_payment(payment_data: PaymentCreate):
 
 @router.get("/", status_code=status.HTTP_200_OK)
 def get_all_payments(
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=500, description="Maximum records to return"),
-    status_filter: Optional[str] = Query(None, pattern="^(Completed|Pending|Failed|Refunded)$"),
-    payment_method: Optional[str] = Query(None, pattern="^(Cash|Credit Card|Debit Card|Online|Insurance|Other)$"),
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    current_user: dict = Depends(require_roles(['admin', 'manager', 'receptionist']))
 ):
-    """Get all payments with optional filters"""
+    """Get all payments (Admin/Manager/Receptionist)"""
     try:
         with get_db() as (cursor, connection):
             # Build WHERE clause
@@ -264,8 +286,18 @@ def get_payment_by_id(payment_id: str):
 # ============================================
 
 @router.get("/patient/{patient_id}", status_code=status.HTTP_200_OK)
-def get_payments_by_patient(patient_id: str):
-    """Get all payments for a specific patient"""
+def get_payments_by_patient(
+    patient_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get patient payments (Patient or Staff)"""
+    # Check if user is patient themselves or staff
+    user_type = current_user.get('user_type')
+    user_id = current_user.get('user_id')
+    
+    if user_type == 'patient' and user_id != patient_id:
+        raise HTTPException(403, "Can only view own payments")
+    
     try:
         # Validate UUID format
         try:

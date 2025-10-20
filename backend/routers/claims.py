@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from typing import Optional
 from pydantic import BaseModel, Field, validator
 from core.database import get_db
 from datetime import date
 import logging
 import uuid
+from core.auth import get_current_user
 
 router = APIRouter(tags=["claims"])
 
@@ -36,9 +37,23 @@ class ClaimResponse(BaseModel):
     claim_id: Optional[str] = None
 
 
+def require_roles(allowed_roles: list[str]):
+    def decorator(fn):
+        async def wrapper(*args, **kwargs):
+            current_user = kwargs.get('current_user')
+            if not current_user or current_user.get('role') not in allowed_roles:
+                raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+            return await fn(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_claim(data: ClaimCreate):
-    """Create claim with validation: insurance limits, copayment, patient matching"""
+def create_claim(
+    data: ClaimCreate,
+    current_user: dict = Depends(require_roles(['admin', 'receptionist']))
+):
+    """Create claim (Admin/Receptionist)"""
     try:
         with get_db() as (cursor, connection):
             # Complex query: Get invoice with patient
@@ -106,8 +121,11 @@ def create_claim(data: ClaimCreate):
 
 
 @router.get("/{claim_id}")
-def get_claim_details(claim_id: str):
-    """Get claim with full details using complex join query"""
+def get_claim_details(
+    claim_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get claim (Authenticated with access check)"""
     try:
         with get_db() as (cursor, connection):
             # Complex query with multiple joins

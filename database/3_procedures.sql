@@ -810,21 +810,24 @@ END proc_label$$
 -- Procedure: AuthenticateUser
 DROP PROCEDURE IF EXISTS `AuthenticateUser`$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `AuthenticateUser`(
+DROP PROCEDURE IF EXISTS AuthenticateUser;
+
+DELIMITER $$
+
+CREATE PROCEDURE AuthenticateUser(
     IN p_email VARCHAR(255),
-    IN p_password_hash VARCHAR(255),
+    IN p_password_hash VARCHAR(64),
     OUT p_user_id CHAR(36),
     OUT p_user_type VARCHAR(20),
-    OUT p_full_name VARCHAR(100),
+    OUT p_full_name VARCHAR(255),
     OUT p_error_message VARCHAR(255),
     OUT p_success BOOLEAN
 )
-proc_label: BEGIN
-    DECLARE v_stored_password VARCHAR(255);
+AuthenticateUser: BEGIN
+    DECLARE v_stored_password VARCHAR(64);
     DECLARE v_user_count INT DEFAULT 0;
-    DECLARE v_user_type_db VARCHAR(20);
-    DECLARE v_employee_role VARCHAR(20);
     
+    -- Error handler
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         GET DIAGNOSTICS CONDITION 1 p_error_message = MESSAGE_TEXT;
@@ -836,10 +839,10 @@ proc_label: BEGIN
     
     -- Initialize output parameters
     SET p_success = FALSE;
+    SET p_error_message = NULL;
     SET p_user_id = NULL;
     SET p_user_type = NULL;
     SET p_full_name = NULL;
-    SET p_error_message = NULL;
     
     -- Check if user exists
     SELECT COUNT(*) INTO v_user_count
@@ -848,24 +851,32 @@ proc_label: BEGIN
     
     IF v_user_count = 0 THEN
         SET p_error_message = 'Invalid email or password';
-        LEAVE proc_label;
+        LEAVE AuthenticateUser;
     END IF;
     
-    -- Get user details - CHANGED: role -> user_type
-    SELECT user_id, password_hash, user_type, full_name
-    INTO p_user_id, v_stored_password, v_user_type_db, p_full_name
+    -- Get user info (ONLY from user table)
+    SELECT 
+        user_id,
+        password_hash,
+        user_type,     -- This returns 'employee', 'patient', or 'admin'
+        full_name
+    INTO 
+        p_user_id,
+        v_stored_password,
+        p_user_type,   -- Will be 'employee' for test1@example.com
+        p_full_name
     FROM user
     WHERE LOWER(TRIM(email)) = LOWER(TRIM(p_email));
     
-    -- Verify password hash
+    -- Verify password (case-insensitive comparison)
     IF LOWER(TRIM(v_stored_password)) = LOWER(TRIM(p_password_hash)) THEN
         -- Password is correct
         SET p_success = TRUE;
         SET p_error_message = NULL;
         
-        -- Determine specific user type based on user_type column
-        IF v_user_type_db = 'patient' THEN
-            -- Check if patient record exists
+        -- Validate that required child records exist
+        IF p_user_type = 'patient' THEN
+            -- Verify patient record exists
             SELECT COUNT(*) INTO v_user_count 
             FROM patient 
             WHERE patient_id = p_user_id;
@@ -876,14 +887,12 @@ proc_label: BEGIN
                 SET p_user_id = NULL;
                 SET p_user_type = NULL;
                 SET p_full_name = NULL;
-                LEAVE proc_label;
+                LEAVE AuthenticateUser;
             END IF;
             
-            SET p_user_type = 'patient';
-            
-        ELSEIF v_user_type_db = 'employee' THEN
-            -- Check if employee record exists and get role
-            SELECT COUNT(*), MAX(role) INTO v_user_count, v_employee_role
+        ELSEIF p_user_type = 'employee' THEN
+            -- Verify employee record exists
+            SELECT COUNT(*) INTO v_user_count
             FROM employee
             WHERE employee_id = p_user_id;
             
@@ -893,36 +902,14 @@ proc_label: BEGIN
                 SET p_user_id = NULL;
                 SET p_user_type = NULL;
                 SET p_full_name = NULL;
-                LEAVE proc_label;
+                LEAVE AuthenticateUser;
             END IF;
-            
-            -- Check specific employee role
-            IF v_employee_role = 'doctor' THEN
-                SELECT COUNT(*) INTO v_user_count 
-                FROM doctor 
-                WHERE doctor_id = p_user_id;
-                
-                IF v_user_count = 0 THEN
-                    SET p_error_message = 'User account not properly configured - Doctor record missing';
-                    SET p_success = FALSE;
-                    SET p_user_id = NULL;
-                    SET p_user_type = NULL;
-                    SET p_full_name = NULL;
-                    LEAVE proc_label;
-                END IF;
-                
-                SET p_user_type = 'doctor';
-            ELSE
-                -- For other staff (nurse, admin, receptionist, manager)
-                SET p_user_type = v_employee_role;
-            END IF;
-        ELSE
-            SET p_error_message = CONCAT('Invalid user type: ', COALESCE(v_user_type_db, 'NULL'));
-            SET p_success = FALSE;
-            SET p_user_id = NULL;
-            SET p_user_type = NULL;
-            SET p_full_name = NULL;
         END IF;
+        
+        -- Authentication successful
+        -- Note: We return user_type from user table ('employee', 'patient', 'admin')
+        -- The backend will fetch employee.role separately if needed
+        
     ELSE
         -- Password is incorrect
         SET p_success = FALSE;
@@ -931,7 +918,10 @@ proc_label: BEGIN
         SET p_user_type = NULL;
         SET p_full_name = NULL;
     END IF;
-END proc_label$$
+    
+END$$
+
+DELIMITER ;
 
 -- Procedure: BookAppointment
 DROP PROCEDURE IF EXISTS `BookAppointment`$$

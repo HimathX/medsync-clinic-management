@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, status, Query, Path
+from fastapi import APIRouter, HTTPException, status, Query, Path, Depends
 from typing import Optional, List
 from pydantic import BaseModel, Field, validator
 from core.database import get_db
+from core.auth import get_current_user
 import logging
 import uuid
 from datetime import time
@@ -130,11 +131,38 @@ class BulkTreatmentResponse(BaseModel):
 
 
 # ============================================
+# ROLE CHECKER
+# ============================================
+
+# Add role checker (same as above)
+def require_roles(allowed_roles: list[str]):
+    async def role_checker(current_user: dict = Depends(get_current_user)):
+        if not current_user or 'role' not in current_user:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authenticated"
+            )
+        
+        if current_user['role'] not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Operation not permitted"
+            )
+        
+        return current_user
+    
+    return role_checker
+
+
+# ============================================
 # CREATE TREATMENT (SINGLE)
 # ============================================
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=TreatmentCatalogueResponse)
-def create_treatment(treatment_data: TreatmentCatalogueCreate):
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def create_treatment(
+    treatment_data: TreatmentCatalogueCreate,
+    current_user: dict = Depends(require_roles(['admin', 'manager']))
+):
     """
     Add a new treatment to the catalogue
     
@@ -294,7 +322,8 @@ def get_all_treatments(
     limit: int = Query(100, ge=1, le=500, description="Maximum records to return"),
     search: Optional[str] = Query(None, min_length=1, description="Search by treatment name"),
     min_price: Optional[float] = Query(None, ge=0, description="Minimum price filter"),
-    max_price: Optional[float] = Query(None, ge=0, description="Maximum price filter")
+    max_price: Optional[float] = Query(None, ge=0, description="Maximum price filter"),
+    current_user: dict = Depends(get_current_user)  # ✅ Requires auth
 ):
     """Get all treatments with optional filters"""
     try:
@@ -407,7 +436,11 @@ def get_treatment_by_id(treatment_service_code: str):
 # ============================================
 
 @router.patch("/{treatment_service_code}", status_code=status.HTTP_200_OK)
-def update_treatment(treatment_service_code: str, update_data: TreatmentCatalogueUpdate):
+def update_treatment(
+    treatment_service_code: str,
+    update_data: TreatmentCatalogueUpdate,
+    current_user: dict = Depends(require_roles(['admin', 'manager']))
+):
     """Update treatment details"""
     try:
         # Validate UUID format
@@ -509,7 +542,11 @@ def update_treatment(treatment_service_code: str, update_data: TreatmentCatalogu
 # ============================================
 
 @router.delete("/{treatment_service_code}", status_code=status.HTTP_200_OK)
-def delete_treatment(treatment_service_code: str, force: bool = False):
+def delete_treatment(
+    treatment_service_code: str,
+    force: bool = False,
+    current_user: dict = Depends(require_roles(['admin']))
+):
     """Delete a treatment (checks for dependencies)"""
     try:
         # Validate UUID format
@@ -623,8 +660,6 @@ def get_treatment_statistics(
 # ============================================
 # GET TREATMENTS BY PRICE RANGE
 # ============================================
-
-from fastapi import Path
 
 @router.get("/price-range/{min_price}/{max_price}", status_code=status.HTTP_200_OK)
 def get_treatments_by_price_range(

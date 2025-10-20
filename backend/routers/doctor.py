@@ -1,28 +1,69 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 from datetime import date
 from decimal import Decimal
 from core.database import get_db
-import hashlib
+from core.auth import get_current_user, hash_password  # ✅ Import auth functions
 import json
 import logging
 
-router = APIRouter(tags=["doctor"])
+router = APIRouter(
+    prefix="/api/doctors",  # ✅ Add prefix
+    tags=["doctor"]
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Password hashing helper
-def hash_password(password: str) -> str:
-    """Hash password using SHA-256"""
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash"""
-    return hash_password(plain_password) == hashed_password
+# ============================================
+# AUTHORIZATION HELPERS
+# ============================================
 
+def require_roles(allowed_roles: List[str]):
+    """
+    Dependency to check if user has required role
+    
+    Args:
+        allowed_roles: List of allowed roles (e.g., ['admin', 'manager', 'doctor'])
+    
+    Returns:
+        Dependency function
+    """
+    async def role_checker(current_user: dict = Depends(get_current_user)):
+        print(f"\n🔐 [AUTH] Role check:")
+        print(f"   User: {current_user.get('email')}")
+        print(f"   User Type: {current_user.get('user_type')}")
+        print(f"   User Role: {current_user.get('role')}")
+        print(f"   Required Roles: {allowed_roles}")
+        
+        user_role = current_user.get('role')
+        user_type = current_user.get('user_type')
+        
+        # Check if user has required role
+        if user_type == 'employee' and user_role in allowed_roles:
+            print(f"   ✅ Access granted")
+            return current_user
+        
+        # Admin always has access
+        if user_type == 'employee' and user_role == 'admin':
+            print(f"   ✅ Access granted (admin)")
+            return current_user
+        
+        print(f"   ❌ Access denied")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Insufficient permissions. Required roles: {', '.join(allowed_roles)}"
+        )
+    
+    return role_checker
+
+
+# ============================================
+# PYDANTIC MODELS (Keep existing models)
+# ============================================
 
 class DoctorRegistrationRequest(BaseModel):
     # Address
@@ -55,116 +96,80 @@ class DoctorRegistrationRequest(BaseModel):
     medical_licence_no: str = Field(..., max_length=50, description="Medical licence number")
     consultation_fee: Decimal = Field(..., ge=0, description="Consultation fee")
     specialization_ids: List[str] = Field(default_factory=list, description="List of specialization IDs")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "address_line1": "789 Doctor Street",
-                "address_line2": "Colombo 07",
-                "city": "Colombo",
-                "province": "Western",
-                "postal_code": "00700",
-                "country": "Sri Lanka",
-                "contact_num1": "+94115556677",
-                "contact_num2": "+94771112233",
-                "full_name": "Dr. John Smith",
-                "NIC": "197501234567",
-                "email": "dr.john@clinic.com",
-                "gender": "Male",
-                "DOB": "1975-05-15",
-                "password": "SecureDoc123!",
-                "branch_name": "Main Branch",
-                "salary": 120000.00,
-                "joined_date": "2025-01-01",
-                "room_no": "R101",
-                "medical_licence_no": "LK-MED-12345",
-                "consultation_fee": 2500.00,
-                "specialization_ids": ["spec-uuid-1", "spec-uuid-2"]
-            }
-        }
+
 
 class DoctorRegistrationResponse(BaseModel):
     success: bool
     message: str
     doctor_id: Optional[str] = None
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Doctor registered successfully",
-                "doctor_id": "uuid-of-new-doctor"
-            }
-        }
+
 
 class AddSpecializationRequest(BaseModel):
     specialization_id: str = Field(..., description="Specialization ID (UUID)")
     certification_date: date = Field(..., description="Date of certification (YYYY-MM-DD)")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "specialization_id": "spec-uuid-here",
-                "certification_date": "2024-01-15"
-            }
-        }
+
 
 class AddSpecializationResponse(BaseModel):
     success: bool
     message: str
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Doctor specialization added successfully"
-            }
-        }
+
 
 class CreateSpecializationRequest(BaseModel):
     specialization_title: str = Field(..., max_length=50, description="Title of the specialization")
     other_details: Optional[str] = Field(None, description="Additional details about the specialization")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "specialization_title": "Cardiology",
-                "other_details": "Heart and cardiovascular system specialist"
-            }
-        }
+
 
 class CreateSpecializationResponse(BaseModel):
     success: bool
     message: str
     specialization_id: Optional[str] = None
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Specialization created successfully",
-                "specialization_id": "uuid-of-new-specialization"
-            }
-        }
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=DoctorRegistrationResponse)
-def register_doctor(doctor_data: DoctorRegistrationRequest):
+# ============================================
+# PROTECTED ENDPOINTS - ADMIN/MANAGER ONLY
+# ============================================
+
+@router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED,
+    response_model=DoctorRegistrationResponse,
+    summary="Register New Doctor",
+    description="Register a new doctor (Admin/Manager only)"
+)
+async def register_doctor(
+    doctor_data: DoctorRegistrationRequest,
+    current_user: dict = Depends(require_roles(['admin', 'manager']))
+):
     """
     Register a new doctor using stored procedure
     
+    **Required Role:** Admin or Manager
+    
+    **Process:**
     - Creates user account
     - Creates employee record
     - Creates doctor record with medical licence
     - Associates specializations
+    
+    **Authentication:** Bearer token required
     """
+    logger.info(f"Doctor registration initiated by {current_user.get('email')}")
+    
     try:
         with get_db() as (cursor, connection):
             # Hash the password using SHA-256
             password_hash = hash_password(doctor_data.password)
             
-            # Convert specialization IDs to JSON array for MySQL
+            # Convert specialization IDs to JSON array
             specialization_json = json.dumps(doctor_data.specialization_ids) if doctor_data.specialization_ids else None
+            
+            print(f"\n📋 Doctor Registration Data:")
+            print(f"   Name: {doctor_data.full_name}")
+            print(f"   Email: {doctor_data.email}")
+            print(f"   NIC: {doctor_data.NIC}")
+            print(f"   Branch: {doctor_data.branch_name}")
+            print(f"   Medical Licence: {doctor_data.medical_licence_no}")
+            print(f"   Specializations: {doctor_data.specialization_ids}")
             
             # Set session variables for OUT parameters
             cursor.execute("SET @p_user_id = NULL")
@@ -178,6 +183,8 @@ def register_doctor(doctor_data: DoctorRegistrationRequest):
                     @p_user_id, @p_error_message, @p_success
                 )
             """
+            
+            print(f"\n🔧 Calling RegisterDoctor stored procedure...")
             
             cursor.execute(call_sql, (
                 doctor_data.address_line1,
@@ -211,36 +218,83 @@ def register_doctor(doctor_data: DoctorRegistrationRequest):
             error_message = result['error_message']
             success = result['success']
             
-            logger.info(f"Doctor registration result - Success: {success}, User ID: {user_id}, Error: {error_message}")
+            print(f"\n📊 Stored Procedure Result:")
+            print(f"   User ID: {user_id}")
+            print(f"   Error Message: {error_message}")
+            print(f"   Success: {success}")
             
             if success == 1 or success is True:
+                logger.info(f"✅ Doctor registered successfully by {current_user.get('email')}: {user_id}")
+                print(f"✅ Doctor registered successfully: {user_id}")
+                
                 return DoctorRegistrationResponse(
                     success=True,
                     message=error_message or "Doctor registered successfully",
                     doctor_id=user_id
                 )
             else:
+                # ✅ FIXED: Return proper error code based on error message
+                error_msg = error_message or "Failed to register doctor"
+                logger.error(f"❌ Doctor registration failed: {error_msg}")
+                print(f"❌ Registration failed: {error_msg}")
+                
+                # Determine appropriate status code
+                if "already registered" in error_msg.lower() or "already exists" in error_msg.lower():
+                    status_code = status.HTTP_409_CONFLICT
+                elif "not found" in error_msg.lower():
+                    status_code = status.HTTP_404_NOT_FOUND
+                elif "invalid" in error_msg.lower():
+                    status_code = status.HTTP_400_BAD_REQUEST
+                else:
+                    status_code = status.HTTP_400_BAD_REQUEST
+                
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=error_message or "Failed to register doctor"
+                    status_code=status_code,
+                    detail=error_msg
                 )
                 
     except HTTPException:
+        # ✅ Re-raise HTTPException without wrapping
         raise
     except Exception as e:
-        logger.error(f"Error during doctor registration: {str(e)}")
+        # ✅ Only catch unexpected errors
+        logger.error(f"Unexpected error during doctor registration: {str(e)}")
+        print(f"\n❌ Unexpected Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred during registration: {str(e)}"
+            detail=f"An unexpected error occurred during registration: {str(e)}"
         )
 
+
 # ============================================
-# GET ENDPOINTS
+# PROTECTED ENDPOINTS - ALL AUTHENTICATED USERS
 # ============================================
 
-@router.get("/", status_code=status.HTTP_200_OK)
-def get_all_doctors(skip: int = 0, limit: int = 100):
-    """Get all doctors with pagination"""
+@router.get(
+    "/",
+    status_code=status.HTTP_200_OK,
+    summary="Get All Doctors",
+    description="Get list of all doctors with pagination"
+)
+async def get_all_doctors(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user)  # ✅ Requires authentication
+):
+    """
+    Get all doctors with pagination
+    
+    **Authentication:** Bearer token required
+    
+    **Parameters:**
+    - **skip**: Number of records to skip (default: 0)
+    - **limit**: Maximum number of records (default: 100)
+    """
+    logger.info(f"Fetching doctors - User: {current_user.get('email')}")
+    
     try:
         with get_db() as (cursor, connection):
             # Get total count
@@ -250,18 +304,34 @@ def get_all_doctors(skip: int = 0, limit: int = 100):
             
             # Get doctors with pagination
             cursor.execute(
-                """SELECT d.*, e.*, u.full_name, u.email, u.contact_id
+                """SELECT 
+                    d.doctor_id,
+                    d.room_no,
+                    d.medical_licence_no,
+                    d.consultation_fee,
+                    d.is_available,
+                    u.full_name,
+                    u.email,
+                    u.gender,
+                    e.branch_id,
+                    e.is_active,
+                    e.joined_date
                    FROM doctor d
                    JOIN employee e ON d.doctor_id = e.employee_id
                    JOIN user u ON d.doctor_id = u.user_id
                    WHERE e.is_active = TRUE
+                   ORDER BY u.full_name
                    LIMIT %s OFFSET %s""",
                 (limit, skip)
             )
             doctors = cursor.fetchall()
             
             return {
+                "success": True,
                 "total": total,
+                "count": len(doctors),
+                "skip": skip,
+                "limit": limit,
                 "doctors": doctors or []
             }
     except Exception as e:
@@ -271,14 +341,44 @@ def get_all_doctors(skip: int = 0, limit: int = 100):
             detail=f"Database error: {str(e)}"
         )
 
-@router.get("/{doctor_id}", status_code=status.HTTP_200_OK)
-def get_doctor_by_id(doctor_id: str):
-    """Get doctor details by ID"""
+
+@router.get(
+    "/{doctor_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Get Doctor Details",
+    description="Get detailed information about a specific doctor"
+)
+async def get_doctor_by_id(
+    doctor_id: str,
+    current_user: dict = Depends(get_current_user)  # ✅ Requires authentication
+):
+    """
+    Get doctor details by ID
+    
+    **Authentication:** Bearer token required
+    
+    **Parameters:**
+    - **doctor_id**: UUID of the doctor
+    """
+    logger.info(f"Fetching doctor {doctor_id} - User: {current_user.get('email')}")
+    
     try:
         with get_db() as (cursor, connection):
             # Get doctor details
             cursor.execute(
-                """SELECT d.*, e.*, u.full_name, u.email, u.NIC, u.gender, u.DOB
+                """SELECT 
+                    d.*,
+                    e.branch_id,
+                    e.salary,
+                    e.joined_date,
+                    e.is_active,
+                    u.full_name,
+                    u.email,
+                    u.NIC,
+                    u.gender,
+                    u.DOB,
+                    u.contact_id,
+                    u.address_id
                    FROM doctor d
                    JOIN employee e ON d.doctor_id = e.employee_id
                    JOIN user u ON d.doctor_id = u.user_id
@@ -298,12 +398,14 @@ def get_doctor_by_id(doctor_id: str):
                 """SELECT s.*, ds.certification_date
                    FROM specialization s
                    JOIN doctor_specialization ds ON s.specialization_id = ds.specialization_id
-                   WHERE ds.doctor_id = %s""",
+                   WHERE ds.doctor_id = %s
+                   ORDER BY s.specialization_title""",
                 (doctor_id,)
             )
             specializations = cursor.fetchall()
             
             return {
+                "success": True,
                 "doctor": doctor,
                 "specializations": specializations or []
             }
@@ -316,9 +418,27 @@ def get_doctor_by_id(doctor_id: str):
             detail=f"Database error: {str(e)}"
         )
 
-@router.get("/{doctor_id}/time-slots", status_code=status.HTTP_200_OK)
-def get_doctor_time_slots(doctor_id: str, available_only: bool = True):
-    """Get all time slots for a doctor"""
+
+@router.get(
+    "/{doctor_id}/time-slots",
+    status_code=status.HTTP_200_OK,
+    summary="Get Doctor Time Slots",
+    description="Get all time slots for a specific doctor"
+)
+async def get_doctor_time_slots(
+    doctor_id: str,
+    available_only: bool = True,
+    current_user: dict = Depends(get_current_user)  # ✅ Requires authentication
+):
+    """
+    Get all time slots for a doctor
+    
+    **Authentication:** Bearer token required
+    
+    **Parameters:**
+    - **doctor_id**: UUID of the doctor
+    - **available_only**: Filter only available slots (default: true)
+    """
     try:
         with get_db() as (cursor, connection):
             # Check if doctor exists
@@ -332,7 +452,18 @@ def get_doctor_time_slots(doctor_id: str, available_only: bool = True):
                 )
             
             # Build query
-            query = "SELECT * FROM time_slot WHERE doctor_id = %s"
+            query = """
+                SELECT 
+                    time_slot_id,
+                    doctor_id,
+                    branch_id,
+                    available_date,
+                    start_time,
+                    end_time,
+                    is_booked
+                FROM time_slot 
+                WHERE doctor_id = %s
+            """
             params = [doctor_id]
             
             if available_only:
@@ -344,6 +475,7 @@ def get_doctor_time_slots(doctor_id: str, available_only: bool = True):
             time_slots = cursor.fetchall()
             
             return {
+                "success": True,
                 "doctor_id": doctor_id,
                 "total": len(time_slots),
                 "time_slots": time_slots or []
@@ -357,9 +489,25 @@ def get_doctor_time_slots(doctor_id: str, available_only: bool = True):
             detail=f"Database error: {str(e)}"
         )
 
-@router.get("/specialization/{specialization_id}", status_code=status.HTTP_200_OK)
-def get_doctors_by_specialization(specialization_id: str):
-    """Get all doctors with a specific specialization"""
+
+@router.get(
+    "/specialization/{specialization_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Get Doctors by Specialization",
+    description="Get all doctors with a specific specialization"
+)
+async def get_doctors_by_specialization(
+    specialization_id: str,
+    current_user: dict = Depends(get_current_user)  # ✅ Requires authentication
+):
+    """
+    Get all doctors with a specific specialization
+    
+    **Authentication:** Bearer token required
+    
+    **Parameters:**
+    - **specialization_id**: UUID of the specialization
+    """
     try:
         with get_db() as (cursor, connection):
             # Check if specialization exists
@@ -377,17 +525,28 @@ def get_doctors_by_specialization(specialization_id: str):
             
             # Get doctors with this specialization
             cursor.execute(
-                """SELECT d.*, e.*, u.full_name, u.email
+                """SELECT 
+                    d.doctor_id,
+                    d.room_no,
+                    d.consultation_fee,
+                    d.is_available,
+                    u.full_name,
+                    u.email,
+                    e.branch_id,
+                    e.is_active,
+                    ds.certification_date
                    FROM doctor d
                    JOIN employee e ON d.doctor_id = e.employee_id
                    JOIN user u ON d.doctor_id = u.user_id
                    JOIN doctor_specialization ds ON d.doctor_id = ds.doctor_id
-                   WHERE ds.specialization_id = %s AND e.is_active = TRUE""",
+                   WHERE ds.specialization_id = %s AND e.is_active = TRUE
+                   ORDER BY u.full_name""",
                 (specialization_id,)
             )
             doctors = cursor.fetchall()
             
             return {
+                "success": True,
                 "specialization": specialization,
                 "total": len(doctors),
                 "doctors": doctors or []
@@ -401,15 +560,37 @@ def get_doctors_by_specialization(specialization_id: str):
             detail=f"Database error: {str(e)}"
         )
 
-@router.post("/{doctor_id}/specializations", status_code=status.HTTP_201_CREATED, response_model=AddSpecializationResponse)
-def add_doctor_specialization(doctor_id: str, specialization_data: AddSpecializationRequest):
+
+# ============================================
+# SPECIALIZATION MANAGEMENT - ADMIN/MANAGER
+# ============================================
+
+@router.post(
+    "/{doctor_id}/specializations",
+    status_code=status.HTTP_201_CREATED,
+    response_model=AddSpecializationResponse,
+    summary="Add Doctor Specialization",
+    description="Add a new specialization to a doctor (Admin/Manager only)"
+)
+async def add_doctor_specialization(
+    doctor_id: str,
+    specialization_data: AddSpecializationRequest,
+    current_user: dict = Depends(require_roles(['admin', 'manager']))
+):
     """
     Add a new specialization to a doctor
     
+    **Required Role:** Admin or Manager
+    
+    **Process:**
     - Validates doctor and specialization exist
     - Checks for duplicates
     - Associates specialization with certification date
+    
+    **Authentication:** Bearer token required
     """
+    logger.info(f"Adding specialization to doctor {doctor_id} by {current_user.get('email')}")
+    
     try:
         with get_db() as (cursor, connection):
             # Set session variables for OUT parameters
@@ -438,7 +619,7 @@ def add_doctor_specialization(doctor_id: str, specialization_data: AddSpecializa
             success = result['success']
             
             if success == 1 or success is True:
-                logger.info(f"Specialization added to doctor {doctor_id}")
+                logger.info(f"✅ Specialization added to doctor {doctor_id}")
                 return AddSpecializationResponse(
                     success=True,
                     message=error_message or "Doctor specialization added successfully"
@@ -458,9 +639,22 @@ def add_doctor_specialization(doctor_id: str, specialization_data: AddSpecializa
             detail=f"An error occurred while adding specialization: {str(e)}"
         )
 
-@router.get("/{doctor_id}/specializations", status_code=status.HTTP_200_OK)
-def get_doctor_specializations(doctor_id: str):
-    """Get all specializations for a specific doctor"""
+
+@router.get(
+    "/{doctor_id}/specializations",
+    status_code=status.HTTP_200_OK,
+    summary="Get Doctor Specializations",
+    description="Get all specializations for a specific doctor"
+)
+async def get_doctor_specializations(
+    doctor_id: str,
+    current_user: dict = Depends(get_current_user)  # ✅ Requires authentication
+):
+    """
+    Get all specializations for a specific doctor
+    
+    **Authentication:** Bearer token required
+    """
     try:
         with get_db() as (cursor, connection):
             # Check if doctor exists
@@ -478,12 +672,14 @@ def get_doctor_specializations(doctor_id: str):
                 """SELECT s.*, ds.certification_date
                    FROM specialization s
                    JOIN doctor_specialization ds ON s.specialization_id = ds.specialization_id
-                   WHERE ds.doctor_id = %s""",
+                   WHERE ds.doctor_id = %s
+                   ORDER BY s.specialization_title""",
                 (doctor_id,)
             )
             specializations = cursor.fetchall()
             
             return {
+                "success": True,
                 "doctor_id": doctor_id,
                 "total": len(specializations),
                 "specializations": specializations or []
@@ -497,9 +693,27 @@ def get_doctor_specializations(doctor_id: str):
             detail=f"Database error: {str(e)}"
         )
 
-@router.delete("/{doctor_id}/specializations/{specialization_id}", status_code=status.HTTP_200_OK)
-def remove_doctor_specialization(doctor_id: str, specialization_id: str):
-    """Remove a specialization from a doctor"""
+
+@router.delete(
+    "/{doctor_id}/specializations/{specialization_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Remove Doctor Specialization",
+    description="Remove a specialization from a doctor (Admin/Manager only)"
+)
+async def remove_doctor_specialization(
+    doctor_id: str,
+    specialization_id: str,
+    current_user: dict = Depends(require_roles(['admin', 'manager']))
+):
+    """
+    Remove a specialization from a doctor
+    
+    **Required Role:** Admin or Manager
+    
+    **Authentication:** Bearer token required
+    """
+    logger.info(f"Removing specialization {specialization_id} from doctor {doctor_id} by {current_user.get('email')}")
+    
     try:
         with get_db() as (cursor, connection):
             # Check if the association exists
@@ -525,7 +739,7 @@ def remove_doctor_specialization(doctor_id: str, specialization_id: str):
             
             connection.commit()
             
-            logger.info(f"Specialization {specialization_id} removed from doctor {doctor_id}")
+            logger.info(f"✅ Specialization {specialization_id} removed from doctor {doctor_id}")
             
             return {
                 "success": True,
@@ -541,20 +755,32 @@ def remove_doctor_specialization(doctor_id: str, specialization_id: str):
             detail=f"An error occurred while removing specialization: {str(e)}"
         )
 
-@router.get("/specializations/all", status_code=status.HTTP_200_OK)
-def get_all_specializations(
-    skip: int = 0, 
+
+# ============================================
+# SPECIALIZATIONS - PUBLIC (AUTHENTICATED)
+# ============================================
+
+@router.get(
+    "/specializations/all",
+    status_code=status.HTTP_200_OK,
+    summary="Get All Specializations",
+    description="Get list of all specializations"
+)
+async def get_all_specializations(
+    skip: int = 0,
     limit: int = 100,
-    active_only: bool = False
+    active_only: bool = False,
+    current_user: dict = Depends(get_current_user)  # ✅ Requires authentication
 ):
     """
     Get all available specializations
     
+    **Authentication:** Bearer token required
+    
+    **Parameters:**
     - **skip**: Number of records to skip (for pagination)
     - **limit**: Maximum number of records to return
     - **active_only**: If True, only return specializations with active doctors
-    
-    Returns list of all specializations with details
     """
     try:
         with get_db() as (cursor, connection):
@@ -601,8 +827,6 @@ def get_all_specializations(
             cursor.execute(query, (limit, skip))
             specializations = cursor.fetchall()
             
-            logger.info(f"Retrieved {len(specializations)} specializations (skip={skip}, limit={limit})")
-
             return {
                 "success": True,
                 "total": total,
@@ -620,137 +844,26 @@ def get_all_specializations(
         )
 
 
-@router.get("/specializations/{specialization_id}/details", status_code=status.HTTP_200_OK)
-def get_specialization_details(specialization_id: str):
-    """
-    Get detailed information about a specific specialization
-    
-    - **specialization_id**: UUID of the specialization
-    
-    Returns:
-    - Specialization details
-    - List of doctors with this specialization
-    - Statistics
-    """
-    try:
-        with get_db() as (cursor, connection):
-            # Get specialization details
-            cursor.execute(
-                """SELECT * FROM specialization WHERE specialization_id = %s""",
-                (specialization_id,)
-            )
-            specialization = cursor.fetchone()
-            
-            if not specialization:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Specialization with ID {specialization_id} not found"
-                )
-            
-            # Get doctors with this specialization
-            cursor.execute(
-                """SELECT 
-                    d.doctor_id,
-                    u.full_name,
-                    u.email,
-                    d.room_no,
-                    d.consultation_fee,
-                    d.is_available,
-                    ds.certification_date,
-                    e.is_active
-                FROM doctor d
-                JOIN doctor_specialization ds ON d.doctor_id = ds.doctor_id
-                JOIN user u ON d.doctor_id = u.user_id
-                JOIN employee e ON d.doctor_id = e.employee_id
-                WHERE ds.specialization_id = %s
-                ORDER BY u.full_name""",
-                (specialization_id,)
-            )
-            doctors = cursor.fetchall()
-            
-            # Get statistics
-            active_doctors = sum(1 for doc in doctors if doc.get('is_active'))
-            available_doctors = sum(1 for doc in doctors if doc.get('is_available'))
-            
-            logger.info(f"Retrieved specialization details: {specialization_id}")
-            
-            return {
-                "success": True,
-                "specialization": specialization,
-                "statistics": {
-                    "total_doctors": len(doctors),
-                    "active_doctors": active_doctors,
-                    "available_doctors": available_doctors
-                },
-                "doctors": doctors or []
-            }
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching specialization details: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch specialization details: {str(e)}"
-        )
-
-
-@router.get("/specializations/search/{search_term}", status_code=status.HTTP_200_OK)
-def search_specializations(search_term: str):
-    """
-    Search specializations by title or description
-    
-    - **search_term**: Search keyword
-    
-    Returns matching specializations
-    """
-    try:
-        with get_db() as (cursor, connection):
-            search_pattern = f"%{search_term}%"
-            
-            cursor.execute(
-                """SELECT 
-                    s.specialization_id,
-                    s.specialization_title,
-                    s.other_details,
-                    s.created_at,
-                    s.updated_at,
-                    COUNT(DISTINCT ds.doctor_id) as doctor_count
-                FROM specialization s
-                LEFT JOIN doctor_specialization ds ON s.specialization_id = ds.specialization_id
-                WHERE s.specialization_title LIKE %s OR s.other_details LIKE %s
-                GROUP BY s.specialization_id, s.specialization_title, s.other_details, s.created_at, s.updated_at
-                ORDER BY s.specialization_title""",
-                (search_pattern, search_pattern)
-            )
-            specializations = cursor.fetchall()
-            
-            logger.info(f"Found {len(specializations)} specializations matching '{search_term}'")
-            
-            return {
-                "success": True,
-                "search_term": search_term,
-                "count": len(specializations),
-                "specializations": specializations or []
-            }
-            
-    except Exception as e:
-        logger.error(f"Error searching specializations: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to search specializations: {str(e)}"
-        )
-
-@router.post("/specializations", status_code=status.HTTP_201_CREATED, response_model=CreateSpecializationResponse)
-def create_specialization(specialization_data: CreateSpecializationRequest):
+@router.post(
+    "/specializations",
+    status_code=status.HTTP_201_CREATED,
+    response_model=CreateSpecializationResponse,
+    summary="Create Specialization",
+    description="Create a new specialization (Admin/Manager only)"
+)
+async def create_specialization(
+    specialization_data: CreateSpecializationRequest,
+    current_user: dict = Depends(require_roles(['admin', 'manager']))
+):
     """
     Create a new specialization
     
-    - **specialization_title**: Unique title for the specialization
-    - **other_details**: Optional additional information
+    **Required Role:** Admin or Manager
     
-    Returns the created specialization ID
+    **Authentication:** Bearer token required
     """
+    logger.info(f"Creating specialization '{specialization_data.specialization_title}' by {current_user.get('email')}")
+    
     try:
         with get_db() as (cursor, connection):
             import uuid
@@ -783,9 +896,9 @@ def create_specialization(specialization_data: CreateSpecializationRequest):
                 )
             )
             
-            connection.commit()
+            connection.commit();
             
-            logger.info(f"Created new specialization: {specialization_id} - {specialization_data.specialization_title}")
+            logger.info(f"✅ Created new specialization: {specialization_id} - {specialization_data.specialization_title}")
             
             return CreateSpecializationResponse(
                 success=True,
@@ -803,7 +916,12 @@ def create_specialization(specialization_data: CreateSpecializationRequest):
         )
 
 
-@router.get("/specializations/{specialization_id}", status_code=status.HTTP_200_OK)
+@router.get(
+    "/specializations/{specialization_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Get Specialization by ID",
+    description="Get a specific specialization by ID"
+)
 def get_specialization_by_id(specialization_id: str):
     """
     Get a specific specialization by ID

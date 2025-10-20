@@ -100,6 +100,7 @@ GRANT SELECT ON medsync_db.specialization TO 'medsync_doctor';
 
 -- Procedures that EXIST
 GRANT EXECUTE ON PROCEDURE medsync_db.CreateConsultationWithDetails TO 'medsync_doctor';
+GRANT EXECUTE ON PROCEDURE medsync_db.AddTimeSlot TO 'medsync_doctor';
 GRANT EXECUTE ON PROCEDURE medsync_db.AddTreatment TO 'medsync_doctor';
 GRANT EXECUTE ON PROCEDURE medsync_db.AddPrescriptionWithItems TO 'medsync_doctor';
 GRANT EXECUTE ON PROCEDURE medsync_db.AddPatientAllergy TO 'medsync_doctor';
@@ -182,7 +183,10 @@ GRANT EXECUTE ON PROCEDURE medsync_db.AddMedication TO 'medsync_pharmacist';
 -- Direct table access (views will be granted in 10_views.sql)
 GRANT SELECT ON medsync_db.patient TO 'medsync_patient';
 GRANT SELECT ON medsync_db.user TO 'medsync_patient';
+GRANT SELECT ON medsync_db.patient_allergy TO 'medsync_patient';
+GRANT SELECT ON medsync_db.patient_condition TO 'medsync_patient';
 GRANT SELECT ON medsync_db.appointment TO 'medsync_patient';
+GRANT SELECT ON medsync_db.time_slot TO 'medsync_patient';
 GRANT SELECT ON medsync_db.consultation_record TO 'medsync_patient';
 GRANT SELECT ON medsync_db.prescription_item TO 'medsync_patient';
 GRANT SELECT ON medsync_db.invoice TO 'medsync_patient';

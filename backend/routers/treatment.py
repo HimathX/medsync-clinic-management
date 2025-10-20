@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends, Request
 from typing import Optional, List
 from pydantic import BaseModel, Field, validator
 from core.database import get_db
+from core.auth import get_current_user
+from core.audit_logger import audit
 import logging
 import uuid
 
@@ -98,8 +100,40 @@ class BulkTreatmentResponse(BaseModel):
 # ADD TREATMENT (USING STORED PROCEDURE)
 # ============================================
 
+# Add role checker
+def require_roles(allowed_roles: list[str]):
+    async def role_checker(current_user: dict = Depends(get_current_user)):
+        user_role = current_user.get('role')
+        user_type = current_user.get('user_type')
+        
+        if user_type == 'employee' and user_role == 'admin':
+            return current_user
+        
+        if user_type == 'employee' and user_role in allowed_roles:
+            return current_user
+        
+        # Log failed access
+        audit.log_failed_access(
+            user_id=current_user.get('user_id'),
+            action_type='CREATE_TREATMENT',
+            table_name='treatment',
+            record_id=None,
+            reason=f"Insufficient permissions. User role: {user_role}",
+            session_id=current_user.get('session_id')
+        )
+        
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Insufficient permissions. Required roles: {', '.join(allowed_roles)}"
+        )
+    return role_checker
+
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=TreatmentResponse)
-def add_treatment(treatment_data: TreatmentCreate):
+def add_treatment(
+    treatment_data: TreatmentCreate,
+    request: Request,
+    current_user: dict = Depends(require_roles(['admin', 'doctor']))
+):
     """
     Add a treatment to a consultation record using AddTreatment stored procedure
     
@@ -151,6 +185,18 @@ def add_treatment(treatment_data: TreatmentCreate):
             
             if success == 1 or success is True:
                 logger.info(f"✅ Treatment added successfully: {treatment_id}")
+                
+                # Log access
+                audit.log_access(
+                    user_id=current_user['user_id'],
+                    action_type='INSERT',
+                    table_name='treatment',
+                    record_id=treatment_id,
+                    new_values={'consultation_rec_id': treatment_data.consultation_rec_id},
+                    ip_address=request.client.host,
+                    session_id=current_user.get('session_id')
+                )
+                
                 return TreatmentResponse(
                     success=True,
                     message=error_message or "Treatment added successfully",
@@ -289,10 +335,11 @@ def add_treatments_bulk(bulk_data: BulkTreatmentCreate):
 
 @router.get("/", status_code=status.HTTP_200_OK)
 def get_all_treatments(
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=500, description="Maximum records to return")
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    current_user: dict = Depends(get_current_user)  # ✅ All authenticated users
 ):
-    """Get all treatments with pagination"""
+    """Get all treatments (Authenticated users)"""
     try:
         with get_db() as (cursor, connection):
             # Get total count

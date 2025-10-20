@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from datetime import date
 from core.database import get_db
+from core.auth import get_current_user
 import logging
 import uuid
 
@@ -88,15 +89,23 @@ class AddConditionResponse(BaseModel):
 # ALLERGY ENDPOINTS
 # ============================================
 
-@router.post("/allergies", status_code=status.HTTP_201_CREATED, response_model=AddAllergyResponse)
-def add_patient_allergy(allergy_data: AddAllergyRequest):
-    """
-    Add a new allergy to a patient
-    
-    - Validates patient exists
-    - Records allergy name, severity, and reaction
-    - Stores diagnosis date
-    """
+def require_roles(allowed_roles: list[str]):
+    def decorator(fn):
+        async def wrapper(*args, **kwargs):
+            current_user = kwargs.get('current_user')
+            if not current_user or current_user.get('user_type') not in allowed_roles:
+                raise HTTPException(status_code=403, detail="Operation not permitted")
+            return await fn(*args, **kwargs)
+        return wrapper
+    return decorator
+
+@router.post("/allergies", status_code=status.HTTP_201_CREATED)
+def add_patient_allergy(
+    allergy_data: AddAllergyRequest,
+    current_user: dict = Depends(require_roles(['admin', 'doctor', 'nurse']))
+):
+    """Add allergy (Doctor/Nurse/Admin)"""
+    # ...existing code...
     try:
         with get_db() as (cursor, connection):
             # Set session variables for OUT parameters
@@ -156,8 +165,18 @@ def add_patient_allergy(allergy_data: AddAllergyRequest):
         )
 
 @router.get("/allergies/{patient_id}", status_code=status.HTTP_200_OK)
-def get_patient_allergies(patient_id: str):
-    """Get all allergies for a specific patient"""
+def get_patient_allergies(
+    patient_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get allergies (with access check)"""
+    user_type = current_user.get('user_type')
+    user_id = current_user.get('user_id')
+    
+    if user_type == 'patient' and user_id != patient_id:
+        raise HTTPException(403, "Can only view own allergies")
+    
+    # ...existing code...
     try:
         with get_db() as (cursor, connection):
             # Check if patient exists
@@ -238,15 +257,12 @@ def delete_patient_allergy(allergy_id: str):
 # CONDITION ENDPOINTS
 # ============================================
 
-@router.post("/conditions", status_code=status.HTTP_201_CREATED, response_model=AddConditionResponse)
-def add_patient_condition(condition_data: AddConditionRequest):
-    """
-    Add a new condition to a patient
-    
-    - Validates patient and category exist
-    - Creates new condition entry
-    - Links to patient with status and notes
-    """
+@router.post("/conditions", status_code=status.HTTP_201_CREATED)
+def add_patient_condition(
+    condition_data: AddConditionRequest,
+    current_user: dict = Depends(require_roles(['admin', 'doctor']))
+):
+    """Add condition (Doctor/Admin)"""
     try:
         with get_db() as (cursor, connection):
             # Set session variables for OUT parameters
