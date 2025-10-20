@@ -1,3 +1,12 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: ['**']  # Run on all branches
+  pull_request:
+    branches: ['**']
+
+jobs:
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
@@ -35,36 +44,6 @@
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio httpx pymysql
 
-      # ⬇️ ADD THIS: Initialize database before tests
-      - name: Initialize Database Schema
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mysql-client
-          
-          # Wait for MySQL
-          for i in {1..30}; do
-            if mysqladmin ping -h 127.0.0.1 -u medsync_user -pmedsync_password &> /dev/null; then
-              break
-            fi
-            sleep 2
-          done
-          
-          # Configure MySQL
-          mysql -h 127.0.0.1 -u root -proot_password -e "SET GLOBAL log_bin_trust_function_creators = 1;"
-          mysql -h 127.0.0.1 -u root -proot_password -e "GRANT ALL PRIVILEGES ON *.* TO 'medsync_user'@'%' WITH GRANT OPTION;"
-          mysql -h 127.0.0.1 -u root -proot_password -e "GRANT SYSTEM_USER ON *.* TO 'medsync_user'@'%';"
-          mysql -h 127.0.0.1 -u root -proot_password -e "FLUSH PRIVILEGES;"
-          
-          # Initialize database
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/1_tables.sql
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/2_functions.sql
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/3_procedures.sql
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/4_triggers.sql
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/5_records.sql
-          mysql -h 127.0.0.1 -u medsync_user -pmedsync_password medsync_db < ./database/6_branch_initialization.sql
-          
-          echo "✅ Database initialized successfully"
-
       - name: Lint with flake8
         working-directory: ./backend
         run: |
@@ -83,7 +62,7 @@
           SECRET_KEY: group6
           ALGORITHM: HS256
           ACCESS_TOKEN_EXPIRE_MINUTES: 30
-          PYTHONPATH: .
+          PYTHONPATH: .  # ⬅️ Add this to set Python path
         run: |
           pytest tests/ --cov=. --cov-report=xml --cov-report=term -v
 
@@ -92,7 +71,6 @@
         with:
           file: ./backend/coverage.xml
           flags: backend
-# ...existing code for other jobs...
 
   frontend-tests:
     name: Frontend Tests
