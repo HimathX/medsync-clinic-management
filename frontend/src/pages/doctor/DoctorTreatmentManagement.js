@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
+import DoctorNavBar from '../../components/DoctorNavBar';
+import DoctorPageHeader from '../../components/DoctorPageHeader';
 import treatmentCatalogueService from '../../services/treatmentCatalogueService';
 import '../../styles/doctor.css';
+import '../../styles/patientDashboard.css';
 
 const DoctorTreatmentManagement = () => {
   const navigate = useNavigate();
@@ -14,6 +16,12 @@ const DoctorTreatmentManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  
+  // Doctor data state
+  const [doctorData, setDoctorData] = useState({
+    name: 'Doctor',
+    specialization: 'Physician'
+  });
   
   // Modal states
   const [showModal, setShowModal] = useState(false);
@@ -30,6 +38,13 @@ const DoctorTreatmentManagement = () => {
   });
 
   useEffect(() => {
+    // Load doctor data from localStorage
+    const fullName = localStorage.getItem('full_name') || 'Doctor';
+    setDoctorData({
+      name: fullName,
+      specialization: localStorage.getItem('specialization') || 'Physician'
+    });
+    
     fetchTreatments();
   }, []);
 
@@ -201,9 +216,10 @@ const DoctorTreatmentManagement = () => {
 
   if (loading) {
     return (
-      <div className="doctor-container">
-        <DoctorHeader />
-        <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+      <div className="patient-portal">
+        <DoctorNavBar />
+        <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+        <div className="patient-container" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', paddingTop: '40px' }}>
           <div className="spinner"></div>
           <p style={{ color: '#64748b', fontSize: '16px', fontWeight: '500' }}>Loading treatments...</p>
         </div>
@@ -212,135 +228,518 @@ const DoctorTreatmentManagement = () => {
   }
 
   return (
-    <div className="doctor-container">
-      <DoctorHeader />
-      <div className="doctor-content">
+    <div className="patient-portal">
+      <DoctorNavBar />
+      <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+      <main className="patient-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         {/* Header */}
-        <div className="doctor-header" style={{ marginBottom: '24px' }}>
-          <div>
-            <h1><i className="fas fa-heartbeat"></i> Treatment Management</h1>
-            <p>Add, edit, and manage treatment catalogue</p>
+        <div style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          borderRadius: '16px',
+          padding: '32px',
+          marginBottom: '24px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '20px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ fontSize: '48px' }}>💊</div>
+            <div>
+              <h1 style={{ 
+                fontSize: '32px', 
+                fontWeight: '700',
+                background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '8px'
+              }}>
+                Treatment Management
+              </h1>
+              <p style={{ fontSize: '16px', color: '#64748b', margin: 0 }}>
+                Add, edit, and manage treatment catalogue
+              </p>
+            </div>
           </div>
-          <button onClick={handleAddNew} className="btn-primary">
+          <button 
+            onClick={handleAddNew}
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '14px 28px',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 6px rgba(16, 185, 129, 0.2)';
+            }}
+          >
             <i className="fas fa-plus"></i> Add New Treatment
           </button>
         </div>
 
         {error && (
-          <div className="error-message" style={{ marginBottom: '24px' }}>
-            <i className="fas fa-exclamation-circle"></i>
-            {error}
-            <button onClick={fetchTreatments} className="btn-secondary">Retry</button>
+          <div style={{
+            padding: '16px 20px',
+            marginBottom: '24px',
+            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+            border: '2px solid #fca5a5',
+            borderRadius: '12px',
+            color: '#991b1b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            boxShadow: '0 2px 4px rgba(239, 68, 68, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <i className="fas fa-exclamation-circle" style={{ fontSize: '20px', color: '#ef4444' }}></i>
+              <span style={{ fontWeight: '600' }}>{error}</span>
+            </div>
+            <button 
+              onClick={fetchTreatments}
+              style={{
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Retry
+            </button>
           </div>
         )}
 
         {/* Filters */}
-        <div className="filters-card" style={{ marginBottom: '24px' }}>
+        <div style={{ 
+          background: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e2e8f0'
+        }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-            <div className="form-group">
-              <label><i className="fas fa-search"></i> Search</label>
+            <div>
+              <label style={{ 
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#475569'
+              }}>
+                <i className="fas fa-search" style={{ marginRight: '8px', color: '#10b981' }}></i>
+                Search Treatment
+              </label>
               <input
                 type="text"
                 placeholder="Search by name or description..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="form-control"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#10b981'}
+                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
               />
             </div>
-            <div className="form-group">
-              <label><i className="fas fa-dollar-sign"></i> Min Price (LKR)</label>
+            <div>
+              <label style={{ 
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#475569'
+              }}>
+                <i className="fas fa-dollar-sign" style={{ marginRight: '8px', color: '#10b981' }}></i>
+                Min Price (LKR)
+              </label>
               <input
                 type="number"
                 placeholder="0"
                 value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
-                className="form-control"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#10b981'}
+                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
               />
             </div>
-            <div className="form-group">
-              <label><i className="fas fa-dollar-sign"></i> Max Price (LKR)</label>
+            <div>
+              <label style={{ 
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#475569'
+              }}>
+                <i className="fas fa-dollar-sign" style={{ marginRight: '8px', color: '#10b981' }}></i>
+                Max Price (LKR)
+              </label>
               <input
                 type="number"
                 placeholder="100000"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
-                className="form-control"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#10b981'}
+                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
               />
             </div>
-            <div className="form-group">
-              <label style={{ opacity: 0 }}>Action</label>
-              <button onClick={fetchTreatments} className="btn-secondary" style={{ width: '100%' }}>
-                <i className="fas fa-sync-alt"></i> Refresh
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', opacity: 0 }}>Action</label>
+              <button 
+                onClick={fetchTreatments}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(99, 102, 241, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 2px 4px rgba(99, 102, 241, 0.2)';
+                }}
+              >
+                <i className="fas fa-sync-alt" style={{ marginRight: '8px' }}></i>
+                Refresh
               </button>
             </div>
           </div>
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ padding: '16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', borderRadius: '12px' }}>
-            <div style={{ fontSize: '28px', fontWeight: '700' }}>{treatments.length}</div>
-            <div style={{ fontSize: '14px', opacity: '0.9' }}>Total Treatments</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+          <div style={{ 
+            padding: '24px', 
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
+            color: 'white', 
+            borderRadius: '16px',
+            boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ 
+              position: 'absolute', 
+              top: '-20px', 
+              right: '-20px', 
+              fontSize: '100px', 
+              opacity: '0.1' 
+            }}>💊</div>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: '14px', opacity: '0.9', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>Total Treatments</div>
+              <div style={{ fontSize: '36px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {treatments.length}
+                <i className="fas fa-database" style={{ fontSize: '20px', opacity: '0.7' }}></i>
+              </div>
+            </div>
           </div>
-          <div style={{ padding: '16px', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: 'white', borderRadius: '12px' }}>
-            <div style={{ fontSize: '28px', fontWeight: '700' }}>{filteredTreatments.length}</div>
-            <div style={{ fontSize: '14px', opacity: '0.9' }}>Filtered Results</div>
+          <div style={{ 
+            padding: '24px', 
+            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', 
+            color: 'white', 
+            borderRadius: '16px',
+            boxShadow: '0 4px 6px rgba(59, 130, 246, 0.2)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ 
+              position: 'absolute', 
+              top: '-20px', 
+              right: '-20px', 
+              fontSize: '100px', 
+              opacity: '0.1' 
+            }}>🔍</div>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: '14px', opacity: '0.9', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>Filtered Results</div>
+              <div style={{ fontSize: '36px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {filteredTreatments.length}
+                <i className="fas fa-filter" style={{ fontSize: '20px', opacity: '0.7' }}></i>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Treatments Table */}
         {filteredTreatments.length === 0 ? (
-          <div className="empty-state">
-            <i className="fas fa-heartbeat" style={{ fontSize: '64px', color: '#cbd5e1', marginBottom: '16px' }}></i>
-            <h3>No treatments found</h3>
-            <p>Try adjusting your search or add a new treatment</p>
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '80px 40px', 
+            background: 'white', 
+            borderRadius: '16px',
+            border: '2px dashed #e2e8f0'
+          }}>
+            <div style={{ fontSize: '64px', marginBottom: '24px' }}>💊</div>
+            <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', marginBottom: '12px' }}>No treatments found</h3>
+            <p style={{ fontSize: '16px', color: '#64748b', marginBottom: '24px' }}>Try adjusting your search or add a new treatment</p>
+            <button onClick={handleAddNew} style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}>
+              <i className="fas fa-plus" style={{ marginRight: '8px' }}></i>
+              Add New Treatment
+            </button>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Treatment Name</th>
-                  <th>Price</th>
-                  <th>Duration</th>
-                  <th>Description</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTreatments.map((treatment) => (
-                  <tr key={treatment.treatment_service_code}>
-                    <td><strong>{treatment.treatment_name || treatment.service_name}</strong></td>
-                    <td style={{ color: '#10b981', fontWeight: '600' }}>{formatPrice(treatment.base_price)}</td>
-                    <td><span className="badge">{formatDuration(treatment.duration)}</span></td>
-                    <td style={{ maxWidth: '300px', fontSize: '13px', color: '#64748b' }}>
-                      {treatment.description || '-'}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => handleEdit(treatment)}
-                          className="btn-small btn-primary"
-                          title="Edit"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(treatment)}
-                          className="btn-small btn-danger"
-                          title="Delete"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '16px', 
+            overflow: 'hidden',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ 
+                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                    borderBottom: '2px solid #e2e8f0'
+                  }}>
+                    <th style={{ 
+                      padding: '16px 20px', 
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      color: '#475569',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>Treatment Name</th>
+                    <th style={{ 
+                      padding: '16px 20px', 
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      color: '#475569',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>Price</th>
+                    <th style={{ 
+                      padding: '16px 20px', 
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      color: '#475569',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>Duration</th>
+                    <th style={{ 
+                      padding: '16px 20px', 
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      color: '#475569',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>Description</th>
+                    <th style={{ 
+                      padding: '16px 20px', 
+                      textAlign: 'center',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      color: '#475569',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredTreatments.map((treatment) => (
+                    <tr 
+                      key={treatment.treatment_service_code}
+                      style={{ 
+                        borderBottom: '1px solid #f1f5f9',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                    >
+                      <td style={{ 
+                        padding: '16px 20px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>💊</span>
+                          <span>{treatment.treatment_name || treatment.service_name}</span>
+                        </div>
+                      </td>
+                      <td style={{ 
+                        padding: '16px 20px',
+                        color: '#10b981',
+                        fontSize: '14px',
+                        fontWeight: '600'
+                      }}>
+                        {formatPrice(treatment.base_price)}
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span style={{
+                          background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+                          color: '#0369a1',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          border: '1px solid #7dd3fc',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <i className="fas fa-clock" style={{ fontSize: '11px' }}></i>
+                          {formatDuration(treatment.duration)}
+                        </span>
+                      </td>
+                      <td style={{ 
+                        padding: '16px 20px',
+                        fontSize: '13px',
+                        color: '#64748b',
+                        maxWidth: '300px'
+                      }}>
+                        {treatment.description ? (
+                          <div style={{ 
+                            maxHeight: '60px', 
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical'
+                          }}>
+                            {treatment.description}
+                          </div>
+                        ) : (
+                          <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>No description</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => handleEdit(treatment)}
+                            style={{
+                              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                              color: 'white',
+                              border: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                            title="Edit treatment details"
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.2)';
+                            }}
+                          >
+                            <i className="fas fa-edit"></i>
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(treatment)}
+                            style={{
+                              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                              color: 'white',
+                              border: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                            title="Delete treatment"
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
+                            }}
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
-      </div>
 
       {/* Modal */}
       {showModal && (
@@ -455,6 +854,7 @@ const DoctorTreatmentManagement = () => {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 };

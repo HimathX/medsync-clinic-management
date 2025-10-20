@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
-import '../../styles/doctor.css';
+import DoctorNavBar from '../../components/DoctorNavBar';
+import DoctorPageHeader from '../../components/DoctorPageHeader';
+import '../../styles/patientDashboard.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -206,60 +207,121 @@ const DoctorProfile = () => {
 
   if (loading) {
     return (
-      <div className="doctor-container">
-        <DoctorHeader />
-        <div className="loading-container"><div className="spinner"></div><p>Loading...</p></div>
+      <div className="patient-portal">
+        <DoctorNavBar />
+        <DoctorPageHeader 
+          doctorName={localStorage.getItem('full_name') || 'Doctor'}
+          specialization={localStorage.getItem('specialization') || 'Physician'}
+        />
+        <main className="patient-container">
+          <div className="loading-container"><div className="spinner"></div><p>Loading...</p></div>
+        </main>
       </div>
     );
   }
 
   if (error || !doctorData) {
     return (
-      <div className="doctor-container">
-        <DoctorHeader />
-        <div className="doctor-content">
+      <div className="patient-portal">
+        <DoctorNavBar />
+        <DoctorPageHeader 
+          doctorName={localStorage.getItem('full_name') || 'Doctor'}
+          specialization={localStorage.getItem('specialization') || 'Physician'}
+        />
+        <main className="patient-container">
           <div className="error-message">{error || 'Profile not available'}</div>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="doctor-container">
-      <DoctorHeader />
-      <div className="doctor-content">
-        <div className="doctor-header">
-          <h1>My Profile</h1>
-          <p>View your professional information</p>
+    <div className="patient-portal">
+      <DoctorNavBar />
+      <DoctorPageHeader 
+        doctorName={doctorData?.full_name || localStorage.getItem('full_name') || 'Doctor'}
+        specialization={
+          specializations && specializations[0] 
+            ? (typeof specializations[0] === 'object' 
+              ? specializations[0].specialization_title 
+              : specializations[0])
+            : localStorage.getItem('specialization') || 'Physician'
+        }
+      />
+      <main className="patient-container">
+        {/* Page Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          borderRadius: '16px',
+          padding: '32px',
+          marginBottom: '24px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e2e8f0'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+            <div style={{ 
+              fontSize: '48px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              👤
+            </div>
+            <div>
+              <h1 style={{ 
+                fontSize: '32px', 
+                fontWeight: '700',
+                background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '8px'
+              }}>
+                My Profile
+              </h1>
+              <p style={{ fontSize: '16px', color: '#64748b', margin: 0 }}>
+                View and manage your professional information
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Success Message */}
         {successMessage && (
-          <div className="alert alert-success" style={{
-            padding: '15px',
-            marginBottom: '20px',
-            backgroundColor: '#d4edda',
-            border: '1px solid #c3e6cb',
-            borderRadius: '8px',
-            color: '#155724'
+          <div style={{
+            padding: '16px 20px',
+            marginBottom: '24px',
+            background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+            border: '2px solid #6ee7b7',
+            borderRadius: '12px',
+            color: '#065f46',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: '0 2px 4px rgba(16, 185, 129, 0.1)'
           }}>
-            <i className="fas fa-check-circle" style={{ marginRight: '10px' }}></i>
-            {successMessage}
+            <i className="fas fa-check-circle" style={{ fontSize: '20px', color: '#10b981' }}></i>
+            <span style={{ fontWeight: '600' }}>{successMessage}</span>
           </div>
         )}
 
         {/* Error Message */}
         {error && (
-          <div className="alert alert-danger" style={{
-            padding: '15px',
-            marginBottom: '20px',
-            backgroundColor: '#f8d7da',
-            border: '1px solid #f5c6cb',
-            borderRadius: '8px',
-            color: '#721c24'
+          <div style={{
+            padding: '16px 20px',
+            marginBottom: '24px',
+            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+            border: '2px solid #fca5a5',
+            borderRadius: '12px',
+            color: '#991b1b',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: '0 2px 4px rgba(239, 68, 68, 0.1)'
           }}>
-            <i className="fas fa-exclamation-circle" style={{ marginRight: '10px' }}></i>
-            {error}
+            <i className="fas fa-exclamation-circle" style={{ fontSize: '20px', color: '#ef4444' }}></i>
+            <span style={{ fontWeight: '600' }}>{error}</span>
           </div>
         )}
 
@@ -277,10 +339,6 @@ const DoctorProfile = () => {
           <div className="profile-section">
             <h3><i className="fas fa-user"></i> Personal Information</h3>
             <div className="profile-details-grid">
-              <div className="profile-detail">
-                <span className="label">Doctor ID</span>
-                <span className="value">#{doctorData.doctor_id || 'N/A'}</span>
-              </div>
               <div className="profile-detail">
                 <span className="label">Full Name</span>
                 <span className="value">{doctorData.full_name || 'N/A'}</span>
@@ -355,8 +413,8 @@ const DoctorProfile = () => {
             <h3><i className="fas fa-hospital"></i> Employment</h3>
             <div className="profile-details-grid">
               <div className="profile-detail">
-                <span className="label">Branch ID</span>
-                <span className="value">#{doctorData.branch_id || 'N/A'}</span>
+                <span className="label">Branch</span>
+                <span className="value">{doctorData.branch_name || 'N/A'}</span>
               </div>
               <div className="profile-detail">
                 <span className="label">Join Date</span>
@@ -604,7 +662,7 @@ const DoctorProfile = () => {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

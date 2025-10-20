@@ -668,10 +668,11 @@ def get_doctor_by_id(doctor_id: str):
         with get_db() as (cursor, connection):
             # Get doctor details
             cursor.execute(
-                """SELECT d.*, e.*, u.full_name, u.email, u.NIC, u.gender, u.DOB
+                """SELECT d.*, e.*, u.full_name, u.email, u.NIC, u.gender, u.DOB, b.branch_name
                    FROM doctor d
                    JOIN employee e ON d.doctor_id = e.employee_id
                    JOIN user u ON d.doctor_id = u.user_id
+                   LEFT JOIN branch b ON e.branch_id = b.branch_id
                    WHERE d.doctor_id = %s""",
                 (doctor_id,)
             )
