@@ -344,7 +344,7 @@ export default function PatientBilling() {
 
       {/* Payment Modal - Commented Out */}
 
-      <style jsx>{`
+      <style>{`
         .billing-summary-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);

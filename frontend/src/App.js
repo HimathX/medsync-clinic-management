@@ -26,8 +26,10 @@ import StaffAppointments from "./pages/staff/StaffAppointments";
 import StaffPatients from "./pages/staff/StaffPatients";
 import StaffBilling from "./pages/staff/StaffBilling";
 import StaffDoctors from "./pages/staff/StaffDoctors";
+import StaffSchedule from "./pages/staff/staffSchedule";
 import StaffReports from "./pages/staff/StaffReports";
 import StaffProfile from "./pages/staff/StaffProfile";
+import StaffPayments from "./pages/staff/StaffPayments";
 
 // Doctor Portal Pages
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
@@ -39,7 +41,6 @@ import DoctorSchedule from "./pages/doctor/DoctorSchedule";
 import DoctorPrescriptions from "./pages/doctor/DoctorPrescriptions";
 import DoctorTreatments from "./pages/doctor/DoctorTreatments";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
-import DoctorTreatmentCatalogue from "./pages/doctor/DoctorTreatmentCatalogue";
 import DoctorMedications from "./pages/doctor/DoctorMedications";
 import DoctorTreatmentManagement from "./pages/doctor/DoctorTreatmentManagement"
 import DoctorFinancialMetrics from "./pages/doctor/DoctorFinancialMetrics";
@@ -251,7 +252,9 @@ function App() {
             <Route path="/staff/appointments" element={<StaffAppointments />} />
             <Route path="/staff/patients" element={<StaffPatients />} />
             <Route path="/staff/billing" element={<StaffBilling />} />
+            <Route path="/staff/payments" element={<StaffPayments />} />
             <Route path="/staff/doctors" element={<StaffDoctors />} />
+            <Route path="/staff/schedule" element={<StaffSchedule />} />
             <Route path="/staff/reports" element={<StaffReports />} />
             <Route path="/staff/profile" element={<StaffProfile />} />
             <Route path="/profile" element={<StaffProfile />} />

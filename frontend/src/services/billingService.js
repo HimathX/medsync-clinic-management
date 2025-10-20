@@ -337,7 +337,7 @@ class BillingService {
       // Note: Backend doesn't have a direct patient invoice endpoint
       // We'll get all invoices and filter client-side
       // If no invoices exist, return empty array instead of throwing error
-      const data = await this.getAllInvoices(0, 1000);
+      const data = await this.getAllInvoices(0, 500);
       if (!data || !data.invoices) {
         return [];
       }

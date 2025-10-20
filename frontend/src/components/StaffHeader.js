@@ -1,6 +1,6 @@
 // src/components/StaffHeader.js
 import React from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 /**
  * StaffHeader Component
@@ -8,13 +8,13 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
  * Shows staff-relevant menu items only
  */
 const StaffHeader = ({ staffName, staffRole, branch, setBranch, onLogout }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const navLinks = [
     { to: "/staff/dashboard", label: "Dashboard" },
     // { to: "/staff/appointments", label: "Appointments" },
     { to: "/staff/patients", label: "Patients" },
     { to: "/staff/doctors", label: "Doctors" },
+    { to: "/staff/payments", label: "Payments" },
     { to: "/staff/schedule", label: "Schedule" },
     // { to: "/staff/billing", label: "Billing" },
     { to: "/staff/reports", label: "Reports" },
