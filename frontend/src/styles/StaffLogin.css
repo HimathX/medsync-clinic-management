@@ -1,0 +1,106 @@
+/* Modern Staff Login Styles - Blue/Purple Theme */
+
+.staff-theme .login-background {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background-image: 
+    linear-gradient(135deg, rgba(59, 130, 246, 0.88) 0%, rgba(37, 99, 235, 0.85) 50%, rgba(29, 78, 216, 0.88) 100%),
+    url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Blue themed inputs */
+.staff-theme .modern-input:focus {
+  border-color: #3b82f6;
+  background: #ffffff;
+  box-shadow: 
+    0 0 0 4px rgba(59, 130, 246, 0.12),
+    0 2px 12px rgba(37, 99, 235, 0.15);
+  transform: translateY(-1px);
+}
+
+.staff-theme .modern-input:focus ~ .input-icon {
+  color: #3b82f6;
+}
+
+/* Blue themed password toggle */
+.staff-theme .password-toggle:hover {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+/* Blue themed button */
+.staff-theme .signin-button {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+  box-shadow: 
+    0 4px 16px rgba(59, 130, 246, 0.35),
+    0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.staff-theme .signin-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 24px rgba(59, 130, 246, 0.45),
+    0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.staff-theme .signin-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 
+    0 2px 8px rgba(59, 130, 246, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Blue themed links */
+.staff-theme .forgot-password {
+  color: #3b82f6;
+}
+
+.staff-theme .forgot-password:hover {
+  color: #2563eb;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.staff-theme .link-button {
+  color: #3b82f6;
+}
+
+.staff-theme .link-button:hover {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+/* Blue themed checkbox */
+.staff-theme .remember-me input[type="checkbox"] {
+  accent-color: #3b82f6;
+}
+
+/* Blue themed focus outline */
+.staff-theme *:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Blue themed selection */
+.staff-theme ::selection {
+  background: rgba(59, 130, 246, 0.2);
+  color: #1a202c;
+}
+
+/* Additional blue/purple accents */
+.staff-theme .login-card {
+  border-top: 3px solid #3b82f6;
+}
+
+.staff-theme .login-title {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Spinner color for staff theme */
+.staff-theme .spinner {
+  border-top-color: #ffffff;
+}

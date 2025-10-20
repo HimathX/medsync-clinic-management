@@ -5,7 +5,7 @@
 /* Container & Layout */
 .staff-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   padding-bottom: 40px;
 }
 
@@ -129,7 +129,7 @@
   color: white;
 }
 
-.stat-primary .stat-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stat-primary .stat-icon { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
 .stat-success .stat-icon { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
 .stat-warning .stat-icon { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 .stat-info .stat-icon { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
@@ -175,7 +175,7 @@
 
 .quick-action-btn i {
   font-size: 1.8rem;
-  color: #667eea;
+  color: #3b82f6;
 }
 
 .quick-action-btn span {
@@ -215,7 +215,7 @@
 
 .tab-button.active {
   background: white;
-  color: #667eea;
+  color: #3b82f6;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
@@ -235,7 +235,7 @@
 }
 
 .staff-table thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
 }
 
@@ -323,7 +323,7 @@
 .filter-group input:focus,
 .filter-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #3b82f6;
 }
 
 .btn-clear-filters {
@@ -376,7 +376,7 @@
 
 /* Action Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -392,13 +392,13 @@
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .btn-secondary {
   background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
+  color: #3b82f6;
+  border: 2px solid #3b82f6;
   padding: 10px 20px;
   border-radius: 8px;
   font-weight: 600;
@@ -407,7 +407,7 @@
 }
 
 .btn-secondary:hover {
-  background: #667eea;
+  background: #3b82f6;
   color: white;
 }
 
@@ -549,7 +549,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #3b82f6;
 }
 
 .form-group textarea {
@@ -589,7 +589,7 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -613,7 +613,7 @@
 }
 
 .doctor-info .specialization {
-  color: #667eea;
+  color: #3b82f6;
   font-weight: 600;
 }
 
@@ -630,7 +630,7 @@
   padding: 20px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
   transition: transform 0.3s;
-  border-left: 5px solid #667eea;
+  border-left: 5px solid #3b82f6;
 }
 
 .schedule-card.available {
@@ -700,7 +700,7 @@
 }
 
 .report-section h2 i {
-  color: #667eea;
+  color: #3b82f6;
 }
 
 .report-grid {
@@ -710,14 +710,14 @@
 }
 
 .report-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border-radius: 10px;
   padding: 25px;
   display: flex;
   align-items: center;
   gap: 20px;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 .report-card i {
@@ -759,13 +759,13 @@
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 3rem;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
 }
 
 .profile-header-info h2 {
@@ -775,7 +775,7 @@
 }
 
 .role-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   padding: 8px 16px;
   border-radius: 20px;
@@ -805,7 +805,7 @@
 }
 
 .profile-section h3 i {
-  color: #667eea;
+  color: #3b82f6;
 }
 
 .profile-details-grid {
@@ -943,7 +943,7 @@
 /* Small Action Buttons */
 .btn-view-small {
   padding: 6px 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
   border-radius: 6px;
@@ -957,7 +957,7 @@
 
 .btn-view-small:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 .btn-view-small i {
