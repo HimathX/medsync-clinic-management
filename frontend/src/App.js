@@ -26,7 +26,6 @@ import StaffAppointments from "./pages/staff/StaffAppointments";
 import StaffPatients from "./pages/staff/StaffPatients";
 import StaffBilling from "./pages/staff/StaffBilling";
 import StaffDoctors from "./pages/staff/StaffDoctors";
-import StaffSchedule from "./pages/staff/StaffSchedule";
 import StaffReports from "./pages/staff/StaffReports";
 import StaffProfile from "./pages/staff/StaffProfile";
 
@@ -253,7 +252,6 @@ function App() {
             <Route path="/staff/patients" element={<StaffPatients />} />
             <Route path="/staff/billing" element={<StaffBilling />} />
             <Route path="/staff/doctors" element={<StaffDoctors />} />
-            <Route path="/staff/schedule" element={<StaffSchedule />} />
             <Route path="/staff/reports" element={<StaffReports />} />
             <Route path="/staff/profile" element={<StaffProfile />} />
             <Route path="/profile" element={<StaffProfile />} />

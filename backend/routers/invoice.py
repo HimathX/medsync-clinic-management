@@ -713,3 +713,6 @@ def get_doctor_financial_statistics(doctor_id: str):
             detail=f"An error occurred: {str(e)}"
         )
 
+
+
+

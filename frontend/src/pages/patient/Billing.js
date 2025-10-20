@@ -69,6 +69,15 @@ export default function PatientBilling() {
       setInvoices(invoicesData || []);
       setPayments(paymentsData.payments || []);
       setClaims(claimsData.claims || []);
+      
+      // Log balance calculation
+      const totalInv = (invoicesData || []).reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
+      const totalPay = (paymentsData.payments || []).filter(p => p.status === 'Completed').reduce((sum, p) => sum + parseFloat(p.amount_paid || 0), 0);
+      console.log('💰 Balance Calculation:', {
+        totalInvoices: totalInv,
+        totalPayments: totalPay,
+        balance: totalInv - totalPay
+      });
     } catch (err) {
       console.error('❌ Error fetching billing data:', err);
       setError(err.message || 'Failed to load billing information');
@@ -86,6 +95,17 @@ export default function PatientBilling() {
     return totalAmount > totalPaid;
   });
 
+  // Calculate total invoice amount
+  const totalInvoiceAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
+  
+  // Calculate total payments made
+  const totalPaymentsMade = payments
+    .filter(p => p.status === 'Completed')
+    .reduce((sum, p) => sum + parseFloat(p.amount_paid || 0), 0);
+  
+  // Patient Balance = Total Invoices - Total Payments
+  const patientBalance = totalInvoiceAmount - totalPaymentsMade;
+  
   const totalOutstanding = outstandingBills.reduce((sum, bill) => sum + parseFloat(bill.total_amount || 0), 0);
   const totalPaidThisMonth = payments
     .filter(p => {
@@ -150,7 +170,7 @@ export default function PatientBilling() {
           </button>
           <h2 style={{color: 'white', margin: 0}}>Billing & Payments</h2>
           <div style={{color: 'white', fontWeight: 700}}>
-            Outstanding: LKR {totalOutstanding.toLocaleString()}
+            Balance: LKR {Math.abs(patientBalance).toLocaleString()} {patientBalance < 0 ? '(Overpaid)' : ''}
           </div>
         </div>
       </nav>
@@ -181,6 +201,20 @@ export default function PatientBilling() {
           <>
             {/* Summary Cards */}
             <div className="billing-summary-grid">
+              <div className="billing-summary-card balance" style={{
+                background: patientBalance > 0 ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                border: patientBalance > 0 ? '2px solid #f5576c' : '2px solid #00f2fe'
+              }}>
+                <div className="summary-card-icon">{patientBalance > 0 ? '⚠️' : '✓'}</div>
+                <div className="summary-card-content">
+                  <div className="summary-card-label">Patient Balance</div>
+                  <div className="summary-card-value">
+                    LKR {Math.abs(patientBalance).toLocaleString()}
+                    {patientBalance < 0 && <span style={{fontSize: '0.7em', display: 'block'}}>Overpaid</span>}
+                  </div>
+                </div>
+              </div>
+              
               <div className="billing-summary-card outstanding">
                 <div className="summary-card-icon">💳</div>
                 <div className="summary-card-content">
@@ -206,8 +240,45 @@ export default function PatientBilling() {
               </div>
             </div>
 
-        {/* Tabs */}
-        <div className="billing-tabs">
+            {/* Balance Breakdown */}
+            <div className="billing-breakdown-card" style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '20px',
+              marginTop: '20px',
+              marginBottom: '20px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+              <h3 style={{marginTop: 0, marginBottom: '15px', color: '#333'}}>📊 Balance Breakdown</h3>
+              <div style={{display: 'grid', gap: '10px'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                  <span style={{fontWeight: 600}}>Total Invoices:</span>
+                  <span>LKR {totalInvoiceAmount.toLocaleString()}</span>
+                </div>
+                <div style={{display: 'flex', justifyContent: 'space-between', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                  <span style={{fontWeight: 600}}>Total Payments:</span>
+                  <span style={{color: '#28a745'}}>- LKR {totalPaymentsMade.toLocaleString()}</span>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '15px',
+                  background: patientBalance > 0 ? 'linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%)' : 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                  borderRadius: '8px',
+                  border: patientBalance > 0 ? '2px solid #f5576c' : '2px solid #00f2fe',
+                  fontWeight: 700,
+                  fontSize: '1.1rem'
+                }}>
+                  <span>Patient Balance:</span>
+                  <span style={{color: patientBalance > 0 ? '#f5576c' : '#00f2fe'}}>
+                    LKR {Math.abs(patientBalance).toLocaleString()} {patientBalance < 0 ? '(Credit)' : patientBalance > 0 ? '(Due)' : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+        {/* Tabs - Commented Out */}
+        {/* <div className="billing-tabs">
           <button
             className={`billing-tab ${activeTab === 'outstanding' ? 'active' : ''}`}
             onClick={() => setActiveTab('outstanding')}
@@ -229,93 +300,12 @@ export default function PatientBilling() {
         </div>
 
             {/* Outstanding Bills Tab */}
-            {activeTab === 'outstanding' && (
-              <div className="billing-content">
-                <h3 className="section-heading">Outstanding Bills</h3>
-                {outstandingBills.length === 0 ? (
-                  <div className="empty-state-card">
-                    <span className="empty-icon">✓</span>
-                    <p>No outstanding bills</p>
-                  </div>
-                ) : (
-                  <div className="bills-list">
-                    {outstandingBills.map(bill => (
-                      <div key={bill.invoice_id} className="bill-card">
-                        <div className="bill-header">
-                          <div>
-                            <h4 className="bill-id">Invoice #{bill.invoice_id.slice(0, 8)}</h4>
-                            <p className="bill-date">{new Date(bill.created_at).toLocaleDateString()}</p>
-                          </div>
-                          <div className="bill-status-badge pending">Outstanding</div>
-                        </div>
-                        
-                        <div className="bill-description">
-                          {bill.doctor_name ? `Consultation with ${bill.doctor_name}` : 'Medical Services'}
-                        </div>
-                        
-                        <div className="bill-footer">
-                          <div className="bill-amount">LKR {parseFloat(bill.total_amount).toLocaleString()}</div>
-                          <div className="bill-actions">
-                            <button className="btn-outline">Download PDF</button>
-                            <button className="btn-primary" onClick={() => handlePayNow(bill)}>
-                              Pay Now
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {bill.due_date && (
-                          <div className="bill-due">
-                            Due date: {new Date(bill.due_date).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+         
 
             {/* Payment History Tab */}
-            {activeTab === 'history' && (
-              <div className="billing-content">
-                <h3 className="section-heading">Payment History</h3>
-                {payments.length === 0 ? (
-                  <div className="empty-state-card">
-                    <span className="empty-icon">📋</span>
-                    <p>No payment history</p>
-                  </div>
-                ) : (
-                  <div className="bills-list">
-                    {payments.map(payment => (
-                      <div key={payment.payment_id} className="bill-card paid-bill">
-                        <div className="bill-header">
-                          <div>
-                            <h4 className="bill-id">Payment #{payment.payment_id.slice(0, 8)}</h4>
-                            <p className="bill-date">{new Date(payment.payment_date).toLocaleDateString()}</p>
-                          </div>
-                          <div className={`bill-status-badge ${payment.status.toLowerCase()}`}>{payment.status}</div>
-                        </div>
-                        
-                        <div className="bill-description">
-                          {payment.notes || 'Payment processed'}
-                        </div>
-                        
-                        <div className="bill-footer">
-                          <div>
-                            <div className="bill-amount">LKR {parseFloat(payment.amount_paid).toLocaleString()}</div>
-                            <div className="payment-method">via {payment.payment_method}</div>
-                          </div>
-                          <button className="btn-outline">Download Receipt</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
+           
             {/* Insurance Claims Tab */}
-            {activeTab === 'insurance' && (
+            {/* {activeTab === 'insurance' && (
               <div className="billing-content">
                 <h3 className="section-heading">Insurance Claims</h3>
                 {claims.length === 0 ? (
@@ -347,134 +337,12 @@ export default function PatientBilling() {
                   </div>
                 )}
               </div>
-            )}
+            )} */}
           </>
         )}
       </div>
 
-      {/* Payment Modal */}
-      {selectedBill && (
-        <div className="modal-overlay" onClick={() => setSelectedBill(null)}>
-          <div className="modal-content payment-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Make Payment</h3>
-              <button className="modal-close" onClick={() => setSelectedBill(null)}>✕</button>
-            </div>
-            
-            <div className="modal-body">
-              <div className="payment-summary">
-                <h4>Bill Summary</h4>
-                <div className="summary-item">
-                  <span>Invoice:</span>
-                  <span>#{selectedBill.invoice_id.slice(0, 8)}</span>
-                </div>
-                <div className="summary-item">
-                  <span>Description:</span>
-                  <span>{selectedBill.doctor_name ? `Consultation with ${selectedBill.doctor_name}` : 'Medical Services'}</span>
-                </div>
-                <div className="summary-item total">
-                  <span>Total Amount:</span>
-                  <span>LKR {parseFloat(selectedBill.total_amount).toLocaleString()}</span>
-                </div>
-              </div>
-              
-              <div className="payment-method-selector">
-                <h4>Payment Method</h4>
-                <div className="payment-methods">
-                  <button
-                    className={`payment-method-btn ${paymentMethod === 'Credit Card' ? 'active' : ''}`}
-                    onClick={() => setPaymentMethod('Credit Card')}
-                  >
-                    💳 Credit/Debit Card
-                  </button>
-                  <button
-                    className={`payment-method-btn ${paymentMethod === 'Cash' ? 'active' : ''}`}
-                    onClick={() => setPaymentMethod('Cash')}
-                  >
-                    💵 Cash
-                  </button>
-                  <button
-                    className={`payment-method-btn ${paymentMethod === 'Online' ? 'active' : ''}`}
-                    onClick={() => setPaymentMethod('Online')}
-                  >
-                    📱 Online Payment
-                  </button>
-                </div>
-              </div>
-              
-              {paymentMethod === 'Credit Card' && (
-                <div className="card-details-form">
-                  <div className="form-group">
-                    <label className="form-label">Card Number</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="1234 5678 9012 3456"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      maxLength={19}
-                    />
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Expiry Date</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="MM/YY"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        maxLength={5}
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label className="form-label">CVV</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="123"
-                        value={cardCVV}
-                        onChange={(e) => setCardCVV(e.target.value)}
-                        maxLength={3}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {paymentMethod === 'Cash' && (
-                <div className="bank-transfer-info">
-                  <p><strong>Payment Method:</strong> Cash</p>
-                  <p>Please visit the billing counter to complete your cash payment.</p>
-                  <p><strong>Reference:</strong> #{selectedBill.invoice_id.slice(0, 8)}</p>
-                </div>
-              )}
-              
-              {paymentMethod === 'Online' && (
-                <div className="mobile-payment-info">
-                  <p>You will be redirected to the payment gateway</p>
-                  <div className="qr-placeholder">💳 Secure Payment</div>
-                </div>
-              )}
-            </div>
-            
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setSelectedBill(null)}>
-                Cancel
-              </button>
-              <button 
-                className="btn-primary" 
-                onClick={handleConfirmPayment}
-                disabled={processingPayment}
-              >
-                {processingPayment ? 'Processing...' : `Pay LKR ${parseFloat(selectedBill.total_amount).toLocaleString()}`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Payment Modal - Commented Out */}
 
       <style jsx>{`
         .billing-summary-grid {
