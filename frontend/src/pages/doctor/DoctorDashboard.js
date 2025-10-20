@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
+import DoctorNavBar from '../../components/DoctorNavBar';
 import '../../styles/patientDashboard.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -263,22 +264,7 @@ export default function DoctorDashboard() {
 
   return (
     <div className="patient-portal">
-      {/* Top Navigation */}
-      <nav className="patient-top-nav">
-        <div className="patient-top-nav-content">
-          <div className="patient-nav-links">
-            <a href="#/doctor/dashboard" onClick={(e) => { e.preventDefault(); navigate('/doctor/dashboard'); }}>Dashboard</a>
-            <a href="#/doctor/appointments" onClick={(e) => { e.preventDefault(); navigate('/doctor/appointments'); }}>Appointments</a>
-            <a href="#/doctor/patients" onClick={(e) => { e.preventDefault(); navigate('/doctor/patients'); }}>Patients</a>
-            <a href="#/doctor/consultations" onClick={(e) => { e.preventDefault(); navigate('/doctor/consultations'); }}>Consultations</a>
-            <a href="#/doctor/schedule" onClick={(e) => { e.preventDefault(); navigate('/doctor/schedule'); }}>Schedule</a>
-          </div>
-          <div className="patient-nav-actions">
-            <a href="tel:+94112345678" className="patient-contact-link">📞 +94 11 234 5678</a>
-            <a href="/support" className="patient-emergency-link">🆘 Support</a>
-          </div>
-        </div>
-      </nav>
+      <DoctorNavBar />
 
       {/* Main Header */}
       <header className="patient-main-header">
@@ -342,16 +328,16 @@ export default function DoctorDashboard() {
         )}
 
         {/* Welcome Section */}
-        <section style={{ marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '36px', fontWeight: '800', color: '#1a2332', marginBottom: '8px' }}>
+        <section style={{ marginBottom: '40px', background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(10px)', padding: '32px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+          <h1 style={{ fontSize: '42px', fontWeight: '900', background: 'linear-gradient(135deg, #047857 0%, #10b981 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '12px' }}>
             Welcome back, Dr. {data.doctor.name} 👨‍⚕️
           </h1>
-          <p style={{ fontSize: '16px', color: '#64748b', fontWeight: '500' }}>
+          <p style={{ fontSize: '16px', color: '#059669', fontWeight: '600', marginBottom: '8px' }}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
           {data.doctor.room && (
-            <p style={{ fontSize: '14px', color: '#7c3aed', fontWeight: '600', marginTop: '4px' }}>
-              🏥 Room {data.doctor.room} • {data.doctor.branch}
+            <p style={{ fontSize: '14px', color: '#10b981', fontWeight: '600', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🏥 <span>Room {data.doctor.room}</span> • <span>{data.doctor.branch}</span>
             </p>
           )}
         </section>
@@ -363,22 +349,26 @@ export default function DoctorDashboard() {
           {/* Tab Navigation */}
           <div style={{ 
             display: 'flex', 
-            gap: '10px', 
+            gap: '12px', 
             marginBottom: '24px',
-            borderBottom: '2px solid #e2e8f0',
-            paddingBottom: '8px'
+            borderBottom: '2px solid rgba(16, 185, 129, 0.1)',
+            paddingBottom: '16px',
+            overflowX: 'auto'
           }}>
             <button
               onClick={() => setActiveTab('overview')}
               style={{
-                padding: '12px 24px',
-                background: activeTab === 'overview' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                color: activeTab === 'overview' ? 'white' : '#64748b',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
+                padding: '14px 28px',
+                background: activeTab === 'overview' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(16, 185, 129, 0.08)',
+                color: activeTab === 'overview' ? 'white' : '#059669',
+                border: activeTab === 'overview' ? 'none' : '2px solid rgba(16, 185, 129, 0.2)',
+                borderRadius: '12px',
+                fontWeight: '700',
                 cursor: 'pointer',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s ease',
+                boxShadow: activeTab === 'overview' ? '0 6px 20px rgba(16, 185, 129, 0.3)' : 'none',
+                fontSize: '15px',
+                whiteSpace: 'nowrap'
               }}
             >
               📊 Overview
@@ -386,14 +376,17 @@ export default function DoctorDashboard() {
             <button
               onClick={() => setActiveTab('specializations')}
               style={{
-                padding: '12px 24px',
-                background: activeTab === 'specializations' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                color: activeTab === 'specializations' ? 'white' : '#64748b',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
+                padding: '14px 28px',
+                background: activeTab === 'specializations' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(16, 185, 129, 0.08)',
+                color: activeTab === 'specializations' ? 'white' : '#059669',
+                border: activeTab === 'specializations' ? 'none' : '2px solid rgba(16, 185, 129, 0.2)',
+                borderRadius: '12px',
+                fontWeight: '700',
                 cursor: 'pointer',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s ease',
+                boxShadow: activeTab === 'specializations' ? '0 6px 20px rgba(16, 185, 129, 0.3)' : 'none',
+                fontSize: '15px',
+                whiteSpace: 'nowrap'
               }}
             >
               🎓 Specializations
@@ -401,14 +394,17 @@ export default function DoctorDashboard() {
             <button
               onClick={() => setActiveTab('availability')}
               style={{
-                padding: '12px 24px',
-                background: activeTab === 'availability' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                color: activeTab === 'availability' ? 'white' : '#64748b',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
+                padding: '14px 28px',
+                background: activeTab === 'availability' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(16, 185, 129, 0.08)',
+                color: activeTab === 'availability' ? 'white' : '#059669',
+                border: activeTab === 'availability' ? 'none' : '2px solid rgba(16, 185, 129, 0.2)',
+                borderRadius: '12px',
+                fontWeight: '700',
                 cursor: 'pointer',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s ease',
+                boxShadow: activeTab === 'availability' ? '0 6px 20px rgba(16, 185, 129, 0.3)' : 'none',
+                fontSize: '15px',
+                whiteSpace: 'nowrap'
               }}
             >
               🕒 Availability
@@ -416,14 +412,17 @@ export default function DoctorDashboard() {
             <button
               onClick={() => setActiveTab('activity')}
               style={{
-                padding: '12px 24px',
-                background: activeTab === 'activity' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                color: activeTab === 'activity' ? 'white' : '#64748b',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
+                padding: '14px 28px',
+                background: activeTab === 'activity' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(16, 185, 129, 0.08)',
+                color: activeTab === 'activity' ? 'white' : '#059669',
+                border: activeTab === 'activity' ? 'none' : '2px solid rgba(16, 185, 129, 0.2)',
+                borderRadius: '12px',
+                fontWeight: '700',
                 cursor: 'pointer',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s ease',
+                boxShadow: activeTab === 'activity' ? '0 6px 20px rgba(16, 185, 129, 0.3)' : 'none',
+                fontSize: '15px',
+                whiteSpace: 'nowrap'
               }}
             >
               🔔 Activity
@@ -431,7 +430,7 @@ export default function DoctorDashboard() {
           </div>
 
           {/* Tab Content */}
-          <div style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+          <div style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(10px)', borderRadius: '20px', padding: '40px', boxShadow: '0 8px 32px rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
             {activeTab === 'overview' && (
               <div>
                 <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1a2332', marginBottom: '20px' }}>
@@ -704,7 +703,7 @@ export default function DoctorDashboard() {
         </section>
         {/* Quick Action Cards */}
         <section style={{ marginBottom: '40px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a2332', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#047857', marginBottom: '20px' }}>
             ⚡ Quick Actions
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
@@ -712,21 +711,22 @@ export default function DoctorDashboard() {
             <div
               onClick={() => navigate('/doctor/medications')}
               style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 borderRadius: '16px',
                 padding: '30px',
                 color: 'white',
                 cursor: 'pointer',
-                transition: 'all 0.3s',
-                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)'
+                transition: 'all 0.3s ease',
+                boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)',
+                border: '1px solid rgba(16, 185, 129, 0.2)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 35px rgba(102, 126, 234, 0.4)';
+                e.currentTarget.style.transform = 'translateY(-6px)';
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(16, 185, 129, 0.4)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.3)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.3)';
               }}
             >
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>💊</div>
@@ -746,21 +746,22 @@ export default function DoctorDashboard() {
             <div
               onClick={() => navigate('/doctor/treatment-management')}
               style={{
-                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 borderRadius: '16px',
                 padding: '30px',
                 color: 'white',
                 cursor: 'pointer',
-                transition: 'all 0.3s',
-                boxShadow: '0 4px 20px rgba(67, 233, 123, 0.3)'
+                transition: 'all 0.3s ease',
+                boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)',
+                border: '1px solid rgba(16, 185, 129, 0.2)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 35px rgba(67, 233, 123, 0.4)';
+                e.currentTarget.style.transform = 'translateY(-6px)';
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(16, 185, 129, 0.4)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(67, 233, 123, 0.3)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.3)';
               }}
             >
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏥</div>
@@ -779,7 +780,7 @@ export default function DoctorDashboard() {
         </section>
         {/* Stats Grid */}
         <section style={{ marginBottom: '40px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a2332', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#047857', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px' }}>📊</span>
             Dashboard Statistics
           </h2>
@@ -791,16 +792,16 @@ export default function DoctorDashboard() {
             padding: '0 4px'
           }}>
   <div className="stat-card stat-card-hover" style={{ 
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     borderRadius: '20px',
     padding: '32px 28px',
     color: 'white',
     position: 'relative',
     overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
+    boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)',
     transition: 'all 0.3s ease',
     cursor: 'pointer',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: '1px solid rgba(16, 185, 129, 0.2)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -841,16 +842,16 @@ export default function DoctorDashboard() {
   </div>
 
   <div className="stat-card stat-card-hover" style={{ 
-    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     borderRadius: '20px',
     padding: '32px 28px',
     color: 'white',
     position: 'relative',
     overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(240, 147, 251, 0.3)',
+    boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)',
     transition: 'all 0.3s ease',
     cursor: 'pointer',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: '1px solid rgba(16, 185, 129, 0.2)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -891,16 +892,16 @@ export default function DoctorDashboard() {
   </div>
 
   <div className="stat-card stat-card-hover" style={{ 
-    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     borderRadius: '20px',
     padding: '32px 28px',
     color: 'white',
     position: 'relative',
     overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(79, 172, 254, 0.3)',
+    boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)',
     transition: 'all 0.3s ease',
     cursor: 'pointer',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: '1px solid rgba(16, 185, 129, 0.2)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -941,16 +942,16 @@ export default function DoctorDashboard() {
   </div>
 
   <div className="stat-card stat-card-hover" style={{ 
-    background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     borderRadius: '20px',
     padding: '32px 28px',
     color: 'white',
     position: 'relative',
     overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(67, 233, 123, 0.3)',
+    boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)',
     transition: 'all 0.3s ease',
     cursor: 'pointer',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: '1px solid rgba(16, 185, 129, 0.2)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -991,16 +992,16 @@ export default function DoctorDashboard() {
   </div>
 
   <div className="stat-card stat-card-hover" style={{ 
-    background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     borderRadius: '20px',
     padding: '32px 28px',
     color: 'white',
     position: 'relative',
     overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(250, 112, 154, 0.3)',
+    boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)',
     transition: 'all 0.3s ease',
     cursor: 'pointer',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: '1px solid rgba(16, 185, 129, 0.2)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -1050,7 +1051,7 @@ export default function DoctorDashboard() {
     boxShadow: '0 10px 30px rgba(48, 207, 208, 0.3)',
     transition: 'all 0.3s ease',
     cursor: 'pointer',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: '1px solid rgba(16, 185, 129, 0.2)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -1095,3 +1096,4 @@ export default function DoctorDashboard() {
     </div>
   );
 }
+

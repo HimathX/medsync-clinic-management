@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
+import DoctorNavBar from '../../components/DoctorNavBar';
+import DoctorPageHeader from '../../components/DoctorPageHeader';
 import '../../styles/doctor.css';
+import '../../styles/patientDashboard.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -11,24 +13,35 @@ const DoctorConsultations = () => {
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [doctorData, setDoctorData] = useState({
+    name: 'Doctor',
+    specialization: 'Physician'
+  });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(searchParams.get('patient') || '');
 
   useEffect(() => {
-    // Check authentication using doctor-specific localStorage keys
-    const doctorId = localStorage.getItem('doctor_id');
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
+    const checkAuth = () => {
+      const userId = localStorage.getItem('user_id');
+      const userType = localStorage.getItem('user_type');
+      const doctorId = localStorage.getItem('doctor_id');
+      const token = localStorage.getItem('token');
 
-    console.log('🔐 Auth check - doctorId:', doctorId, 'userId:', userId, 'userType:', userType);
+      // Load doctor data
+      const fullName = localStorage.getItem('full_name') || 'Doctor';
+      setDoctorData({
+        name: fullName,
+        specialization: localStorage.getItem('specialization') || 'Physician'
+      });
 
-    if (!doctorId || !userId || userType !== 'doctor') {
-      console.log('❌ Not authenticated as doctor, redirecting to login');
-      navigate('/doctor-login', { replace: true });
-      return;
-    }
-    
-    fetchConsultations(doctorId);
+      if (!userId || !token || userType !== 'doctor') {
+        navigate('/doctor-login', { replace: true });
+        return;
+      }
+    };
+
+    checkAuth();
+    fetchConsultations(localStorage.getItem('doctor_id'));
   }, [navigate]);
 
   const fetchConsultations = async (doctorId) => {
@@ -88,17 +101,22 @@ const DoctorConsultations = () => {
 
   if (loading) {
     return (
-      <div className="doctor-container">
-        <DoctorHeader />
-        <div className="loading-container"><div className="spinner"></div><p>Loading consultations...</p></div>
+      <div className="patient-portal">
+        <DoctorNavBar />
+        <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+        <div className="patient-container" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: '40px' }}>
+          <div className="spinner"></div>
+          <p>Loading consultations...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="doctor-container">
-      <DoctorHeader />
-      <div className="doctor-content">
+    <div className="patient-portal">
+      <DoctorNavBar />
+      <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+      <main className="patient-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         <div className="doctor-header">
           <h1>Consultations</h1>
           <p>Manage patient consultations and medical records</p>
@@ -179,7 +197,7 @@ const DoctorConsultations = () => {
             </div>
           ) : null}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

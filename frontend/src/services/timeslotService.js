@@ -13,7 +13,7 @@ const apiClient = axios.create({
 // Add auth token to requests
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -59,7 +59,7 @@ const timeslotService = {
    */
   async createBulkTimeSlots(bulkData) {
     try {
-      const response = await apiClient.post('/timeslots/bulk', bulkData);
+      const response = await apiClient.post('/timeslots/create-bulk', bulkData);
       return response.data;
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to create time slots'));
