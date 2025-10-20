@@ -19,12 +19,24 @@ if missing:
     raise EnvironmentError(f"❌ Missing environment variables: {', '.join(missing)}")
 
 # Database connection configuration
+# DB_CONFIG = {
+#     'host': os.getenv('DB_HOST'),           
+#     'port': int(os.getenv('DB_PORT', '3306')),
+#     'user': os.getenv('DB_USER'),           
+#     'password': os.getenv('DB_PASSWORD'),  
+#     'database': os.getenv('DB_NAME'),       
+#     'charset': 'utf8mb4',
+#     'collation': 'utf8mb4_unicode_ci',
+#     'autocommit': False,
+#     'raise_on_warnings': True,
+# }
+
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST'),           # No default - must be set
+    'host': os.getenv('DB_HOST', 'localhost'),
     'port': int(os.getenv('DB_PORT', '3306')),
-    'user': os.getenv('DB_USER'),           # No default - must be set
-    'password': os.getenv('DB_PASSWORD'),   # No default - must be set
-    'database': os.getenv('DB_NAME'),       # No default - must be set
+    'user': os.getenv('DB_USER','root'),
+    'password': os.getenv('DB_PASSWORD','Himathavenge!23'),
+    'database': os.getenv('DB_NAME','medsync'),
     'charset': 'utf8mb4',
     'collation': 'utf8mb4_unicode_ci',
     'autocommit': False,
