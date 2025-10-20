@@ -9,7 +9,7 @@ from routers import (
     auth, doctor, appointment, branch, patient, conditions, 
     staff, timeslot, insurance, medication, prescription, 
     consultation, treatment_catalogue, treatment, payment, invoice, claims,
-    profile_patient, dashboard_patient, dashboard_doctor
+    profile_patient, dashboard_patient, dashboard_doctor, reports
 )
 
 @asynccontextmanager
@@ -66,6 +66,7 @@ app.include_router(claims.router, prefix="/claims")
 app.include_router(profile_patient.router, prefix="/profile-patient")
 app.include_router(dashboard_patient.router, prefix="/dashboard-patient")
 app.include_router(dashboard_doctor.router, prefix="/dashboard-doctor")
+app.include_router(reports.router, prefix="/reports")
 # app.include_router(dashboard_staff.router, prefix="/dashboard-staff")
 
 @app.get("/")

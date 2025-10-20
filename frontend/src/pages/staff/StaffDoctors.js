@@ -373,8 +373,8 @@ const StaffDoctors = () => {
                           <tr key={idx}>
                             <td><strong>Dr. {doc.doctor_name || doc.full_name}</strong></td>
                             <td>{doc.specialization || 'General'}</td>
-                            <td>{doc.total_patients || 0}</td>
-                            <td>{doc.total_consultations || 0}</td>
+                            {/* <td>{doc.total_patients || 0}</td>
+                            <td>{doc.total_consultations || 0}</td> */}
                             <td>
                               <span style={{ color: '#f59e0b' }}>
                                 <i className="fas fa-star"></i> {doc.avg_rating?.toFixed(1) || 'N/A'}

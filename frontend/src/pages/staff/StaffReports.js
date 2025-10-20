@@ -8,11 +8,30 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const StaffReports = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [reports, setReports] = useState({ invoiceStats: null, paymentStats: null });
   const [branch, setBranch] = useState('Colombo');
+  const [activeTab, setActiveTab] = useState('branch-appointments');
   const currentUser = authService.getCurrentUser();
+
+  // Report data states
+  const [branchAppointments, setBranchAppointments] = useState(null);
+  const [doctorRevenue, setDoctorRevenue] = useState(null);
+  const [outstandingBalances, setOutstandingBalances] = useState(null);
+  const [treatmentsByCategory, setTreatmentsByCategory] = useState(null);
+  const [insuranceVsOutOfPocket, setInsuranceVsOutOfPocket] = useState(null);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    branchName: '',
+    year: new Date().getFullYear(),
+    month: '',
+    doctorId: '',
+    minBalance: '',
+    maxBalance: ''
+  });
 
   const handleLogout = () => {
     authService.logout();
@@ -25,29 +44,140 @@ const StaffReports = () => {
       navigate('/staff-login');
       return;
     }
-    fetchReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchReports = async () => {
+  // Fetch data based on active tab
+  const fetchReportData = async (reportType) => {
     setLoading(true);
+    setError('');
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      let url = '';
 
-      const [invoiceStatsRes, paymentStatsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/invoices/statistics/summary`, { headers }),
-        fetch(`${API_BASE_URL}/payments/statistics/summary`, { headers })
-      ]);
+      switch(reportType) {
+        case 'branch-appointments':
+          url = `${API_BASE_URL}/reports/branch-appointments/data?`;
+          if (filters.dateFrom) url += `date_from=${filters.dateFrom}&`;
+          if (filters.dateTo) url += `date_to=${filters.dateTo}&`;
+          if (filters.branchName) url += `branch_name=${filters.branchName}`;
+          break;
+        case 'doctor-revenue':
+          url = `${API_BASE_URL}/reports/doctor-revenue/data?`;
+          if (filters.year) url += `year=${filters.year}&`;
+          if (filters.month) url += `month=${filters.month}&`;
+          if (filters.doctorId) url += `doctor_id=${filters.doctorId}`;
+          break;
+        case 'outstanding-balances':
+          url = `${API_BASE_URL}/reports/outstanding-balances/data?`;
+          if (filters.minBalance) url += `min_balance=${filters.minBalance}&`;
+          if (filters.maxBalance) url += `max_balance=${filters.maxBalance}`;
+          break;
+        case 'treatments':
+          url = `${API_BASE_URL}/reports/treatments-by-category/data?`;
+          if (filters.dateFrom) url += `date_from=${filters.dateFrom}&`;
+          if (filters.dateTo) url += `date_to=${filters.dateTo}`;
+          break;
+        case 'insurance':
+          url = `${API_BASE_URL}/reports/insurance-vs-outofpocket/data?`;
+          if (filters.dateFrom) url += `date_from=${filters.dateFrom}&`;
+          if (filters.dateTo) url += `date_to=${filters.dateTo}`;
+          break;
+        default:
+          return;
+      }
 
-      const invoiceStats = invoiceStatsRes.ok ? await invoiceStatsRes.json() : null;
-      const paymentStats = paymentStatsRes.ok ? await paymentStatsRes.json() : null;
-
-      setReports({ invoiceStats, paymentStats });
+      const response = await fetch(url, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        
+        switch(reportType) {
+          case 'branch-appointments':
+            setBranchAppointments(data);
+            break;
+          case 'doctor-revenue':
+            setDoctorRevenue(data);
+            break;
+          case 'outstanding-balances':
+            setOutstandingBalances(data);
+            break;
+          case 'treatments':
+            setTreatmentsByCategory(data);
+            break;
+          case 'insurance':
+            setInsuranceVsOutOfPocket(data);
+            break;
+        }
+      } else {
+        throw new Error('Failed to fetch report data');
+      }
     } catch (err) {
-      setError('Failed to load reports');
+      console.error('Error fetching report:', err);
+      setError(`Failed to load ${reportType} report`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Download PDF report
+  const downloadPDF = async (reportType) => {
+    try {
+      const token = localStorage.getItem('token');
+      let url = '';
+
+      switch(reportType) {
+        case 'branch-appointments':
+          url = `${API_BASE_URL}/reports/branch-appointments/pdf?`;
+          if (filters.dateFrom) url += `date_from=${filters.dateFrom}&`;
+          if (filters.dateTo) url += `date_to=${filters.dateTo}&`;
+          if (filters.branchName) url += `branch_name=${filters.branchName}`;
+          break;
+        case 'doctor-revenue':
+          url = `${API_BASE_URL}/reports/doctor-revenue/pdf?`;
+          if (filters.year) url += `year=${filters.year}&`;
+          if (filters.month) url += `month=${filters.month}&`;
+          if (filters.doctorId) url += `doctor_id=${filters.doctorId}`;
+          break;
+        case 'outstanding-balances':
+          url = `${API_BASE_URL}/reports/outstanding-balances/pdf?`;
+          if (filters.minBalance) url += `min_balance=${filters.minBalance}&`;
+          if (filters.maxBalance) url += `max_balance=${filters.maxBalance}`;
+          break;
+        case 'treatments':
+          url = `${API_BASE_URL}/reports/treatments-by-category/pdf?`;
+          if (filters.dateFrom) url += `date_from=${filters.dateFrom}&`;
+          if (filters.dateTo) url += `date_to=${filters.dateTo}`;
+          break;
+        case 'insurance':
+          url = `${API_BASE_URL}/reports/insurance-vs-outofpocket/pdf?`;
+          if (filters.dateFrom) url += `date_from=${filters.dateFrom}&`;
+          if (filters.dateTo) url += `date_to=${filters.dateTo}`;
+          break;
+        default:
+          return;
+      }
+
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+      } else {
+        alert('Failed to download PDF report');
+      }
+    } catch (err) {
+      console.error('Error downloading PDF:', err);
+      alert('Error downloading PDF report');
     }
   };
 
@@ -55,20 +185,9 @@ const StaffReports = () => {
     return new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(amount || 0);
   };
 
-  if (loading) {
-    return (
-      <div className="staff-container">
-        <StaffHeader 
-          staffName={currentUser?.fullName || 'Staff'}
-          staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
-          branch={branch}
-          setBranch={setBranch}
-          onLogout={handleLogout}
-        />
-        <div className="loading-container"><div className="spinner"></div><p>Loading...</p></div>
-      </div>
-    );
-  }
+  const formatNumber = (num) => {
+    return new Intl.NumberFormat('en-US').format(num || 0);
+  };
 
   const { invoiceStats, paymentStats } = reports;
 
