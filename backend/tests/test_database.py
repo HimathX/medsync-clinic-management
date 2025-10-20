@@ -1,48 +1,72 @@
 import pytest
-from sqlalchemy import text
+import pymysql
 
-def test_database_connection(db):
+def test_database_connection(db_config):
     """Test that database connection works"""
-    result = db.execute(text("SELECT 1"))
-    assert result.fetchone()[0] == 1
+    try:
+        connection = pymysql.connect(**db_config)
+        cursor = connection.cursor()
+        cursor.execute("SELECT 1")
+        result = cursor.fetchone()
+        assert result[0] == 1
+        cursor.close()
+        connection.close()
+    except Exception as e:
+        pytest.fail(f"Database connection failed: {e}")
 
-def test_database_has_tables(db):
+def test_database_has_tables(db_config):
     """Test that database has expected tables"""
-    result = db.execute(text("SHOW TABLES"))
-    tables = [row[0] for row in result.fetchall()]
+    connection = pymysql.connect(**db_config)
+    cursor = connection.cursor()
+    cursor.execute("SHOW TABLES")
+    tables = [row[0] for row in cursor.fetchall()]
+    cursor.close()
+    connection.close()
     
     expected_tables = ['users', 'patients', 'doctors', 'appointments']
     for table in expected_tables:
         assert any(table.lower() in t.lower() for t in tables), f"Table {table} not found"
 
-def test_database_functions_exist(db):
+def test_database_functions_exist(db_config):
     """Test that database functions are created"""
-    result = db.execute(text("""
+    connection = pymysql.connect(**db_config)
+    cursor = connection.cursor()
+    cursor.execute("""
         SELECT COUNT(*) as count 
         FROM information_schema.ROUTINES 
         WHERE ROUTINE_SCHEMA = DATABASE() 
         AND ROUTINE_TYPE = 'FUNCTION'
-    """))
-    count = result.fetchone()[0]
+    """)
+    count = cursor.fetchone()[0]
+    cursor.close()
+    connection.close()
     assert count > 0, "No functions found in database"
 
-def test_database_procedures_exist(db):
+def test_database_procedures_exist(db_config):
     """Test that database procedures are created"""
-    result = db.execute(text("""
+    connection = pymysql.connect(**db_config)
+    cursor = connection.cursor()
+    cursor.execute("""
         SELECT COUNT(*) as count 
         FROM information_schema.ROUTINES 
         WHERE ROUTINE_SCHEMA = DATABASE() 
         AND ROUTINE_TYPE = 'PROCEDURE'
-    """))
-    count = result.fetchone()[0]
+    """)
+    count = cursor.fetchone()[0]
+    cursor.close()
+    connection.close()
     assert count > 0, "No procedures found in database"
 
-def test_database_triggers_exist(db):
+def test_database_triggers_exist(db_config):
     """Test that database triggers are created"""
-    result = db.execute(text("""
+    connection = pymysql.connect(**db_config)
+    cursor = connection.cursor()
+    cursor.execute("""
         SELECT COUNT(*) as count 
         FROM information_schema.TRIGGERS 
         WHERE TRIGGER_SCHEMA = DATABASE()
-    """))
-    count = result.fetchone()[0]
+    """)
+    count = cursor.fetchone()[0]
+    cursor.close()
+    connection.close()
     assert count > 0, "No triggers found in database"
