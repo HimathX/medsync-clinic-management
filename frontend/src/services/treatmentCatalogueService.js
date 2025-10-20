@@ -12,8 +12,10 @@ class TreatmentCatalogueService {
    * @param {number} limit - Maximum records to return
    * @returns {Promise} List of treatments
    */
-  async getAllTreatments(skip = 0, limit = 100) {
-    const response = await api.get(`/treatment-catalogue/?skip=${skip}&limit=${limit}`);
+  async getAllTreatments(skip = 0, limit = 500) {
+    // Backend limit validation: must be between 1-500
+    const validLimit = Math.min(Math.max(limit, 1), 500);
+    const response = await api.get(`/treatment-catalogue/?skip=${skip}&limit=${validLimit}`);
     return response.data;
   }
 

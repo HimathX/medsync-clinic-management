@@ -15,29 +15,67 @@ const DoctorConsultations = () => {
   const [selectedPatient, setSelectedPatient] = useState(searchParams.get('patient') || '');
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
+    // Check authentication using doctor-specific localStorage keys
+    const doctorId = localStorage.getItem('doctor_id');
+    const userId = localStorage.getItem('user_id');
+    const userType = localStorage.getItem('user_type');
+
+    console.log('🔐 Auth check - doctorId:', doctorId, 'userId:', userId, 'userType:', userType);
+
+    if (!doctorId || !userId || userType !== 'doctor') {
+      console.log('❌ Not authenticated as doctor, redirecting to login');
+      navigate('/doctor-login', { replace: true });
       return;
     }
-    fetchConsultations();
+    
+    fetchConsultations(doctorId);
   }, [navigate]);
 
-  const fetchConsultations = async () => {
+  const fetchConsultations = async (doctorId) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/consultation/`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      
+      if (!token) {
+        console.error('❌ No token found');
+        setError('Authentication token missing. Please login again.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('📡 Fetching consultations for doctor:', doctorId);
+      
+      // Use doctor_id filter to get only this doctor's consultations
+      const url = `${API_BASE_URL}/consultations?doctor_id=${doctorId}`;
+      console.log('📍 API URL:', url);
+
+      const response = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${token}`, 
+          'Content-Type': 'application/json'
+        }
       });
+
+      console.log('📊 Response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
-        setConsultations(data);
+        console.log('✅ Consultations loaded:', data);
+        setConsultations(Array.isArray(data) ? data : data.consultations || []);
+        setError('');
+      } else if (response.status === 404) {
+        console.log('ℹ️ No consultations found (404)');
+        setConsultations([]);
+        setError('');
       } else {
-        throw new Error('Failed to fetch consultations');
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+        throw new Error(`Failed to fetch consultations: ${response.status}`);
       }
     } catch (err) {
-      setError('Failed to load consultations');
+      console.error('❌ Error loading consultations:', err);
+      setError(`Failed to load consultations: ${err.message}`);
+      setConsultations([]);
     } finally {
       setLoading(false);
     }
@@ -52,7 +90,7 @@ const DoctorConsultations = () => {
     return (
       <div className="doctor-container">
         <DoctorHeader />
-        <div className="loading-container"><div className="spinner"></div><p>Loading...</p></div>
+        <div className="loading-container"><div className="spinner"></div><p>Loading consultations...</p></div>
       </div>
     );
   }
@@ -63,41 +101,83 @@ const DoctorConsultations = () => {
       <div className="doctor-content">
         <div className="doctor-header">
           <h1>Consultations</h1>
-          <p>Manage patient consultations</p>
+          <p>Manage patient consultations and medical records</p>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message" style={{ marginBottom: '20px', padding: '16px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b' }}>
+            <strong>⚠️ Error:</strong> {error}
+          </div>
+        )}
 
         {/* Consultations Grid */}
         <div className="consultations-grid">
-          {consultations.length === 0 ? (
-            <div className="empty-state">
-              <i className="fas fa-stethoscope"></i>
-              <p>No consultations found</p>
-              <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-                <i className="fas fa-plus"></i> Start New Consultation
+          {consultations.length === 0 && !error ? (
+            <div className="empty-state" style={{ textAlign: 'center', padding: '60px 40px', background: '#f3f4f6', borderRadius: '12px', border: '2px dashed #d1d5db' }}>
+              <div style={{ fontSize: '64px', marginBottom: '16px' }}>📋</div>
+              <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>No Consultations Yet</h2>
+              <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '24px', maxWidth: '500px' }}>
+                Start creating consultations from your appointments to build patient medical records.
+              </p>
+              <button 
+                className="btn-primary" 
+                onClick={() => navigate('/doctor/appointments')}
+                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: '600' }}
+              >
+                📅 Go to Appointments
               </button>
             </div>
-          ) : (
-            consultations.map((consult) => (
-              <div key={consult.consultation_id} className="consultation-card">
-                <div className="consultation-header">
-                  <h3>Patient ID: #{consult.patient_id}</h3>
-                  <span className="date-badge">{formatDate(consult.consultation_date)}</span>
+          ) : consultations.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
+              {consultations.map((consult) => (
+                <div key={consult.consultation_rec_id || consult.id} className="consultation-card" style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  background: 'white',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'}
+                >
+                  <div className="consultation-header" style={{ marginBottom: '16px', borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
+                    <h3 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>
+                      👤 {consult.patient_name || `Patient #${consult.patient_id}`}
+                    </h3>
+                    <span className="date-badge" style={{ fontSize: '12px', color: '#6b7280' }}>
+                      📅 {formatDate(consult.created_at || consult.consultation_date)}
+                    </span>
+                  </div>
+                  <div className="consultation-body" style={{ marginBottom: '16px' }}>
+                    <p style={{ margin: '8px 0', color: '#374151', fontSize: '14px' }}>
+                      <strong>🏥 Symptoms:</strong> {consult.symptoms ? consult.symptoms.substring(0, 100) + (consult.symptoms.length > 100 ? '...' : '') : 'N/A'}
+                    </p>
+                    <p style={{ margin: '8px 0', color: '#374151', fontSize: '14px' }}>
+                      <strong>🔍 Diagnoses:</strong> {consult.diagnoses ? consult.diagnoses.substring(0, 100) + (consult.diagnoses.length > 100 ? '...' : '') : 'Pending'}
+                    </p>
+                    {consult.follow_up_required && (
+                      <p style={{ margin: '8px 0', color: '#d97706', fontWeight: '600', fontSize: '14px' }}>
+                        🔔 Follow-up: {formatDate(consult.follow_up_date)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="consultation-footer" style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                      className="btn-secondary"
+                      onClick={() => navigate(`/doctor/consultation?id=${consult.consultation_rec_id || consult.id}`)}
+                      style={{ flex: 1, padding: '10px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', transition: 'all 0.2s' }}
+                      onMouseEnter={(e) => e.target.style.background = '#2563eb'}
+                      onMouseLeave={(e) => e.target.style.background = '#3b82f6'}
+                    >
+                      👁️ View Details
+                    </button>
+                  </div>
                 </div>
-                <div className="consultation-body">
-                  <p><strong>Symptoms:</strong> {consult.symptoms || 'N/A'}</p>
-                  <p><strong>Diagnosis:</strong> {consult.diagnosis || 'Pending'}</p>
-                  <p><strong>Notes:</strong> {consult.doctor_notes || 'No notes'}</p>
-                </div>
-                <div className="consultation-footer">
-                  <button className="btn-secondary" onClick={() => navigate(`/doctor/prescriptions?consultation=${consult.consultation_id}`)}>
-                    <i className="fas fa-prescription"></i> Prescribe
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

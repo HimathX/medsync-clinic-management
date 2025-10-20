@@ -270,6 +270,8 @@ export default function DoctorDashboard() {
             <a href="#/doctor/dashboard" onClick={(e) => { e.preventDefault(); navigate('/doctor/dashboard'); }}>Dashboard</a>
             <a href="#/doctor/appointments" onClick={(e) => { e.preventDefault(); navigate('/doctor/appointments'); }}>Appointments</a>
             <a href="#/doctor/patients" onClick={(e) => { e.preventDefault(); navigate('/doctor/patients'); }}>Patients</a>
+            <a href="#/doctor/consultations" onClick={(e) => { e.preventDefault(); navigate('/doctor/consultations'); }}>Consultations</a>
+            <a href="#/doctor/schedule" onClick={(e) => { e.preventDefault(); navigate('/doctor/schedule'); }}>Schedule</a>
           </div>
           <div className="patient-nav-actions">
             <a href="tel:+94112345678" className="patient-contact-link">📞 +94 11 234 5678</a>
@@ -353,6 +355,7 @@ export default function DoctorDashboard() {
             </p>
           )}
         </section>
+
 
 
         {/* Tabbed Sections */}
@@ -699,7 +702,81 @@ export default function DoctorDashboard() {
             </button>
           </div>
         </section>
+        {/* Quick Action Cards */}
+        <section style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a2332', marginBottom: '20px' }}>
+            ⚡ Quick Actions
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            {/* Medication Management Card */}
+            <div
+              onClick={() => navigate('/doctor/medications')}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '16px',
+                padding: '30px',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 35px rgba(102, 126, 234, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.3)';
+              }}
+            >
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>💊</div>
+              <h3 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '8px' }}>
+                Medication Database
+              </h3>
+              <p style={{ fontSize: '14px', opacity: '0.9', marginBottom: '16px' }}>
+                Add, edit, and manage medications for prescriptions
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
+                <span>Manage Medications</span>
+                <i className="fas fa-arrow-right"></i>
+              </div>
+            </div>
 
+            {/* Treatment Management Card */}
+            <div
+              onClick={() => navigate('/doctor/treatment-management')}
+              style={{
+                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                borderRadius: '16px',
+                padding: '30px',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                boxShadow: '0 4px 20px rgba(67, 233, 123, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 35px rgba(67, 233, 123, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(67, 233, 123, 0.3)';
+              }}
+            >
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏥</div>
+              <h3 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '8px' }}>
+                Treatment Catalogue
+              </h3>
+              <p style={{ fontSize: '14px', opacity: '0.9', marginBottom: '16px' }}>
+                Add, edit, and manage treatment services
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
+                <span>Manage Treatments</span>
+                <i className="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </div>
+        </section>
         {/* Stats Grid */}
         <section style={{ marginBottom: '40px' }}>
           <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a2332', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -847,7 +924,7 @@ export default function DoctorDashboard() {
         letterSpacing: '-1px'
       }}>{data.stats.completed_today}</div>
     </div>
-    <div style={{ 
+    {/* <div style={{ 
       fontSize: '15px', 
       opacity: '0.95',
       fontWeight: '500',
@@ -887,7 +964,7 @@ export default function DoctorDashboard() {
       opacity: '0.1',
       lineHeight: '1',
       pointerEvents: 'none'
-    }}>👥</div>
+    }}>👥</div> */}
     <div>
       <div style={{ fontSize: '48px', marginBottom: '16px', display: 'flex', alignItems: 'center' }}>👥</div>
       <div style={{ 
@@ -963,7 +1040,7 @@ export default function DoctorDashboard() {
     }}>Scheduled</div>
   </div>
 
-  <div className="stat-card stat-card-hover" style={{ 
+  {/* <div className="stat-card stat-card-hover" style={{ 
     background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
     borderRadius: '20px',
     padding: '32px 28px',
@@ -1009,9 +1086,9 @@ export default function DoctorDashboard() {
       opacity: '0.75',
       marginTop: '8px',
       paddingTop: '12px',
-      borderTop: '1px solid rgba(255, 255, 255, 0.2)'
+      borderTop: '1px solid rgba(125, 30, 30, 0.2)'
     }}>Under Care</div>
-  </div>
+  </div> */}
           </div>
         </section>
       </main>

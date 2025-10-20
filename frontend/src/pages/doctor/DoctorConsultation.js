@@ -52,7 +52,11 @@ const DoctorConsultation = () => {
     try {
       setLoading(true);
       const data = await appointmentService.getAppointmentById(appointmentId);
-      setAppointment(data);
+      console.log('Appointment data:', data);
+      
+      // Handle nested response structure
+      const appointmentData = data.appointment || data;
+      setAppointment(appointmentData);
       
       // Check if consultation already exists
       try {
@@ -292,16 +296,28 @@ const DoctorConsultation = () => {
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
             <div>
-              <strong>Name:</strong> {appointment.patient_name || 'N/A'}
+              <strong>Name:</strong> {appointment?.patient_name || appointment?.full_name || 'N/A'}
             </div>
             <div>
-              <strong>ID:</strong> {appointment.patient_id}
+              <strong>ID:</strong> {appointment?.patient_id || 'N/A'}
             </div>
             <div>
-              <strong>Date:</strong> {new Date(appointment.available_date).toLocaleDateString()}
+              <strong>Email:</strong> {appointment?.patient_email || appointment?.email || 'N/A'}
             </div>
             <div>
-              <strong>Time:</strong> {appointment.start_time} - {appointment.end_time}
+              <strong>Blood Group:</strong> {appointment?.blood_group || 'N/A'}
+            </div>
+            <div>
+              <strong>Date:</strong> {appointment?.available_date ? new Date(appointment.available_date).toLocaleDateString() : 'N/A'}
+            </div>
+            <div>
+              <strong>Time:</strong> {appointment?.start_time && appointment?.end_time ? `${appointment.start_time} - ${appointment.end_time}` : 'N/A'}
+            </div>
+            <div>
+              <strong>Doctor:</strong> {appointment?.doctor_name || 'N/A'}
+            </div>
+            <div>
+              <strong>Branch:</strong> {appointment?.branch_name || 'N/A'}
             </div>
           </div>
         </div>
