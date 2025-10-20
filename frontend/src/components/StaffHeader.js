@@ -62,24 +62,13 @@ const StaffHeader = ({ staffName, staffRole, branch, setBranch, onLogout }) => {
             const isActive = location.pathname === item.to;
             return (
               <li key={item.to}>
-                <div
+                <Link
+                  to={item.to}
                   className={`ms-link${isActive ? ' is-active' : ''}`}
-                  onClick={() => {
-                    console.log('🔗 Navigating to:', item.to);
-                    navigate(item.to);
-                  }}
-                  style={{ cursor: 'pointer' }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      navigate(item.to);
-                    }
-                  }}
+                  onClick={() => console.log('🔗 Navigating to:', item.to)}
                 >
-                  <span>{item.label}</span>
-                  <i className="u" aria-hidden="true" style={{ pointerEvents: 'none' }} />
-                </div>
+                  {item.label}
+                </Link>
               </li>
             );
           })}

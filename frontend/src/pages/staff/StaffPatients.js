@@ -49,21 +49,18 @@ const StaffPatients = () => {
   });
 
   useEffect(() => {
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
+    const user = authService.getCurrentUser();
+    console.log('🔍 StaffPatients - Auth check:', user);
     
-    console.log('🔍 StaffPatients - Auth check:', { userId, userType });
-    
-    if (!userId || !userType) {
-      console.log('❌ No auth found, redirecting to login');
+    if (!user || !user.userId) {
+      console.error('❌ No authentication found, redirecting to login');
       navigate('/staff-login');
       return;
     }
     
-    console.log('✅ Auth verified, fetching patients...');
     fetchPatients();
-    fetchMetrics();
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchMetrics = async () => {
     try {

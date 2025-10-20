@@ -247,7 +247,7 @@ function App() {
         {(userType === 'receptionist' || userType === 'nurse' || userType === 'manager' || 
           userType === 'admin' || userType === 'employee' || userType === 'staff') && (
           <>
-            <Route path="/" element={<StaffDashboard />} />
+            <Route path="/" element={<Navigate to="/staff/dashboard" replace />} />
             <Route path="/staff/dashboard" element={<StaffDashboard />} />
             <Route path="/staff/appointments" element={<StaffAppointments />} />
             <Route path="/staff/patients" element={<StaffPatients />} />

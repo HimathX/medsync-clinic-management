@@ -22,15 +22,14 @@ const StaffSchedule = () => {
   };
 
   useEffect(() => {
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
-    
-    if (!userId || !userType) {
+    const user = authService.getCurrentUser();
+    if (!user || !user.userId) {
       navigate('/staff-login');
       return;
     }
     fetchTimeSlots();
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const applyFilters = useCallback(() => {
     // Safety check: ensure timeSlots is an array

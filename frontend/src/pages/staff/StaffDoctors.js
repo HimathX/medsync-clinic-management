@@ -36,17 +36,16 @@ const StaffDoctors = () => {
   };
 
   useEffect(() => {
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
-    
-    if (!userId || !userType) {
+    const user = authService.getCurrentUser();
+    if (!user || !user.userId) {
       navigate('/staff-login');
       return;
     }
     fetchDoctors();
     fetchPerformanceReport();
     fetchAvailabilityReport();
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchDoctors = async () => {
     setLoading(true);

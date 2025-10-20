@@ -23,15 +23,14 @@ const StaffBilling = () => {
   };
 
   useEffect(() => {
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
-    
-    if (!userId || !userType) {
+    const user = authService.getCurrentUser();
+    if (!user || !user.userId) {
       navigate('/staff-login');
       return;
     }
     fetchBillingData();
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchBillingData = async () => {
     setLoading(true);

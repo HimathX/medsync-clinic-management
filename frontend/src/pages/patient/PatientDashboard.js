@@ -385,7 +385,7 @@ export default function PatientDashboard() {
                 </div>
                 <div className="action-content">
                   <h4 className="action-title">Prescriptions</h4>
-                  <p className="action-description">Refill medications</p>
+                  <p className="action-description">Medications</p>
                 </div>
                 <div className="action-arrow">→</div>
               </button>
@@ -524,7 +524,7 @@ export default function PatientDashboard() {
                             Prescribed by {rx.doctor} • {rx.refills} refills left
                           </div>
                         </div>
-                        <button className="prescription-refill-btn">Refill</button>
+                        {/* <button className="prescription-refill-btn">Refill</button> */}
                       </div>
                     ))}
                   </div>

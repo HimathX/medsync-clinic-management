@@ -20,21 +20,20 @@ const StaffProfile = () => {
   };
 
   useEffect(() => {
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
-    
-    if (!userId || !userType) {
+    const user = authService.getCurrentUser();
+    if (!user || !user.userId) {
       navigate('/staff-login');
       return;
     }
-    fetchStaffProfile(userId);
-  }, [navigate]);
+    fetchStaffProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const fetchStaffProfile = async (staffId) => {
+  const fetchStaffProfile = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/staff/${staffId}`, {
+      const response = await fetch(`${API_BASE_URL}/staff/${currentUser.userId}`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
       if (response.ok) {

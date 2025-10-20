@@ -35,15 +35,14 @@ const StaffAppointments = () => {
   };
 
   useEffect(() => {
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
-    
-    if (!userId || !userType) {
+    const user = authService.getCurrentUser();
+    if (!user || !user.userId) {
       navigate('/staff-login');
       return;
     }
     fetchAppointments();
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const applyFilters = useCallback(() => {
     // Safety check: ensure appointments is an array
