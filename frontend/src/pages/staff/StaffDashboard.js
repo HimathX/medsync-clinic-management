@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import StaffHeader from '../../components/StaffHeader';
 import authService from '../../services/authService';
 import '../../styles/staff.css';
+import '../../styles/staffHeader.css';
+import '../../styles/staffPages.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -227,7 +229,7 @@ const StaffAppointments = () => {
 
   if (loading) {
     return (
-      <div className="staff-container">
+      <>
         <StaffHeader 
           staffName={currentUser?.fullName || 'Staff'}
           staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
@@ -235,16 +237,18 @@ const StaffAppointments = () => {
           setBranch={setBranch}
           onLogout={handleLogout}
         />
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Loading appointments...</p>
+        <div className="staff-page-container">
+          <div className="staff-loading">
+            <div className="staff-spinner"></div>
+            <p>Loading appointments...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="staff-container">
+    <>
       <StaffHeader 
         staffName={currentUser?.fullName || 'Staff'}
         staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
@@ -252,37 +256,43 @@ const StaffAppointments = () => {
         setBranch={setBranch}
         onLogout={handleLogout}
       />
-      <div className="staff-content">
-        <div className="staff-header">
-          <h1>Appointment Management</h1>
-          <p>View and manage all appointments</p>
+      <div className="staff-page-container">
+        <div className="staff-page-content">
+        <div className="staff-page-header">
+          <div>
+            <h1 className="staff-page-title">📅 Appointment Management</h1>
+            <p className="staff-page-subtitle">View and manage all appointments</p>
+          </div>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="staff-error">{error}</div>}
 
         {/* Filters */}
-        <div className="filters-section">
-          <div className="filter-row">
-            <div className="filter-group">
-              <label><i className="fas fa-search"></i> Search</label>
+        <div className="staff-filters">
+          <div className="staff-filter-row">
+            <div className="staff-filter-group">
+              <label className="staff-form-label">🔍 Search</label>
               <input
                 type="text"
+                className="staff-form-input"
                 placeholder="Search by ID..."
                 value={filters.searchTerm}
                 onChange={(e) => setFilters({...filters, searchTerm: e.target.value})}
               />
             </div>
-            <div className="filter-group">
-              <label><i className="fas fa-calendar"></i> Date</label>
+            <div className="staff-filter-group">
+              <label className="staff-form-label">📅 Date</label>
               <input
                 type="date"
+                className="staff-form-input"
                 value={filters.date}
                 onChange={(e) => setFilters({...filters, date: e.target.value})}
               />
             </div>
-            <div className="filter-group">
-              <label><i className="fas fa-filter"></i> Status</label>
+            <div className="staff-filter-group">
+              <label className="staff-form-label">📊 Status</label>
               <select
+                className="staff-form-select"
                 value={filters.status}
                 onChange={(e) => setFilters({...filters, status: e.target.value})}
               >
@@ -293,21 +303,22 @@ const StaffAppointments = () => {
                 <option value="Cancelled">Cancelled</option>
               </select>
             </div>
-            <button className="btn-clear-filters" onClick={() => setFilters({date: '', status: '', searchTerm: ''})}>
-              <i className="fas fa-times"></i> Clear
+            <button className="staff-btn staff-btn-danger" onClick={() => setFilters({date: '', status: '', searchTerm: ''})}>
+              🗑️ Clear
             </button>
           </div>
-          <div className="results-summary">
-            <p>Showing {filteredAppointments.length} of {appointments.length} appointments</p>
+          <div style={{ marginTop: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
+            Showing {filteredAppointments.length} of {appointments.length} appointments
           </div>
         </div>
 
         {/* Appointments Table */}
-        <div className="table-container">
+        <div className="staff-table-container">
           {filteredAppointments.length === 0 ? (
-            <div className="empty-state">
-              <i className="fas fa-calendar-times"></i>
-              <p>No appointments found</p>
+            <div className="staff-empty-state">
+              <div className="staff-empty-state-icon">📭</div>
+              <div className="staff-empty-state-title">No appointments found</div>
+              <p className="staff-empty-state-text">Try adjusting your filters or check back later</p>
             </div>
           ) : (
             <table className="staff-table">
@@ -330,21 +341,14 @@ const StaffAppointments = () => {
                     <td><span className={`status-badge status-${apt.status?.toLowerCase()}`}>{apt.status}</span></td>
                     <td>{apt.notes || '-'}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button 
                           onClick={() => viewAppointmentDetails(apt.appointment_id)}
+                          className="staff-btn staff-btn-primary"
                           title="View Details"
-                          style={{ 
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            color: 'white', 
-                            padding: '6px 12px', 
-                            border: 'none', 
-                            borderRadius: '6px', 
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
                         >
-                          <i className="fas fa-eye"></i>
+                          👁️
                         </button>
                         <button 
                           onClick={() => {
@@ -352,35 +356,21 @@ const StaffAppointments = () => {
                             setUpdateData({ status: apt.status || '', notes: apt.notes || '' });
                             setShowUpdateModal(true);
                           }}
+                          className="staff-btn staff-btn-primary"
                           title="Update Status"
                           disabled={apt.status === 'Cancelled' || apt.status === 'Completed'}
-                          style={{ 
-                            background: apt.status === 'Cancelled' || apt.status === 'Completed' ? '#9ca3af' : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                            color: 'white', 
-                            padding: '6px 12px', 
-                            border: 'none', 
-                            borderRadius: '6px', 
-                            cursor: apt.status === 'Cancelled' || apt.status === 'Completed' ? 'not-allowed' : 'pointer',
-                            fontSize: '12px'
-                          }}
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
                         >
-                          <i className="fas fa-edit"></i>
+                          ✏️
                         </button>
                         <button 
                           onClick={() => handleCancelAppointment(apt.appointment_id)}
+                          className="staff-btn staff-btn-danger"
                           disabled={apt.status === 'Cancelled' || apt.status === 'Completed'}
                           title="Cancel"
-                          style={{ 
-                            background: apt.status === 'Cancelled' || apt.status === 'Completed' ? '#9ca3af' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                            color: 'white', 
-                            padding: '6px 12px', 
-                            border: 'none', 
-                            borderRadius: '6px', 
-                            cursor: apt.status === 'Cancelled' || apt.status === 'Completed' ? 'not-allowed' : 'pointer',
-                            fontSize: '12px'
-                          }}
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
                         >
-                          <i className="fas fa-times"></i>
+                          ❌
                         </button>
                       </div>
                     </td>
@@ -393,12 +383,12 @@ const StaffAppointments = () => {
 
         {/* Appointment Details Modal */}
         {showDetailsModal && selectedAppointment && (
-          <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
-            <div className="modal-content" style={{ maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                <h2><i className="fas fa-calendar-alt"></i> Appointment Details</h2>
-                <button className="btn-close" onClick={() => setShowDetailsModal(false)} style={{ color: 'white' }}>
-                  <i className="fas fa-times"></i>
+          <div className="staff-modal-overlay" onClick={() => setShowDetailsModal(false)}>
+            <div className="staff-modal-content" style={{ maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
+              <div className="staff-modal-header">
+                <h2 className="staff-modal-title">📅 Appointment Details</h2>
+                <button className="staff-modal-close" onClick={() => setShowDetailsModal(false)}>
+                  ✕
                 </button>
               </div>
               
@@ -443,8 +433,8 @@ const StaffAppointments = () => {
                 )}
               </div>
 
-              <div className="modal-footer">
-                <button className="btn-secondary" onClick={() => setShowDetailsModal(false)}>Close</button>
+              <div className="staff-modal-footer">
+                <button className="staff-btn staff-btn-secondary" onClick={() => setShowDetailsModal(false)}>Close</button>
               </div>
             </div>
           </div>
@@ -452,12 +442,12 @@ const StaffAppointments = () => {
 
         {/* Update Appointment Modal */}
         {showUpdateModal && selectedAppointment && (
-          <div className="modal-overlay" onClick={() => setShowUpdateModal(false)}>
-            <div className="modal-content" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
-                <h2><i className="fas fa-edit"></i> Update Appointment</h2>
-                <button className="btn-close" onClick={() => setShowUpdateModal(false)} style={{ color: 'white' }}>
-                  <i className="fas fa-times"></i>
+          <div className="staff-modal-overlay" onClick={() => setShowUpdateModal(false)}>
+            <div className="staff-modal-content" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+              <div className="staff-modal-header">
+                <h2 className="staff-modal-title">✏️ Update Appointment</h2>
+                <button className="staff-modal-close" onClick={() => setShowUpdateModal(false)}>
+                  ✕
                 </button>
               </div>
               
@@ -467,12 +457,12 @@ const StaffAppointments = () => {
                   <div style={{ fontSize: '16px', fontWeight: '600' }}>#{selectedAppointment.appointment_id}</div>
                 </div>
 
-                <div className="form-group">
-                  <label>Status *</label>
+                <div className="staff-form-group">
+                  <label className="staff-form-label">Status *</label>
                   <select
+                    className="staff-form-select"
                     value={updateData.status}
                     onChange={(e) => setUpdateData({...updateData, status: e.target.value})}
-                    style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }}
                   >
                     <option value="">Select Status</option>
                     <option value="Scheduled">Scheduled</option>
@@ -482,27 +472,27 @@ const StaffAppointments = () => {
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label>Notes</label>
+                <div className="staff-form-group">
+                  <label className="staff-form-label">Notes</label>
                   <textarea
+                    className="staff-form-textarea"
                     value={updateData.notes}
                     onChange={(e) => setUpdateData({...updateData, notes: e.target.value})}
-                    rows="4"
-                    style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', resize: 'vertical' }}
                     placeholder="Add any additional notes..."
                   ></textarea>
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <button className="btn-secondary" onClick={() => setShowUpdateModal(false)}>Cancel</button>
-                <button className="btn-primary" onClick={handleUpdateAppointment}>Update</button>
+              <div className="staff-modal-footer">
+                <button className="staff-btn staff-btn-secondary" onClick={() => setShowUpdateModal(false)}>Cancel</button>
+                <button className="staff-btn staff-btn-primary" onClick={handleUpdateAppointment}>Update</button>
               </div>
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

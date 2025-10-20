@@ -41,15 +41,11 @@ const StaffHeader = ({ staffName, staffRole, branch, setBranch, onLogout }) => {
             {staffRole || 'Staff'} - {staffName}
           </span>
 
-          {setBranch && (
-            <label className="ms-branch">
-              Branch
-              <select value={branch} onChange={(e) => setBranch(e.target.value)} aria-label="Select branch">
-                <option>Colombo</option>
-                <option>Kandy</option>
-                <option>Galle</option>
-              </select>
-            </label>
+          {branch && (
+            <div className="ms-branch-display">
+              <span className="ms-branch-label">Branch</span>
+              <span className="ms-branch-value">{branch}</span>
+            </div>
           )}
 
           <button className="ms-logout" onClick={onLogout}>Logout</button>

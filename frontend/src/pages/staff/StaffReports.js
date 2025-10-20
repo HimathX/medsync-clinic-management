@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import StaffHeader from '../../components/StaffHeader';
 import authService from '../../services/authService';
 import '../../styles/staff.css';
+import '../../styles/staffHeader.css';
+import '../../styles/staffPages.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 

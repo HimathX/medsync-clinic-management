@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import '../styles/auth.css';
 import '../styles/PatientLogin.css';
+import '../styles/staffAuth.css';
 
 export default function Login({ onLogin, loginType = 'staff' }) {
   const navigate = useNavigate();
@@ -257,26 +258,20 @@ export default function Login({ onLogin, loginType = 'staff' }) {
     );
   }
 
-  // Staff Login (keep original design)
+  // Staff Login with Blue Theme
   return (
-    <div className="auth" style={{minHeight:'100vh', display:'grid', placeItems:'center', background:'linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)'}}>
-      <section className="card" style={{ maxWidth: 520, width: '95vw', padding: '2rem', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
-          <div>
-            <h2 style={{ marginTop: 0, marginBottom: 8 }}>
-              👨‍⚕️ Staff Portal Login
-            </h2>
-            <p className="label">
-              Sign in to access the staff dashboard
-            </p>
-          </div>
+    <div className="staff-auth-container">
+      <section className="staff-auth-card">
+        <div className="staff-auth-header">
+          <h2>👨‍⚕️ Staff Portal</h2>
+          <p>Sign in to access the staff dashboard</p>
         </div>
         
-        <form onSubmit={handleSubmit} className="form">
-          <label className="label">
-            Email Address
+        <form onSubmit={handleSubmit} className="staff-auth-form">
+          <div className="staff-form-group">
+            <label className="staff-form-label">Email Address</label>
             <input
-              className="input"
+              className="staff-form-input"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -285,44 +280,48 @@ export default function Login({ onLogin, loginType = 'staff' }) {
               disabled={loading}
               required
             />
-          </label>
-          <label className="label">
-            Password
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              disabled={loading}
-              required
-            />
-          </label>
+          </div>
+          
+          <div className="staff-form-group">
+            <label className="staff-form-label">Password</label>
+            <div className="staff-input-wrapper">
+              <input
+                className="staff-form-input"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                disabled={loading}
+                required
+              />
+              <button
+                type="button"
+                className="staff-password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex="-1"
+                disabled={loading}
+              >
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
+          </div>
           
           {error && (
-            <div style={{
-              padding: '12px',
-              background: '#fee',
-              border: '1px solid #fcc',
-              borderRadius: '8px',
-              color: '#c33',
-              marginBottom: '1rem',
-              fontSize: '14px'
-            }}>
-              ⚠️ {error}
+            <div className="staff-error-message">
+              {error}
             </div>
           )}
           
           <button 
             type="submit" 
-            className="btn primary block" 
-            style={{marginTop:16, position: 'relative'}}
+            className="staff-submit-btn"
             disabled={loading}
           >
             {loading ? (
               <>
-                <span style={{opacity: 0.7}}>⏳</span> Signing in...
+                <span className="staff-loading-spinner"></span>
+                Signing in...
               </>
             ) : (
               'Sign in to Staff Portal'
@@ -330,23 +329,27 @@ export default function Login({ onLogin, loginType = 'staff' }) {
           </button>
         </form>
         
-        <div style={{marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e0e0e0'}}>
+        <div className="staff-auth-footer">
           <button 
-            className="btn" 
+            className="staff-secondary-btn" 
             onClick={() => navigate('/')}
-            style={{width: '100%', marginBottom: 8}}
+            type="button"
           >
             ← Back to Home
           </button>
-          <p className="label" style={{textAlign: 'center', marginTop: 8, fontSize: 12}}>
+          <p className="staff-auth-footer-text">
             🔒 Secured with SSL • Staff Access Only
+          </p>
+          <p className="staff-auth-footer-text">
+            Don't have an account?
             <br />
-            <span 
-              onClick={() => navigate('/staff-signup')} 
-              style={{color: 'var(--accent-red)', textDecoration: 'none', cursor: 'pointer', marginTop: 4, display: 'inline-block'}}
+            <button
+              className="staff-auth-link"
+              onClick={() => navigate('/staff-signup')}
+              type="button"
             >
               New Staff Registration
-            </span>
+            </button>
           </p>
         </div>
       </section>

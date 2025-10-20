@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import StaffHeader from '../../components/StaffHeader';
 import authService from '../../services/authService';
 import '../../styles/staff.css';
+import '../../styles/staffHeader.css';
+import '../../styles/staffPages.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -206,7 +208,7 @@ const StaffDoctors = () => {
 
   if (loading) {
     return (
-      <div className="staff-container">
+      <>
         <StaffHeader 
           staffName={currentUser?.fullName || 'Staff'}
           staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
@@ -214,13 +216,18 @@ const StaffDoctors = () => {
           setBranch={setBranch}
           onLogout={handleLogout}
         />
-        <div className="loading-container"><div className="spinner"></div><p>Loading...</p></div>
-      </div>
+        <div className="staff-page-container">
+          <div className="staff-loading">
+            <div className="staff-spinner"></div>
+            <p>Loading doctors...</p>
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="staff-container">
+    <>
       <StaffHeader 
         staffName={currentUser?.fullName || 'Staff'}
         staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
@@ -228,29 +235,28 @@ const StaffDoctors = () => {
         setBranch={setBranch}
         onLogout={handleLogout}
       />
-      <div className="staff-content">
-        <div className="staff-header">
-          <div>
-            <h1>Doctor Directory</h1>
-            <p>Manage doctors and view performance • {doctors.length} doctors</p>
+      <div className="staff-page-container">
+        <div className="staff-page-content">
+          <div className="staff-page-header">
+            <div>
+              <h1 className="staff-page-title">👨‍⚕️ Doctor Management</h1>
+              <p className="staff-page-subtitle">View and manage all doctors</p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="staff-btn staff-btn-primary"
+                onClick={() => setShowPerformanceReport(true)}
+              >
+                📊 Performance Report
+              </button>
+              <button 
+                className="staff-btn staff-btn-primary"
+                onClick={() => setShowAvailabilityReport(true)}
+              >
+                📅 Availability Report
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              className="btn-primary" 
-              onClick={() => setShowPerformanceReport(true)}
-              style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
-            >
-              <i className="fas fa-chart-line"></i> Performance Report
-            </button>
-            <button 
-              className="btn-primary" 
-              onClick={() => setShowAvailabilityReport(true)}
-              style={{ background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' }}
-            >
-              <i className="fas fa-calendar-check"></i> Availability Report
-            </button>
-          </div>
-        </div>
 
         {error && <div className="error-message">{error}</div>}
 
@@ -747,8 +753,9 @@ const StaffDoctors = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

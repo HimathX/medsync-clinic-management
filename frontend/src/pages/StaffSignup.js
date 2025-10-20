@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import '../styles/auth.css';
+import '../styles/staffAuth.css';
 
 export default function StaffSignup() {
   const navigate = useNavigate();
@@ -153,25 +154,23 @@ export default function StaffSignup() {
   };
 
   return (
-    <div className="auth" style={{ minHeight: '100vh', padding: '2rem', background: 'linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)' }}>
-      <section className="card" style={{ maxWidth: 900, width: '95vw', margin: '0 auto', padding: '2rem', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <h2 style={{ marginTop: 0, marginBottom: 8 }}>
-            👔 Staff Member Registration
-          </h2>
-          <p className="label">Register a new staff member account</p>
+    <div className="staff-auth-container">
+      <section className="staff-auth-card" style={{ maxWidth: 900 }}>
+        <div className="staff-auth-header" style={{ marginBottom: '2rem' }}>
+          <h2>👔 Staff Member Registration</h2>
+          <p>Register a new staff member account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="form">
+        <form onSubmit={handleSubmit} className="staff-auth-form">
           {/* Personal Information */}
-          <fieldset style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1.5rem', marginBottom: '1.5rem' }}>
-            <legend style={{ fontWeight: 'bold', color: '#333', padding: '0 0.5rem' }}>Personal Information</legend>
+          <fieldset className="staff-fieldset">
+            <legend>Personal Information</legend>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-              <label className="label">
-                Full Name *
+            <div className="staff-form-grid">
+              <label className="staff-form-group">
+                <span className="staff-form-label">Full Name *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="text"
                   name="full_name"
                   value={formData.full_name}
@@ -182,10 +181,10 @@ export default function StaffSignup() {
                 />
               </label>
 
-              <label className="label">
-                NIC Number *
+              <label className="staff-form-group">
+                <span className="staff-form-label">NIC Number *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="text"
                   name="NIC"
                   value={formData.NIC}
@@ -196,10 +195,10 @@ export default function StaffSignup() {
                 />
               </label>
 
-              <label className="label">
-                Email Address *
+              <label className="staff-form-group">
+                <span className="staff-form-label">Email Address *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="email"
                   name="email"
                   value={formData.email}
@@ -210,10 +209,10 @@ export default function StaffSignup() {
                 />
               </label>
 
-              <label className="label">
-                Gender *
+              <label className="staff-form-group">
+                <span className="staff-form-label">Gender *</span>
                 <select
-                  className="input"
+                  className="staff-form-select"
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
@@ -226,10 +225,10 @@ export default function StaffSignup() {
                 </select>
               </label>
 
-              <label className="label">
-                Date of Birth *
+              <label className="staff-form-group">
+                <span className="staff-form-label">Date of Birth *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="date"
                   name="DOB"
                   value={formData.DOB}
@@ -243,14 +242,14 @@ export default function StaffSignup() {
           </fieldset>
 
           {/* Contact Information */}
-          <fieldset style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1.5rem', marginBottom: '1.5rem' }}>
-            <legend style={{ fontWeight: 'bold', color: '#333', padding: '0 0.5rem' }}>Contact Information</legend>
+          <fieldset className="staff-fieldset">
+            <legend>Contact Information</legend>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-              <label className="label">
-                Primary Contact Number *
+            <div className="staff-form-grid">
+              <label className="staff-form-group">
+                <span className="staff-form-label">Primary Contact Number *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="tel"
                   name="contact_num1"
                   value={formData.contact_num1}
@@ -261,10 +260,10 @@ export default function StaffSignup() {
                 />
               </label>
 
-              <label className="label">
-                Secondary Contact Number
+              <label className="staff-form-group">
+                <span className="staff-form-label">Secondary Contact Number</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="tel"
                   name="contact_num2"
                   value={formData.contact_num2}
@@ -277,14 +276,14 @@ export default function StaffSignup() {
           </fieldset>
 
           {/* Address Information */}
-          <fieldset style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1.5rem', marginBottom: '1.5rem' }}>
-            <legend style={{ fontWeight: 'bold', color: '#333', padding: '0 0.5rem' }}>Address</legend>
+          <fieldset className="staff-fieldset">
+            <legend>Address</legend>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-              <label className="label" style={{ gridColumn: 'span 2' }}>
-                Address Line 1 *
+            <div className="staff-form-grid">
+              <label className="staff-form-group staff-form-grid-full">
+                <span className="staff-form-label">Address Line 1 *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="text"
                   name="address_line1"
                   value={formData.address_line1}
@@ -295,10 +294,10 @@ export default function StaffSignup() {
                 />
               </label>
 
-              <label className="label" style={{ gridColumn: 'span 2' }}>
-                Address Line 2
+              <label className="staff-form-group staff-form-grid-full">
+                <span className="staff-form-label">Address Line 2</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="text"
                   name="address_line2"
                   value={formData.address_line2}
@@ -308,10 +307,10 @@ export default function StaffSignup() {
                 />
               </label>
 
-              <label className="label">
-                City *
+              <label className="staff-form-group">
+                <span className="staff-form-label">City *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="text"
                   name="city"
                   value={formData.city}
@@ -322,10 +321,10 @@ export default function StaffSignup() {
                 />
               </label>
 
-              <label className="label">
-                Province *
+              <label className="staff-form-group">
+                <span className="staff-form-label">Province *</span>
                 <select
-                  className="input"
+                  className="staff-form-select"
                   name="province"
                   value={formData.province}
                   onChange={handleChange}
@@ -344,10 +343,10 @@ export default function StaffSignup() {
                 </select>
               </label>
 
-              <label className="label">
-                Postal Code *
+              <label className="staff-form-group">
+                <span className="staff-form-label">Postal Code *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="text"
                   name="postal_code"
                   value={formData.postal_code}
@@ -361,14 +360,14 @@ export default function StaffSignup() {
           </fieldset>
 
           {/* Employment Information */}
-          <fieldset style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1.5rem', marginBottom: '1.5rem' }}>
-            <legend style={{ fontWeight: 'bold', color: '#333', padding: '0 0.5rem' }}>Employment Details</legend>
+          <fieldset className="staff-fieldset">
+            <legend>Employment Details</legend>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-              <label className="label">
-                Branch *
+            <div className="staff-form-grid">
+              <label className="staff-form-group">
+                <span className="staff-form-label">Branch *</span>
                 <select
-                  className="input"
+                  className="staff-form-select"
                   name="branch_name"
                   value={formData.branch_name}
                   onChange={handleChange}
@@ -387,10 +386,10 @@ export default function StaffSignup() {
                 </select>
               </label>
 
-              <label className="label">
-                Role *
+              <label className="staff-form-group">
+                <span className="staff-form-label">Role *</span>
                 <select
-                  className="input"
+                  className="staff-form-select"
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
@@ -406,10 +405,10 @@ export default function StaffSignup() {
                 </select>
               </label>
 
-              <label className="label">
-                Monthly Salary (LKR) *
+              <label className="staff-form-group">
+                <span className="staff-form-label">Monthly Salary (LKR) *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="number"
                   name="salary"
                   value={formData.salary}
@@ -422,10 +421,10 @@ export default function StaffSignup() {
                 />
               </label>
 
-              <label className="label">
-                Joining Date *
+              <label className="staff-form-group">
+                <span className="staff-form-label">Joining Date *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="date"
                   name="joined_date"
                   value={formData.joined_date}
@@ -439,14 +438,14 @@ export default function StaffSignup() {
           </fieldset>
 
           {/* Password */}
-          <fieldset style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1.5rem', marginBottom: '1.5rem' }}>
-            <legend style={{ fontWeight: 'bold', color: '#333', padding: '0 0.5rem' }}>Security</legend>
+          <fieldset className="staff-fieldset">
+            <legend>Security</legend>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-              <label className="label">
-                Password * (min 8 characters)
+            <div className="staff-form-grid">
+              <label className="staff-form-group">
+                <span className="staff-form-label">Password * (min 8 characters)</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="password"
                   name="password"
                   value={formData.password}
@@ -458,10 +457,10 @@ export default function StaffSignup() {
                 />
               </label>
 
-              <label className="label">
-                Confirm Password *
+              <label className="staff-form-group">
+                <span className="staff-form-label">Confirm Password *</span>
                 <input
-                  className="input"
+                  className="staff-form-input"
                   type="password"
                   name="confirmPassword"
                   value={formData.confirmPassword}
@@ -476,42 +475,26 @@ export default function StaffSignup() {
           </fieldset>
 
           {error && (
-            <div style={{
-              padding: '12px',
-              background: '#fee',
-              border: '1px solid #fcc',
-              borderRadius: '8px',
-              color: '#c33',
-              marginBottom: '1rem',
-              fontSize: '14px'
-            }}>
-              ⚠️ {error}
+            <div className="staff-error-message">
+              {error}
             </div>
           )}
 
           {success && (
-            <div style={{
-              padding: '12px',
-              background: '#efe',
-              border: '1px solid #cfc',
-              borderRadius: '8px',
-              color: '#3c3',
-              marginBottom: '1rem',
-              fontSize: '14px'
-            }}>
-              ✅ {success}
+            <div className="staff-success-message">
+              {success}
             </div>
           )}
 
           <button
             type="submit"
-            className="btn primary block"
-            style={{ marginTop: 16 }}
+            className="staff-submit-btn"
             disabled={loading}
           >
             {loading ? (
               <>
-                <span style={{ opacity: 0.7 }}>⏳</span> Registering...
+                <span className="staff-loading-spinner"></span>
+                Registering...
               </>
             ) : (
               '✅ Register Staff Member'
@@ -519,20 +502,26 @@ export default function StaffSignup() {
           </button>
         </form>
 
-        <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e0e0e0', textAlign: 'center' }}>
+        <div className="staff-auth-footer">
           <button
-            className="btn"
+            className="staff-secondary-btn"
             onClick={() => navigate('/')}
-            style={{ marginRight: 8 }}
+            type="button"
+            style={{ width: '100%' }}
           >
             ← Back to Home
           </button>
-          <button
-            className="btn"
-            onClick={() => navigate('/staff-login')}
-          >
-            Already have an account? Login
-          </button>
+          <p className="staff-auth-footer-text">
+            Already have an account?
+            <br />
+            <button
+              className="staff-auth-link"
+              onClick={() => navigate('/staff-login')}
+              type="button"
+            >
+              Sign in here
+            </button>
+          </p>
         </div>
       </section>
     </div>

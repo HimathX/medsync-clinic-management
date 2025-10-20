@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import StaffHeader from '../../components/StaffHeader';
 import authService from '../../services/authService';
 import '../../styles/staff.css';
+import '../../styles/staffHeader.css';
+import '../../styles/staffPages.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -123,7 +125,7 @@ const StaffSchedule = () => {
 
   if (loading) {
     return (
-      <div className="staff-container">
+      <>
         <StaffHeader 
           staffName={currentUser?.fullName || 'Staff'}
           staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
@@ -131,13 +133,15 @@ const StaffSchedule = () => {
           setBranch={setBranch}
           onLogout={handleLogout}
         />
-        <div className="loading-container"><div className="spinner"></div><p>Loading...</p></div>
-      </div>
+        <div className="staff-page-container">
+          <div className="staff-loading"><div className="staff-spinner"></div><p>Loading...</p></div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="staff-container">
+    <>
       <StaffHeader 
         staffName={currentUser?.fullName || 'Staff'}
         staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
@@ -145,39 +149,42 @@ const StaffSchedule = () => {
         setBranch={setBranch}
         onLogout={handleLogout}
       />
-      <div className="staff-content">
-        <div className="staff-header">
-          <h1>Schedule Management</h1>
-          <p>Manage doctor time slots</p>
+      <div className="staff-page-container">
+        <div className="staff-page-content">
+        <div className="staff-page-header">
+          <div>
+            <h1 className="staff-page-title">📅 Schedule Management</h1>
+            <p className="staff-page-subtitle">Manage doctor time slots</p>
+          </div>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="staff-error">{error}</div>}
 
         {/* Filters */}
-        <div className="filters-section">
-          <div className="filter-row">
-            <div className="filter-group">
-              <label><i className="fas fa-calendar"></i> Date</label>
-              <input type="date" value={filters.date} onChange={(e) => setFilters({...filters, date: e.target.value})} />
+        <div className="staff-filters">
+          <div className="staff-filter-row">
+            <div className="staff-filter-group">
+              <label className="staff-form-label">📅 Date</label>
+              <input className="staff-form-input" type="date" value={filters.date} onChange={(e) => setFilters({...filters, date: e.target.value})} />
             </div>
-            <div className="filter-group">
-              <label><i className="fas fa-filter"></i> Availability</label>
-              <select value={filters.availability} onChange={(e) => setFilters({...filters, availability: e.target.value})}>
+            <div className="staff-filter-group">
+              <label className="staff-form-label">📊 Availability</label>
+              <select className="staff-form-select" value={filters.availability} onChange={(e) => setFilters({...filters, availability: e.target.value})}>
                 <option value="">All</option>
                 <option value="available">Available</option>
                 <option value="booked">Booked</option>
               </select>
             </div>
-            <button className="btn-clear-filters" onClick={() => setFilters({date: '', availability: ''})}>
-              <i className="fas fa-times"></i> Clear
+            <button className="staff-btn staff-btn-danger" onClick={() => setFilters({date: '', availability: ''})}>
+              🗑️ Clear
             </button>
           </div>
         </div>
 
         {/* Schedule Grid */}
-        <div className="schedule-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
           {filteredSlots.length === 0 ? (
-            <div className="empty-state"><i className="fas fa-calendar-times"></i><p>No time slots found</p></div>
+            <div className="staff-empty-state"><div className="staff-empty-state-icon">📅</div><div className="staff-empty-state-title">No time slots found</div></div>
           ) : (
             filteredSlots.map((slot) => (
               <div key={slot.time_slot_id} className={`schedule-card ${slot.availability ? 'available' : 'booked'}`}>
@@ -200,8 +207,9 @@ const StaffSchedule = () => {
             ))
           )}
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -1,0 +1,351 @@
+/* ========================================
+   STAFF HEADER & NAVBAR - MODERN DESIGN
+   ======================================== */
+
+/* Main Header Container */
+.ms-header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Top Bar */
+.ms-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  gap: 2rem;
+}
+
+/* Brand */
+.ms-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: white;
+  font-weight: 700;
+  font-size: 1.3rem;
+  transition: all 0.3s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}
+
+.ms-brand:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.ms-brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+}
+
+.ms-brand-mark svg {
+  stroke: white;
+  stroke-width: 2;
+}
+
+.ms-brand-name {
+  background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+/* Actions Container */
+.ms-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Chip (Role Badge) */
+.ms-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.ms-chip:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.ms-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Branch Display */
+.ms-branch-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ms-branch-label {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ms-branch-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Logout Button */
+.ms-logout {
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ms-logout:hover {
+  background: #ef4444;
+  border-color: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.ms-logout:active {
+  transform: translateY(0);
+}
+
+/* Navigation Bar */
+.ms-nav {
+  background: rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0;
+  backdrop-filter: blur(10px);
+}
+
+.ms-nav-list {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 1600px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.ms-nav-list li {
+  flex: 0 1 auto;
+}
+
+/* Navigation Links */
+.ms-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+  position: relative;
+}
+
+.ms-link:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+.ms-link.is-active {
+  color: white;
+  background: rgba(255, 255, 255, 0.15);
+  border-bottom-color: #4ade80;
+  box-shadow: inset 0 -3px 0 0 #4ade80;
+}
+
+.ms-link.is-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #4ade80, transparent);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .ms-topbar {
+    padding: 1rem 1.5rem;
+    gap: 1rem;
+  }
+
+  .ms-actions {
+    gap: 1rem;
+  }
+
+  .ms-brand-name {
+    display: none;
+  }
+
+  .ms-link {
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .ms-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .ms-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ms-nav-list {
+    flex-direction: column;
+  }
+
+  .ms-nav-list li {
+    width: 100%;
+  }
+
+  .ms-link {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border-bottom: none;
+    border-left: 3px solid transparent;
+  }
+
+  .ms-link:hover {
+    border-left-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .ms-link.is-active {
+    border-left-color: #4ade80;
+    border-bottom: none;
+  }
+
+  .ms-link.is-active::before {
+    display: none;
+  }
+
+  .ms-branch {
+    width: 100%;
+  }
+
+  .ms-branch select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .ms-topbar {
+    padding: 0.75rem;
+  }
+
+  .ms-brand {
+    font-size: 1.1rem;
+  }
+
+  .ms-brand-mark {
+    width: 28px;
+    height: 28px;
+  }
+
+  .ms-chip {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .ms-logout {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .ms-link {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .ms-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%);
+  }
+
+  .ms-branch select option {
+    background: #0f172a;
+  }
+}
+
+/* Accessibility */
+.ms-link:focus,
+.ms-logout:focus,
+.ms-branch select:focus {
+  outline: 2px solid #4ade80;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .ms-header {
+    display: none;
+  }
+}

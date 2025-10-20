@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import StaffHeader from '../../components/StaffHeader';
 import authService from '../../services/authService';
 import '../../styles/staff.css';
+import '../../styles/staffHeader.css';
+import '../../styles/staffPages.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -298,7 +300,7 @@ const StaffPatients = () => {
 
   if (loading) {
     return (
-      <div className="staff-container">
+      <>
         <StaffHeader 
           staffName={currentUser?.fullName || 'Staff'}
           staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
@@ -306,16 +308,18 @@ const StaffPatients = () => {
           setBranch={setBranch}
           onLogout={handleLogout}
         />
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Loading patients...</p>
+        <div className="staff-page-container">
+          <div className="staff-loading">
+            <div className="staff-spinner"></div>
+            <p>Loading patients...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="staff-container">
+    <>
       <StaffHeader 
         staffName={currentUser?.fullName || 'Staff'}
         staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
@@ -323,14 +327,15 @@ const StaffPatients = () => {
         setBranch={setBranch}
         onLogout={handleLogout}
       />
-      <div className="staff-content">
-        <div className="staff-header">
+      <div className="staff-page-container">
+        <div className="staff-page-content">
+        <div className="staff-page-header">
           <div>
-            <h1>Patient Management</h1>
-            <p>Manage patient records • Total: {patients.length} patients</p>
+            <h1 className="staff-page-title">👥 Patient Management</h1>
+            <p className="staff-page-subtitle">Manage patient records • Total: {patients.length} patients</p>
           </div>
-          <button className="btn-add" onClick={() => setShowAddModal(true)}>
-            <i className="fas fa-plus"></i> Add Patient
+          <button className="staff-btn staff-btn-primary" onClick={() => setShowAddModal(true)}>
+            ➕ Add Patient
           </button>
         </div>
 
@@ -1166,8 +1171,9 @@ const StaffPatients = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
