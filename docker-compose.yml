@@ -53,7 +53,7 @@ services:
       - medsync_network
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-  # ==================== React Frontend ====================
+  # ==================== React Frontend (Old) ====================
   frontend:
     build:
       context: ./frontend
@@ -75,6 +75,29 @@ services:
       - medsync_network
     stdin_open: true
     tty: true
+
+  # ==================== Patient Portal (New) ====================
+  patient-portal:
+    build:
+      context: ./new-frontend
+      dockerfile: Dockerfile
+    container_name: medsync_patient_portal
+    restart: always
+    ports:
+      - "3001:80"
+    environment:
+      REACT_APP_API_BASE_URL: http://backend:8000
+      REACT_APP_API_TIMEOUT: 30000
+    depends_on:
+      - backend
+    networks:
+      - medsync_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      timeout: 3s
+      retries: 3
+      interval: 30s
+      start_period: 5s
 
 volumes:
   mysql_data:

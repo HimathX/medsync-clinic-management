@@ -89,9 +89,9 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(patient.router)
-app.include_router(doctor.router, prefix="/api/doctors", tags=["Doctors"])
+app.include_router(doctor.router)
 app.include_router(branch.router, prefix="/api/branches", tags=["Branches"])
-app.include_router(appointment.router, prefix="/api/appointments", tags=["Appointments"])
+app.include_router(appointment.router)
 app.include_router(timeslot.router)
 app.include_router(consultation.router, prefix="/api/consultations", tags=["Consultations"])
 app.include_router(prescription.router, prefix="/api/prescriptions", tags=["Prescriptions"])
