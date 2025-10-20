@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
+import StaffHeader from '../../components/StaffHeader';
+import authService from '../../services/authService';
 import '../../styles/staff.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -16,6 +17,13 @@ const StaffAppointments = () => {
     status: '',
     searchTerm: ''
   });
+  const [branch, setBranch] = useState('Colombo');
+  const currentUser = authService.getCurrentUser();
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/staff-login');
+  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -121,7 +129,13 @@ const StaffAppointments = () => {
   if (loading) {
     return (
       <div className="staff-container">
-        <DoctorHeader />
+        <StaffHeader 
+          staffName={currentUser?.fullName || 'Staff'}
+          staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
+          branch={branch}
+          setBranch={setBranch}
+          onLogout={handleLogout}
+        />
         <div className="loading-container">
           <div className="spinner"></div>
           <p>Loading appointments...</p>
@@ -132,7 +146,13 @@ const StaffAppointments = () => {
 
   return (
     <div className="staff-container">
-      <DoctorHeader />
+      <StaffHeader 
+        staffName={currentUser?.fullName || 'Staff'}
+        staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
+        branch={branch}
+        setBranch={setBranch}
+        onLogout={handleLogout}
+      />
       <div className="staff-content">
         <div className="staff-header">
           <h1>Appointment Management</h1>

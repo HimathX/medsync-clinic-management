@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
+import StaffHeader from '../../components/StaffHeader';
+import authService from '../../services/authService';
 import '../../styles/staff.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -10,6 +11,13 @@ const StaffProfile = () => {
   const [staffData, setStaffData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [branch, setBranch] = useState('Colombo');
+  const currentUser = authService.getCurrentUser();
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/staff-login');
+  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -49,7 +57,13 @@ const StaffProfile = () => {
   if (loading) {
     return (
       <div className="staff-container">
-        <DoctorHeader />
+        <StaffHeader 
+          staffName={currentUser?.fullName || 'Staff'}
+          staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
+          branch={branch}
+          setBranch={setBranch}
+          onLogout={handleLogout}
+        />
         <div className="loading-container"><div className="spinner"></div><p>Loading...</p></div>
       </div>
     );
@@ -58,7 +72,13 @@ const StaffProfile = () => {
   if (error || !staffData) {
     return (
       <div className="staff-container">
-        <DoctorHeader />
+        <StaffHeader 
+          staffName={currentUser?.fullName || 'Staff'}
+          staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
+          branch={branch}
+          setBranch={setBranch}
+          onLogout={handleLogout}
+        />
         <div className="staff-content">
           <div className="error-message">{error || 'Profile not available'}</div>
         </div>
@@ -68,7 +88,13 @@ const StaffProfile = () => {
 
   return (
     <div className="staff-container">
-      <DoctorHeader />
+      <StaffHeader 
+        staffName={currentUser?.fullName || 'Staff'}
+        staffRole={currentUser?.userType?.charAt(0).toUpperCase() + currentUser?.userType?.slice(1) || 'Staff'}
+        branch={branch}
+        setBranch={setBranch}
+        onLogout={handleLogout}
+      />
       <div className="staff-content">
         <div className="staff-header">
           <h1>My Profile</h1>

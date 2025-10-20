@@ -666,13 +666,13 @@ export default function DoctorDashboard() {
               type="button"
               className="quick-action-card" 
               onClick={() => {
-                console.log('💊 Navigating to prescriptions');
-                navigate('/doctor/prescriptions');
+                console.log('� Navigating to financial metrics');
+                navigate('/doctor/financial-metrics');
               }}
               style={{ cursor: 'pointer' }}
             >
-              <div className="quick-action-icon" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>💊</div>
-              <div className="quick-action-label">Prescriptions</div>
+              <div className="quick-action-icon" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>�</div>
+              <div className="quick-action-label">Financial Metrics</div>
             </button>
 
             <button 

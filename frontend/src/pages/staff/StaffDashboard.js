@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
+import StaffHeader from '../../components/StaffHeader';
 import authService from '../../services/authService';
 import '../../styles/staff.css';
 
@@ -21,6 +21,12 @@ const StaffDashboard = () => {
   const [recentAppointments, setRecentAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [branch, setBranch] = useState('Colombo');
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/staff-login');
+  };
 
   // Check authentication only ONCE when component mounts
   useEffect(() => {
@@ -80,25 +86,34 @@ const StaffDashboard = () => {
       const patients = patientsRes.ok ? await patientsRes.json() : [];
       const invoiceStats = invoiceStatsRes.ok ? await invoiceStatsRes.json() : {};
 
+      // Handle nested response structures
+      const appointmentsArray = Array.isArray(appointments) 
+        ? appointments 
+        : (appointments.appointments || appointments.data || appointments.results || []);
+      
+      const patientsArray = Array.isArray(patients) 
+        ? patients 
+        : (patients.patients || patients.data || patients.results || []);
+
       // Calculate today's appointments
       const today = new Date().toISOString().split('T')[0];
-      const todayAppts = appointments.filter(apt => {
+      const todayAppts = appointmentsArray.filter(apt => {
         const aptDate = apt.appointment_date ? new Date(apt.appointment_date).toISOString().split('T')[0] : '';
         return aptDate === today;
       });
 
       // Calculate statistics
       setStats({
-        totalAppointments: appointments.length,
+        totalAppointments: appointmentsArray.length,
         todayAppointments: todayAppts.length,
-        totalPatients: patients.length,
+        totalPatients: patientsArray.length,
         totalRevenue: invoiceStats.total_revenue || 0,
-        pendingAppointments: appointments.filter(a => a.status === 'Scheduled' || a.status === 'Pending').length,
-        completedAppointments: appointments.filter(a => a.status === 'Completed').length
+        pendingAppointments: appointmentsArray.filter(a => a.status === 'Scheduled' || a.status === 'Pending').length,
+        completedAppointments: appointmentsArray.filter(a => a.status === 'Completed').length
       });
 
       // Get recent appointments
-      setRecentAppointments(appointments.slice(0, 5));
+      setRecentAppointments(appointmentsArray.slice(0, 5));
 
     } catch (err) {
       console.error('Error:', err);
@@ -143,7 +158,13 @@ const StaffDashboard = () => {
 
   return (
     <div className="staff-container">
-      <DoctorHeader />
+      <StaffHeader 
+        staffName={staffInfo?.fullName || 'Staff'}
+        staffRole={staffInfo?.userType?.charAt(0).toUpperCase() + staffInfo?.userType?.slice(1) || 'Staff'}
+        branch={branch}
+        setBranch={setBranch}
+        onLogout={handleLogout}
+      />
       <div className="staff-content">
         <div className="staff-header">
           <h1>Staff Dashboard</h1>
