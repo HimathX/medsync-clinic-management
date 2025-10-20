@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
+import DoctorNavBar from '../../components/DoctorNavBar';
+import DoctorPageHeader from '../../components/DoctorPageHeader';
 import authService from '../../services/authService';
 import appointmentService from '../../services/appointmentService';
 import '../../styles/doctor.css';
+import '../../styles/patientDashboard.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -19,8 +21,11 @@ const DoctorAppointments = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ date: '', status: 'all', search: '' });
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [stats, setStats] = useState({ total: 0, scheduled: 0, completed: 0, cancelled: 0 });
+  const [doctorData, setDoctorData] = useState({
+    name: 'Doctor',
+    specialization: 'Physician'
+  });
 
   useEffect(() => {
     // Check authentication
@@ -29,6 +34,13 @@ const DoctorAppointments = () => {
       navigate('/doctor-login');
       return;
     }
+    
+    // Load doctor data
+    const fullName = localStorage.getItem('full_name') || 'Doctor';
+    setDoctorData({
+      name: fullName,
+      specialization: localStorage.getItem('specialization') || 'Physician'
+    });
     
     console.log('✅ Doctor authenticated, fetching appointments for ID:', doctorId);
     fetchAppointments();
@@ -151,15 +163,17 @@ const DoctorAppointments = () => {
 
   if (loading) {
     return (
-      <div className="doctor-container">
-        <DoctorHeader />
-        <div style={{ 
+      <div className="patient-portal">
+        <DoctorNavBar />
+        <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+        <div className="patient-container" style={{ 
           minHeight: '60vh', 
           display: 'flex', 
           flexDirection: 'column',
           alignItems: 'center', 
           justifyContent: 'center',
-          gap: '16px'
+          gap: '16px',
+          paddingTop: '40px'
         }}>
           <div className="spinner"></div>
           <p style={{ color: '#64748b', fontSize: '16px', fontWeight: '500' }}>Loading appointments...</p>
@@ -169,19 +183,20 @@ const DoctorAppointments = () => {
   }
 
   return (
-    <div className="doctor-container">
-      <DoctorHeader />
-      <div className="doctor-content">
+    <div className="patient-portal">
+      <DoctorNavBar />
+      <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+      <main className="patient-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         {/* Page Title with Action */}
-        <div className="doctor-header" style={{ marginBottom: '32px' }}>
+        <div className="doctor-header" style={{ marginBottom: '32px', background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(10px)', padding: '32px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
           <div>
-            <h1>My Appointments</h1>
-            <p>Manage and track all your patient appointments</p>
+            <h1 style={{ fontSize: '36px', fontWeight: '800', background: 'linear-gradient(135deg, #047857 0%, #10b981 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '8px' }}>My Appointments</h1>
+            <p style={{ fontSize: '16px', color: '#059669', fontWeight: '500' }}>Manage and track all your patient appointments</p>
           </div>
           <button
             onClick={fetchAppointments}
             className="btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', padding: '12px 28px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)', transition: 'all 0.3s ease' }}
           >
             <i className="fas fa-sync-alt"></i> Refresh
           </button>
@@ -196,60 +211,63 @@ const DoctorAppointments = () => {
         )}
 
         {/* Stats Grid - Modern Cards */}
-        <div className="stats-row" style={{ marginBottom: '32px' }}>
-          <div className="stat-box" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white' }}>
-            <div className="stat-icon" style={{ fontSize: '32px' }}>📊</div>
-            <div className="stat-value" style={{ fontSize: '32px', fontWeight: '700' }}>{stats.total}</div>
-            <div className="stat-label" style={{ fontSize: '14px', opacity: '0.95' }}>Total Appointments</div>
+        <div className="stats-row" style={{ marginBottom: '32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+          <div className="stat-box" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', borderRadius: '16px', padding: '28px', boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)', border: '1px solid rgba(16, 185, 129, 0.2)', transition: 'all 0.3s ease' }}>
+            <div className="stat-icon" style={{ fontSize: '48px', marginBottom: '12px' }}>📋</div>
+            <div className="stat-value" style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: '#ffffff' }}>{stats.total}</div>
+            <div className="stat-label" style={{ fontSize: '14px', fontWeight: '500', color: '#f0fdf4' }}>Total Appointments</div>
           </div>
 
-          <div className="stat-box" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: 'white' }}>
-            <div className="stat-icon" style={{ fontSize: '32px' }}>📅</div>
-            <div className="stat-value" style={{ fontSize: '32px', fontWeight: '700' }}>{stats.scheduled}</div>
-            <div className="stat-label" style={{ fontSize: '14px', opacity: '0.95' }}>Scheduled</div>
+          <div className="stat-box" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', borderRadius: '16px', padding: '28px', boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)', border: '1px solid rgba(16, 185, 129, 0.2)', transition: 'all 0.3s ease' }}>
+            <div className="stat-icon" style={{ fontSize: '48px', marginBottom: '12px' }}>📅</div>
+            <div className="stat-value" style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: '#ffffff' }}>{stats.scheduled}</div>
+            <div className="stat-label" style={{ fontSize: '14px', fontWeight: '500', color: '#f0fdf4' }}>Scheduled</div>
           </div>
 
-          <div className="stat-box" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white' }}>
-            <div className="stat-icon" style={{ fontSize: '32px' }}>✅</div>
-            <div className="stat-value" style={{ fontSize: '32px', fontWeight: '700' }}>{stats.completed}</div>
-            <div className="stat-label" style={{ fontSize: '14px', opacity: '0.95' }}>Completed</div>
+          <div className="stat-box" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', borderRadius: '16px', padding: '28px', boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)', border: '1px solid rgba(16, 185, 129, 0.2)', transition: 'all 0.3s ease' }}>
+            <div className="stat-icon" style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
+            <div className="stat-value" style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: '#ffffff' }}>{stats.completed}</div>
+            <div className="stat-label" style={{ fontSize: '14px', fontWeight: '500', color: '#f0fdf4' }}>Completed</div>
           </div>
 
-          <div className="stat-box" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white' }}>
-            <div className="stat-icon" style={{ fontSize: '32px' }}>❌</div>
-            <div className="stat-value" style={{ fontSize: '32px', fontWeight: '700' }}>{stats.cancelled}</div>
-            <div className="stat-label" style={{ fontSize: '14px', opacity: '0.95' }}>Cancelled</div>
+          <div className="stat-box" style={{ background: 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)', color: 'white', borderRadius: '16px', padding: '28px', boxShadow: '0 8px 24px rgba(239, 68, 68, 0.3)', border: '1px solid rgba(239, 68, 68, 0.2)', transition: 'all 0.3s ease' }}>
+            <div className="stat-icon" style={{ fontSize: '48px', marginBottom: '12px' }}>❌</div>
+            <div className="stat-value" style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: '#ffffff' }}>{stats.cancelled}</div>
+            <div className="stat-label" style={{ fontSize: '14px', fontWeight: '500', color: '#fef2f2' }}>Cancelled</div>
           </div>
         </div>
 
         {/* Modern Filters */}
-        <div className="filters-card" style={{ marginBottom: '24px' }}>
+        <div className="filters-card" style={{ marginBottom: '24px', background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(10px)', borderRadius: '20px', padding: '28px', border: '1px solid rgba(16, 185, 129, 0.15)', boxShadow: '0 8px 32px rgba(16, 185, 129, 0.1)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
             <div className="form-group">
-              <label><i className="fas fa-search"></i> Search Patient</label>
+              <label style={{ fontSize: '14px', fontWeight: '600', color: '#047857', marginBottom: '8px', display: 'block' }}><i className="fas fa-search"></i> Search Patient</label>
               <input
                 type="text"
                 placeholder="Name or ID..."
                 value={filters.search}
                 onChange={(e) => setFilters({...filters, search: e.target.value})}
                 className="form-control"
+                style={{ fontSize: '14px', color: '#1a2332', borderColor: 'rgba(16, 185, 129, 0.2)', borderRadius: '8px', padding: '10px 12px', border: '1px solid #e2e8f0' }}
               />
             </div>
             <div className="form-group">
-              <label><i className="fas fa-calendar"></i> Date</label>
+              <label style={{ fontSize: '14px', fontWeight: '600', color: '#047857', marginBottom: '8px', display: 'block' }}><i className="fas fa-calendar"></i> Date</label>
               <input
                 type="date"
                 value={filters.date}
                 onChange={(e) => setFilters({...filters, date: e.target.value})}
                 className="form-control"
+                style={{ fontSize: '14px', color: '#1a2332', borderColor: 'rgba(16, 185, 129, 0.2)', borderRadius: '8px', padding: '10px 12px', border: '1px solid #e2e8f0' }}
               />
             </div>
             <div className="form-group">
-              <label><i className="fas fa-tag"></i> Status</label>
+              <label style={{ fontSize: '14px', fontWeight: '600', color: '#047857', marginBottom: '8px', display: 'block' }}><i className="fas fa-tag"></i> Status</label>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters({...filters, status: e.target.value})}
                 className="form-control"
+                style={{ fontSize: '14px', color: '#1a2332', borderColor: 'rgba(16, 185, 129, 0.2)', borderRadius: '8px', padding: '10px 12px', border: '1px solid #e2e8f0' }}
               >
                 <option value="all">All Status</option>
                 <option value="scheduled">Scheduled</option>
@@ -258,11 +276,12 @@ const DoctorAppointments = () => {
                 <option value="cancelled">Cancelled</option>
               </select>
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <div className="form-group">
+              <label style={{ visibility: 'hidden' }}>Action</label>
               <button
                 onClick={() => setFilters({date: '', status: 'all', search: ''})}
                 className="btn-secondary"
-                style={{ width: '100%' }}
+                style={{ width: '100%', padding: '10px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)', transition: 'all 0.3s ease' }}
               >
                 <i className="fas fa-redo"></i> Clear
               </button>
@@ -418,7 +437,7 @@ const DoctorAppointments = () => {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

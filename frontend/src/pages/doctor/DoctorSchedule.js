@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
+import DoctorNavBar from '../../components/DoctorNavBar';
+import DoctorPageHeader from '../../components/DoctorPageHeader';
 import timeslotService from '../../services/timeslotService';
 import authService from '../../services/authService';
 import branchService from '../../services/branchService';
 import '../../styles/doctor.css';
+import '../../styles/patientDashboard.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -13,6 +15,10 @@ const DoctorSchedule = () => {
   const [timeSlots, setTimeSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [doctorData, setDoctorData] = useState({
+    name: 'Doctor',
+    specialization: 'Physician'
+  });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [newSlot, setNewSlot] = useState({
@@ -253,47 +259,55 @@ const DoctorSchedule = () => {
 
   if (loading) {
     return (
-      <div className="doctor-container">
-        <DoctorHeader />
-        <div className="loading-container"><div className="spinner"></div><p>Loading...</p></div>
+      <div className="patient-portal">
+        <DoctorNavBar />
+        <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+        <div className="patient-container" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: '40px' }}>
+          <div className="spinner"></div>
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="doctor-container">
-      <DoctorHeader />
-      <div className="doctor-content">
-        <div className="doctor-header">
-          <div>
-            <h1>My Schedule</h1>
-            <p>Manage your availability</p>
-          </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-              <i className="fas fa-plus"></i> Add Single Slot
-            </button>
-            <button className="btn-success" onClick={() => setShowBulkModal(true)}>
-              <i className="fas fa-calendar-week"></i> Bulk Create
-            </button>
+    <div className="patient-portal">
+      <DoctorNavBar />
+      <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+      <main className="patient-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+        {/* Page Header */}
+        <div style={{ marginBottom: '32px', background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(10px)', padding: '32px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1 style={{ fontSize: '36px', fontWeight: '800', background: 'linear-gradient(135deg, #047857 0%, #10b981 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '8px' }}>My Schedule</h1>
+              <p style={{ fontSize: '16px', color: '#059669', fontWeight: '500' }}>Manage your availability and time slots</p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', padding: '12px 28px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)', transition: 'all 0.3s ease', fontSize: '14px' }} onClick={() => setShowCreateModal(true)}>
+                <i className="fas fa-plus"></i> Add Single Slot
+              </button>
+              <button style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', padding: '12px 28px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)', transition: 'all 0.3s ease', fontSize: '14px' }} onClick={() => setShowBulkModal(true)}>
+                <i className="fas fa-calendar-week"></i> Bulk Create
+              </button>
+            </div>
           </div>
         </div>
 
-        {error && <div className="error-message">{error}<button onClick={() => fetchTimeSlots()}>Retry</button></div>}
+        {error && <div style={{ background: '#fee2e2', border: '1px solid #fecaca', color: '#b91c1c', padding: '16px', borderRadius: '10px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>{error}<button onClick={() => fetchTimeSlots()} style={{ background: '#dc2626', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Retry</button></div>}
 
         {/* Statistics */}
-        <div className="stats-row" style={{ marginBottom: '24px' }}>
-          <div className="stat-box">
-            <div className="stat-value">{timeSlots.length}</div>
-            <div className="stat-label">Total Slots</div>
+        <div style={{ marginBottom: '32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+          <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', borderRadius: '16px', padding: '28px', boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+            <div style={{ fontSize: '48px', fontWeight: '800', marginBottom: '12px' }}>{timeSlots.length}</div>
+            <div style={{ fontSize: '15px', fontWeight: '500', color: '#f0fdf4' }}>Total Slots</div>
           </div>
-          <div className="stat-box">
-            <div className="stat-value">{timeSlots.filter(s => !s.is_booked).length}</div>
-            <div className="stat-label">Available</div>
+          <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', borderRadius: '16px', padding: '28px', boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+            <div style={{ fontSize: '48px', fontWeight: '800', marginBottom: '12px' }}>{timeSlots.filter(s => !s.is_booked).length}</div>
+            <div style={{ fontSize: '15px', fontWeight: '500', color: '#f0fdf4' }}>Available</div>
           </div>
-          <div className="stat-box">
-            <div className="stat-value">{timeSlots.filter(s => s.is_booked).length}</div>
-            <div className="stat-label">Booked</div>
+          <div style={{ background: 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)', color: 'white', borderRadius: '16px', padding: '28px', boxShadow: '0 8px 24px rgba(239, 68, 68, 0.3)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+            <div style={{ fontSize: '48px', fontWeight: '800', marginBottom: '12px' }}>{timeSlots.filter(s => s.is_booked).length}</div>
+            <div style={{ fontSize: '15px', fontWeight: '500', color: '#fef2f2' }}>Booked</div>
           </div>
         </div>
 
@@ -475,7 +489,7 @@ const DoctorSchedule = () => {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

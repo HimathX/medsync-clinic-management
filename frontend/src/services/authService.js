@@ -71,7 +71,11 @@ class AuthService {
    * @returns {boolean} Authentication status
    */
   isAuthenticated() {
-    return localStorage.getItem('isAuthenticated') === 'true';
+    const hasFlag = localStorage.getItem('isAuthenticated') === 'true';
+    const hasUserId = !!(localStorage.getItem('userId') || localStorage.getItem('user_id'));
+    const hasUserType = !!(localStorage.getItem('userType') || localStorage.getItem('user_type'));
+    // User is authenticated if they have the flag OR both userId and userType
+    return hasFlag || (hasUserId && hasUserType);
   }
 
   /**
@@ -108,7 +112,7 @@ class AuthService {
    * @returns {string} User type (patient, doctor, staff, admin)
    */
   getUserType() {
-    return localStorage.getItem('userType');
+    return localStorage.getItem('userType') || localStorage.getItem('user_type');
   }
 }
 

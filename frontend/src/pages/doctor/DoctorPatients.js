@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DoctorHeader from '../../components/DoctorHeader';
+import DoctorNavBar from '../../components/DoctorNavBar';
+import DoctorPageHeader from '../../components/DoctorPageHeader';
 import '../../styles/doctor.css';
+import '../../styles/patientDashboard.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -11,6 +13,10 @@ const DoctorPatients = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [doctorData, setDoctorData] = useState({
+    name: 'Doctor',
+    specialization: 'Physician'
+  });
 
   useEffect(() => {
     // Check doctor authentication
@@ -23,6 +29,13 @@ const DoctorPatients = () => {
       const token = localStorage.getItem('token');
 
       console.log('Auth data:', { userId, userType, doctorId });
+
+      // Load doctor data
+      const fullName = localStorage.getItem('full_name') || 'Doctor';
+      setDoctorData({
+        name: fullName,
+        specialization: localStorage.getItem('specialization') || 'Physician'
+      });
 
       // Check if user is authenticated as a doctor
       if (!userId || !token) {
@@ -111,17 +124,22 @@ const DoctorPatients = () => {
 
   if (loading) {
     return (
-      <div className="doctor-container">
-        <DoctorHeader />
-        <div className="loading-container"><div className="spinner"></div><p>Loading...</p></div>
+      <div className="patient-portal">
+        <DoctorNavBar />
+        <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+        <div className="patient-container" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: '40px' }}>
+          <div className="spinner"></div>
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="doctor-container">
-      <DoctorHeader />
-      <div className="doctor-content">
+    <div className="patient-portal">
+      <DoctorNavBar />
+      <DoctorPageHeader doctorName={doctorData.name} specialization={doctorData.specialization} />
+      <main className="patient-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         <div className="doctor-header">
           <h1>My Patients</h1>
           <p>View your patient records</p>
@@ -172,7 +190,7 @@ const DoctorPatients = () => {
             ))
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

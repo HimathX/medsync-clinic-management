@@ -65,10 +65,15 @@ const DoctorLogin = () => {
         }
 
         // Store authentication data in localStorage
+        // Use both old and new key formats for compatibility with authService
         localStorage.setItem('token', data.user_id);
         localStorage.setItem('user_id', data.user_id);
+        localStorage.setItem('userId', data.user_id); // Old format for authService compatibility
         localStorage.setItem('user_type', data.user_type || 'doctor');
+        localStorage.setItem('userType', data.user_type || 'doctor'); // Old format for authService compatibility
         localStorage.setItem('full_name', data.full_name || '');
+        localStorage.setItem('fullName', data.full_name || ''); // Old format for authService compatibility
+        localStorage.setItem('isAuthenticated', 'true'); // Critical: Set authentication flag
         localStorage.setItem('email', data.email);
         localStorage.setItem('doctor_id', data.doctor_id || data.user_id);
         localStorage.setItem('room_no', data.room_no || '');
