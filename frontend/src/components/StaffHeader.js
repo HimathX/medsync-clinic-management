@@ -12,11 +12,11 @@ const StaffHeader = ({ staffName, staffRole, branch, setBranch, onLogout }) => {
   const location = useLocation();
   const navLinks = [
     { to: "/staff/dashboard", label: "Dashboard" },
-    { to: "/staff/appointments", label: "Appointments" },
+    // { to: "/staff/appointments", label: "Appointments" },
     { to: "/staff/patients", label: "Patients" },
     { to: "/staff/doctors", label: "Doctors" },
     { to: "/staff/schedule", label: "Schedule" },
-    { to: "/staff/billing", label: "Billing" },
+    // { to: "/staff/billing", label: "Billing" },
     { to: "/staff/reports", label: "Reports" },
   ];
 

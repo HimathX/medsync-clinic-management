@@ -216,16 +216,22 @@ def get_all_time_slots(
     """Get all time slots with optional filters"""
     try:
         with get_db() as (cursor, connection):
-            # Build query
+            # Build query with LEFT JOINs for better compatibility
             query = """
                 SELECT 
-                    ts.*,
-                    u.full_name as doctor_name,
-                    b.branch_name
+                    ts.time_slot_id,
+                    ts.doctor_id,
+                    ts.branch_id,
+                    ts.available_date,
+                    ts.start_time,
+                    ts.end_time,
+                    ts.is_booked,
+                    COALESCE(u.full_name, 'Unknown') as doctor_name,
+                    COALESCE(b.branch_name, 'Unknown') as branch_name
                 FROM time_slot ts
-                JOIN doctor d ON ts.doctor_id = d.doctor_id
-                JOIN user u ON d.doctor_id = u.user_id
-                JOIN branch b ON ts.branch_id = b.branch_id
+                LEFT JOIN doctor d ON ts.doctor_id = d.doctor_id
+                LEFT JOIN user u ON d.doctor_id = u.user_id
+                LEFT JOIN branch b ON ts.branch_id = b.branch_id
                 WHERE 1=1
             """
             
@@ -239,14 +245,25 @@ def get_all_time_slots(
                 query += " AND ts.available_date = %s"
                 params.append(date_filter)
             
-            # Get total count
-            count_query = query.replace(
-                "SELECT ts.*, u.full_name as doctor_name, b.branch_name",
-                "SELECT COUNT(*) as total"
-            )
-            cursor.execute(count_query, params)
+            # Get total count - simplified query
+            count_query = """
+                SELECT COUNT(*) as total
+                FROM time_slot ts
+                WHERE 1=1
+            """
+            count_params = []
+            
+            if is_booked is not None:
+                count_query += " AND ts.is_booked = %s"
+                count_params.append(is_booked)
+            
+            if date_filter:
+                count_query += " AND ts.available_date = %s"
+                count_params.append(date_filter)
+            
+            cursor.execute(count_query, count_params)
             total_result = cursor.fetchone()
-            total = total_result['total'] if total_result else 0
+            total = int(total_result.get('total', 0)) if total_result else 0
             
             # Add pagination
             query += " ORDER BY ts.available_date, ts.start_time LIMIT %s OFFSET %s"
@@ -255,13 +272,17 @@ def get_all_time_slots(
             cursor.execute(query, params)
             time_slots = cursor.fetchall()
             
+            logger.info(f"✅ Fetched {len(time_slots)} time slots out of {total} total")
+            
             return {
                 "total": total,
                 "returned": len(time_slots),
-                "time_slots": time_slots or []
+                "time_slots": time_slots if time_slots else []
             }
     except Exception as e:
-        logger.error(f"Error fetching time slots: {str(e)}")
+        logger.error(f"❌ Error fetching time slots: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {str(e)}"
