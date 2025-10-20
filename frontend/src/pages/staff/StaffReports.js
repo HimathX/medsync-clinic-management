@@ -189,8 +189,6 @@ const StaffReports = () => {
     return new Intl.NumberFormat('en-US').format(num || 0);
   };
 
-  const { invoiceStats, paymentStats } = reports;
-
   return (
     <div className="staff-container">
       <StaffHeader 
@@ -202,87 +200,338 @@ const StaffReports = () => {
       />
       <div className="staff-content">
         <div className="staff-header">
-          <h1>Reports & Analytics</h1>
-          <p>View clinic statistics</p>
+          <h1>📊 Reports & Analytics</h1>
+          <p>Comprehensive clinic reports with PDF export</p>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message">⚠️ {error}</div>}
 
-        {/* Financial Summary */}
-        <div className="report-section">
-          <h2><i className="fas fa-dollar-sign"></i> Financial Summary</h2>
-          <div className="stats-grid">
-            <div className="stat-card stat-success">
-              <div className="stat-icon"><i className="fas fa-money-bill-wave"></i></div>
-              <div className="stat-content">
-                <h3>{formatCurrency(paymentStats?.total_amount || 0)}</h3>
-                <p>Total Revenue</p>
-              </div>
-            </div>
-            <div className="stat-card stat-primary">
-              <div className="stat-icon"><i className="fas fa-file-invoice-dollar"></i></div>
-              <div className="stat-content">
-                <h3>{formatCurrency(invoiceStats?.total_revenue || 0)}</h3>
-                <p>Total Invoiced</p>
-              </div>
-            </div>
-            <div className="stat-card stat-info">
-              <div className="stat-icon"><i className="fas fa-percentage"></i></div>
-              <div className="stat-content">
-                <h3>
-                  {invoiceStats?.total_revenue > 0 
-                    ? Math.round((paymentStats?.total_amount / invoiceStats.total_revenue) * 100)
-                    : 0}%
-                </h3>
-                <p>Collection Rate</p>
-              </div>
-            </div>
-          </div>
+        {/* Report Type Tabs */}
+        <div className="tabs-container" style={{ marginBottom: '20px' }}>
+          <button 
+            className={`tab-button ${activeTab === 'branch-appointments' ? 'active' : ''}`}
+            onClick={() => setActiveTab('branch-appointments')}
+          >
+            <i className="fas fa-calendar-alt"></i> Branch Appointments
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'doctor-revenue' ? 'active' : ''}`}
+            onClick={() => setActiveTab('doctor-revenue')}
+          >
+            <i className="fas fa-user-md"></i> Doctor Revenue
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'outstanding-balances' ? 'active' : ''}`}
+            onClick={() => setActiveTab('outstanding-balances')}
+          >
+            <i className="fas fa-exclamation-triangle"></i> Outstanding
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'treatments' ? 'active' : ''}`}
+            onClick={() => setActiveTab('treatments')}
+          >
+            <i className="fas fa-syringe"></i> Treatments
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'insurance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('insurance')}
+          >
+            <i className="fas fa-shield-alt"></i> Insurance
+          </button>
         </div>
 
-        {/* Invoice Statistics */}
-        {invoiceStats && (
-          <div className="report-section">
-            <h2><i className="fas fa-file-invoice"></i> Invoice Statistics</h2>
-            <div className="report-grid">
-              <div className="report-card">
-                <i className="fas fa-hashtag"></i>
-                <div>
-                  <h4>Total Invoices</h4>
-                  <p className="report-value">{invoiceStats.total_invoices || 0}</p>
-                </div>
-              </div>
-              <div className="report-card">
-                <i className="fas fa-chart-line"></i>
-                <div>
-                  <h4>Average Invoice</h4>
-                  <p className="report-value">{formatCurrency(invoiceStats.average_invoice_amount || 0)}</p>
-                </div>
+        {/* Branch Appointments Report */}
+        {activeTab === 'branch-appointments' && (
+          <div className="report-content">
+            <div className="report-header">
+              <h2>📅 Branch Appointments Report</h2>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn-secondary" onClick={() => fetchReportData('branch-appointments')}>
+                  <i className="fas fa-sync"></i> Load Data
+                </button>
+                <button className="btn-primary" onClick={() => downloadPDF('branch-appointments')}>
+                  <i className="fas fa-file-pdf"></i> Download PDF
+                </button>
               </div>
             </div>
+            <div className="filter-panel" style={{ display: 'flex', gap: '15px', marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+              <div>
+                <label>From Date:</label>
+                <input type="date" value={filters.dateFrom} onChange={(e) => setFilters({...filters, dateFrom: e.target.value})} className="form-input" />
+              </div>
+              <div>
+                <label>To Date:</label>
+                <input type="date" value={filters.dateTo} onChange={(e) => setFilters({...filters, dateTo: e.target.value})} className="form-input" />
+              </div>
+              <div>
+                <label>Branch:</label>
+                <input type="text" value={filters.branchName} onChange={(e) => setFilters({...filters, branchName: e.target.value})} placeholder="Branch name" className="form-input" />
+              </div>
+            </div>
+            {loading && <div className="loading-container"><div className="spinner"></div><p>Loading report...</p></div>}
+            {branchAppointments && (
+              <div className="stats-grid" style={{ marginBottom: '20px' }}>
+                <div className="stat-card stat-primary">
+                  <div className="stat-icon"><i className="fas fa-calendar-check"></i></div>
+                  <div className="stat-content"><h3>{formatNumber(branchAppointments.total_records || 0)}</h3><p>Total Records</p></div>
+                </div>
+              </div>
+            )}
+            {branchAppointments?.data && branchAppointments.data.length > 0 && (
+              <div className="table-container">
+                <table className="staff-table">
+                  <thead><tr><th>Branch</th><th>Date</th><th>Status</th><th>Count</th></tr></thead>
+                  <tbody>
+                    {branchAppointments.data.slice(0, 10).map((item, idx) => (
+                      <tr key={idx}>
+                        <td>{item.branch_name}</td>
+                        <td>{new Date(item.available_date).toLocaleDateString()}</td>
+                        <td><span className={`status-badge status-${item.status?.toLowerCase()}`}>{item.status}</span></td>
+                        <td>{item.appointment_count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {branchAppointments.data.length > 10 && <p style={{ textAlign: 'center', marginTop: '10px', color: '#666' }}>Showing 10 of {branchAppointments.data.length} records. Download PDF for full report.</p>}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Payment Statistics */}
-        {paymentStats && (
-          <div className="report-section">
-            <h2><i className="fas fa-credit-card"></i> Payment Statistics</h2>
-            <div className="report-grid">
-              <div className="report-card">
-                <i className="fas fa-hashtag"></i>
-                <div>
-                  <h4>Total Payments</h4>
-                  <p className="report-value">{paymentStats.total_payments || 0}</p>
-                </div>
-              </div>
-              <div className="report-card">
-                <i className="fas fa-chart-line"></i>
-                <div>
-                  <h4>Average Payment</h4>
-                  <p className="report-value">{formatCurrency(paymentStats.average_payment_amount || 0)}</p>
-                </div>
+        {/* Doctor Revenue Report */}
+        {activeTab === 'doctor-revenue' && (
+          <div className="report-content">
+            <div className="report-header">
+              <h2>💰 Doctor Revenue Report</h2>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn-secondary" onClick={() => fetchReportData('doctor-revenue')}>
+                  <i className="fas fa-sync"></i> Load Data
+                </button>
+                <button className="btn-primary" onClick={() => downloadPDF('doctor-revenue')}>
+                  <i className="fas fa-file-pdf"></i> Download PDF
+                </button>
               </div>
             </div>
+            <div className="filter-panel" style={{ display: 'flex', gap: '15px', marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+              <div>
+                <label>Year:</label>
+                <input type="number" value={filters.year} onChange={(e) => setFilters({...filters, year: e.target.value})} placeholder="2024" className="form-input" />
+              </div>
+              <div>
+                <label>Month (YYYY-MM):</label>
+                <input type="text" value={filters.month} onChange={(e) => setFilters({...filters, month: e.target.value})} placeholder="2024-01" className="form-input" />
+              </div>
+            </div>
+            {loading && <div className="loading-container"><div className="spinner"></div><p>Loading report...</p></div>}
+            {doctorRevenue && (
+              <div className="stats-grid" style={{ marginBottom: '20px' }}>
+                <div className="stat-card stat-success">
+                  <div className="stat-icon"><i className="fas fa-money-bill-wave"></i></div>
+                  <div className="stat-content"><h3>{formatCurrency(doctorRevenue.total_revenue || 0)}</h3><p>Total Revenue</p></div>
+                </div>
+                <div className="stat-card stat-info">
+                  <div className="stat-icon"><i className="fas fa-user-md"></i></div>
+                  <div className="stat-content"><h3>{doctorRevenue.total_records || 0}</h3><p>Doctor Records</p></div>
+                </div>
+              </div>
+            )}
+            {doctorRevenue?.data && doctorRevenue.data.length > 0 && (
+              <div className="table-container">
+                <table className="staff-table">
+                  <thead><tr><th>Doctor</th><th>Month</th><th>Revenue</th></tr></thead>
+                  <tbody>
+                    {doctorRevenue.data.slice(0, 10).map((item, idx) => (
+                      <tr key={idx}>
+                        <td>{item.doctor_name}</td>
+                        <td>{item.month}</td>
+                        <td className="amount-cell">{formatCurrency(item.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {doctorRevenue.data.length > 10 && <p style={{ textAlign: 'center', marginTop: '10px', color: '#666' }}>Showing 10 of {doctorRevenue.data.length} records. Download PDF for full report.</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Outstanding Balances Report */}
+        {activeTab === 'outstanding-balances' && (
+          <div className="report-content">
+            <div className="report-header">
+              <h2>⚠️ Outstanding Balances</h2>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn-secondary" onClick={() => fetchReportData('outstanding-balances')}>
+                  <i className="fas fa-sync"></i> Load Data
+                </button>
+                <button className="btn-primary" onClick={() => downloadPDF('outstanding-balances')}>
+                  <i className="fas fa-file-pdf"></i> Download PDF
+                </button>
+              </div>
+            </div>
+            <div className="filter-panel" style={{ display: 'flex', gap: '15px', marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+              <div>
+                <label>Min Balance:</label>
+                <input type="number" value={filters.minBalance} onChange={(e) => setFilters({...filters, minBalance: e.target.value})} placeholder="1000" className="form-input" />
+              </div>
+              <div>
+                <label>Max Balance:</label>
+                <input type="number" value={filters.maxBalance} onChange={(e) => setFilters({...filters, maxBalance: e.target.value})} placeholder="50000" className="form-input" />
+              </div>
+            </div>
+            {loading && <div className="loading-container"><div className="spinner"></div><p>Loading report...</p></div>}
+            {outstandingBalances && (
+              <div className="stats-grid" style={{ marginBottom: '20px' }}>
+                <div className="stat-card stat-warning">
+                  <div className="stat-icon"><i className="fas fa-exclamation-circle"></i></div>
+                  <div className="stat-content"><h3>{formatCurrency(outstandingBalances.total_outstanding || 0)}</h3><p>Total Outstanding</p></div>
+                </div>
+                <div className="stat-card stat-info">
+                  <div className="stat-icon"><i className="fas fa-users"></i></div>
+                  <div className="stat-content"><h3>{outstandingBalances.total_patients || 0}</h3><p>Patients</p></div>
+                </div>
+              </div>
+            )}
+            {outstandingBalances?.data && outstandingBalances.data.length > 0 && (
+              <div className="table-container">
+                <table className="staff-table">
+                  <thead><tr><th>Patient ID</th><th>Patient Name</th><th>Balance</th></tr></thead>
+                  <tbody>
+                    {outstandingBalances.data.slice(0, 10).map((item, idx) => (
+                      <tr key={idx}>
+                        <td>#{item.patient_id}</td>
+                        <td>{item.patient_name}</td>
+                        <td className="amount-cell" style={{ color: item.patient_balance > 10000 ? '#dc3545' : '#ffc107' }}>{formatCurrency(item.patient_balance)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {outstandingBalances.data.length > 10 && <p style={{ textAlign: 'center', marginTop: '10px', color: '#666' }}>Showing 10 of {outstandingBalances.data.length} records. Download PDF for full report.</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Treatments by Category Report */}
+        {activeTab === 'treatments' && (
+          <div className="report-content">
+            <div className="report-header">
+              <h2>💉 Treatments by Category</h2>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn-secondary" onClick={() => fetchReportData('treatments')}>
+                  <i className="fas fa-sync"></i> Load Data
+                </button>
+                <button className="btn-primary" onClick={() => downloadPDF('treatments')}>
+                  <i className="fas fa-file-pdf"></i> Download PDF
+                </button>
+              </div>
+            </div>
+            <div className="filter-panel" style={{ display: 'flex', gap: '15px', marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+              <div>
+                <label>From Date:</label>
+                <input type="date" value={filters.dateFrom} onChange={(e) => setFilters({...filters, dateFrom: e.target.value})} className="form-input" />
+              </div>
+              <div>
+                <label>To Date:</label>
+                <input type="date" value={filters.dateTo} onChange={(e) => setFilters({...filters, dateTo: e.target.value})} className="form-input" />
+              </div>
+            </div>
+            {loading && <div className="loading-container"><div className="spinner"></div><p>Loading report...</p></div>}
+            {treatmentsByCategory && (
+              <div className="stats-grid" style={{ marginBottom: '20px' }}>
+                <div className="stat-card stat-primary">
+                  <div className="stat-icon"><i className="fas fa-syringe"></i></div>
+                  <div className="stat-content"><h3>{formatNumber(treatmentsByCategory.total_treatments || 0)}</h3><p>Total Treatments</p></div>
+                </div>
+                <div className="stat-card stat-success">
+                  <div className="stat-icon"><i className="fas fa-dollar-sign"></i></div>
+                  <div className="stat-content"><h3>{formatCurrency(treatmentsByCategory.total_revenue || 0)}</h3><p>Total Revenue</p></div>
+                </div>
+              </div>
+            )}
+            {treatmentsByCategory?.data && treatmentsByCategory.data.length > 0 && (
+              <div className="table-container">
+                <table className="staff-table">
+                  <thead><tr><th>Treatment Name</th><th>Count</th><th>Revenue</th></tr></thead>
+                  <tbody>
+                    {treatmentsByCategory.data.slice(0, 10).map((item, idx) => (
+                      <tr key={idx}>
+                        <td>{item.treatment_name}</td>
+                        <td>{formatNumber(item.treatment_count)}</td>
+                        <td className="amount-cell">{formatCurrency(item.total_revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {treatmentsByCategory.data.length > 10 && <p style={{ textAlign: 'center', marginTop: '10px', color: '#666' }}>Showing 10 of {treatmentsByCategory.data.length} records. Download PDF for full report.</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Insurance vs Out-of-Pocket Report */}
+        {activeTab === 'insurance' && (
+          <div className="report-content">
+            <div className="report-header">
+              <h2>🛡️ Insurance vs Out-of-Pocket</h2>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn-secondary" onClick={() => fetchReportData('insurance')}>
+                  <i className="fas fa-sync"></i> Load Data
+                </button>
+                <button className="btn-primary" onClick={() => downloadPDF('insurance')}>
+                  <i className="fas fa-file-pdf"></i> Download PDF
+                </button>
+              </div>
+            </div>
+            <div className="filter-panel" style={{ display: 'flex', gap: '15px', marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+              <div>
+                <label>From Date:</label>
+                <input type="date" value={filters.dateFrom} onChange={(e) => setFilters({...filters, dateFrom: e.target.value})} className="form-input" />
+              </div>
+              <div>
+                <label>To Date:</label>
+                <input type="date" value={filters.dateTo} onChange={(e) => setFilters({...filters, dateTo: e.target.value})} className="form-input" />
+              </div>
+            </div>
+            {loading && <div className="loading-container"><div className="spinner"></div><p>Loading report...</p></div>}
+            {insuranceVsOutOfPocket && (
+              <div>
+                <div className="stats-grid" style={{ marginBottom: '20px' }}>
+                  <div className="stat-card stat-info">
+                    <div className="stat-icon"><i className="fas fa-shield-alt"></i></div>
+                    <div className="stat-content"><h3>{formatCurrency(insuranceVsOutOfPocket.insurance_total || 0)}</h3><p>Insurance Total</p></div>
+                  </div>
+                  <div className="stat-card stat-warning">
+                    <div className="stat-icon"><i className="fas fa-wallet"></i></div>
+                    <div className="stat-content"><h3>{formatCurrency(insuranceVsOutOfPocket.out_of_pocket_total || 0)}</h3><p>Out-of-Pocket Total</p></div>
+                  </div>
+                  <div className="stat-card stat-success">
+                    <div className="stat-icon"><i className="fas fa-percentage"></i></div>
+                    <div className="stat-content">
+                      <h3>{insuranceVsOutOfPocket.insurance_total && insuranceVsOutOfPocket.out_of_pocket_total ? Math.round((insuranceVsOutOfPocket.insurance_total / (insuranceVsOutOfPocket.insurance_total + insuranceVsOutOfPocket.out_of_pocket_total)) * 100) : 0}%</h3>
+                      <p>Insurance Coverage</p>
+                    </div>
+                  </div>
+                </div>
+                {insuranceVsOutOfPocket.details && insuranceVsOutOfPocket.details.length > 0 && (
+                  <div className="table-container">
+                    <table className="staff-table">
+                      <thead><tr><th>Payment Method</th><th>Patients</th><th>Avg Payment</th><th>Total</th></tr></thead>
+                      <tbody>
+                        {insuranceVsOutOfPocket.details.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.payment_method}</td>
+                            <td>{formatNumber(item.patient_count)}</td>
+                            <td className="amount-cell">{formatCurrency(item.avg_payment)}</td>
+                            <td className="amount-cell">{formatCurrency(item.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
