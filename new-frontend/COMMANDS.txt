@@ -1,0 +1,163 @@
+# MedSync Patient Portal - Quick Commands
+# Copy and paste these commands in PowerShell
+
+# ===================================
+# DEVELOPMENT (Local)
+# ===================================
+
+# Navigate to patient portal
+cd e:\Porjects\CATMS\medsync-clinic-management\new-frontend
+
+# Install dependencies (first time)
+npm install
+
+# Start development server
+npm start
+# Access: http://localhost:3000
+
+
+# ===================================
+# DOCKER DEPLOYMENT
+# ===================================
+
+# Navigate to project root
+cd e:\Porjects\CATMS\medsync-clinic-management
+
+# Option 1: Use PowerShell script (RECOMMENDED)
+.\deploy-patient-portal.ps1
+
+# Option 2: Manual Docker Commands
+
+# Build patient portal
+docker-compose build patient-portal
+
+# Start patient portal only
+docker-compose up -d patient-portal
+
+# Start all services
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f patient-portal
+
+# Stop patient portal
+docker-compose stop patient-portal
+
+# Restart patient portal
+docker-compose restart patient-portal
+
+# Rebuild without cache
+docker-compose build --no-cache patient-portal
+
+# Remove container
+docker-compose down patient-portal
+
+
+# ===================================
+# TROUBLESHOOTING
+# ===================================
+
+# Check if backend is running
+docker ps | findstr backend
+
+# Test API connection
+curl http://localhost:8000/api/auth/health
+
+# Access container shell
+docker exec -it medsync_patient_portal sh
+
+# View nginx logs
+docker exec medsync_patient_portal cat /var/log/nginx/access.log
+docker exec medsync_patient_portal cat /var/log/nginx/error.log
+
+# Check container health
+docker inspect medsync_patient_portal | findstr Health
+
+# View container details
+docker inspect medsync_patient_portal
+
+
+# ===================================
+# CLEANUP
+# ===================================
+
+# Stop and remove patient portal
+docker-compose down patient-portal
+
+# Remove patient portal image
+docker rmi medsync-clinic-management_patient-portal
+
+# Clean node_modules (in new-frontend directory)
+Remove-Item -Recurse -Force node_modules
+Remove-Item package-lock.json
+
+# Reinstall
+npm install
+
+
+# ===================================
+# PRODUCTION BUILD
+# ===================================
+
+# Create production build
+cd e:\Porjects\CATMS\medsync-clinic-management\new-frontend
+$env:NODE_ENV="production"
+npm run build
+
+# Build Docker image for production
+docker build -t medsync-patient-portal:v1.0.0 .
+
+
+# ===================================
+# ACCESS URLS
+# ===================================
+
+# Development:       http://localhost:3000
+# Docker:            http://localhost:3001
+# Backend API:       http://localhost:8000
+# API Docs:          http://localhost:8000/docs
+# Old Frontend:      http://localhost:3000 (if running)
+
+
+# ===================================
+# TEST CREDENTIALS
+# ===================================
+
+# Make sure you have patient users in the database
+# Example:
+#   Email: patient@medsync.com
+#   Password: [your-password]
+
+
+# ===================================
+# MONITORING
+# ===================================
+
+# Real-time logs
+docker-compose logs -f patient-portal
+
+# Last 100 lines
+docker-compose logs --tail=100 patient-portal
+
+# Resource usage
+docker stats medsync_patient_portal
+
+# Container processes
+docker top medsync_patient_portal
+
+
+# ===================================
+# NETWORK DEBUGGING
+# ===================================
+
+# Test backend connectivity from container
+docker exec medsync_patient_portal ping backend
+
+# Check DNS resolution
+docker exec medsync_patient_portal nslookup backend
+
+# Test API from container
+docker exec medsync_patient_portal wget -O- http://backend:8000/api/auth/health
