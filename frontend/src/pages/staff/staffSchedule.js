@@ -145,9 +145,43 @@ const StaffSchedule = () => {
     return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
-  const formatTime = (timeString) => {
-    if (!timeString) return 'N/A';
-    return timeString.substring(0, 5);
+  const formatTime = (timeValue) => {
+    if (!timeValue) return 'N/A';
+    
+    // Debug: log the actual value type (remove after testing)
+    console.log('Time value:', timeValue, 'Type:', typeof timeValue);
+    
+    // If it's a number (seconds from MySQL TIME), convert it
+    if (typeof timeValue === 'number') {
+      const hours = Math.floor(timeValue / 3600);
+      const minutes = Math.floor((timeValue % 3600) / 60);
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+    
+    // If it's already a string, extract HH:MM
+    if (typeof timeValue === 'string') {
+      // Handle HH:MM:SS format
+      if (timeValue.includes(':')) {
+        return timeValue.substring(0, 5);
+      }
+    }
+    
+    // If it's a Date object, format it
+    if (timeValue instanceof Date) {
+      return timeValue.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: false 
+      });
+    }
+    
+    // Try to convert to string and extract time
+    const timeStr = String(timeValue);
+    if (timeStr.includes(':')) {
+      return timeStr.substring(0, 5);
+    }
+    
+    return 'N/A';
   };
 
 
