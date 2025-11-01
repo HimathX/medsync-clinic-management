@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List, Optional, Dict, Any
 from core.database import get_db
+from core.password_utils import hash_password, verify_password
 from schemas import PatientRegistrationRequest, PatientRegistrationResponse
-import hashlib
 import logging
 from datetime import datetime, date
 
@@ -11,15 +11,6 @@ router = APIRouter(tags=["patients"])
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Password hashing helper
-def hash_password(password: str) -> str:
-    """Hash password using SHA-256"""
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash"""
-    return hash_password(plain_password) == hashed_password
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=PatientRegistrationResponse)

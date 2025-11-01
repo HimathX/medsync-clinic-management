@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field, validator
-import hashlib
+from core.password_utils import hash_password, verify_password
 import logging
 import mysql.connector
 from typing import Optional
@@ -13,15 +13,6 @@ router = APIRouter(tags=["authentication"])
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-def hash_password(password: str) -> str:
-    """Hash password using SHA-256"""
-    try:
-        return hashlib.sha256(password.encode('utf-8')).hexdigest()
-    except Exception as e:
-        logger.error(f"Error hashing password: {str(e)}")
-        raise ValueError("Failed to hash password")
 
 
 class LoginRequest(BaseModel):
