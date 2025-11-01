@@ -180,24 +180,33 @@ def get_all_patients(skip: int = 0, limit: int = 100):
 
 @router.get("/{patient_id}", status_code=status.HTTP_200_OK)
 def get_patient_by_id(patient_id: str):
-    """Get patient by ID"""
+    """Get patient by ID with optimized single query"""
     try:
         with get_db() as (cursor, connection):
-            cursor.execute("SELECT * FROM patient WHERE patient_id = %s", (patient_id,))
-            patient = cursor.fetchone()
+            # Combine both queries into one JOIN for better performance
+            cursor.execute("""
+                SELECT 
+                    p.*,
+                    u.full_name, u.NIC, u.email, u.gender, u.DOB, u.user_type,
+                    c.contact_num1, c.contact_num2,
+                    a.address_line1, a.address_line2, a.city, a.province, a.postal_code, a.country
+                FROM patient p
+                JOIN user u ON p.patient_id = u.user_id
+                LEFT JOIN contact c ON u.contact_id = c.contact_id
+                LEFT JOIN address a ON u.address_id = a.address_id
+                WHERE p.patient_id = %s
+            """, (patient_id,))
+            patient_data = cursor.fetchone()
             
-            if not patient:
+            if not patient_data:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Patient with ID {patient_id} not found"
                 )
             
-            cursor.execute("SELECT * FROM user WHERE user_id = %s", (patient_id,))
-            user = cursor.fetchone()
-            
             return {
-                "patient": patient,
-                "user": user
+                "patient": patient_data,
+                "user": patient_data  # All data is in one record now
             }
     except HTTPException:
         raise
@@ -499,7 +508,7 @@ def get_complete_patient_profile(patient_id: str):
                     detail=f"Patient with ID {patient_id} not found"
                 )
             
-            # 2. Get all appointments with details
+            # 2. Get all appointments with details - optimized with single query
             cursor.execute("""
                 SELECT 
                     a.*,
@@ -507,7 +516,7 @@ def get_complete_patient_profile(patient_id: str):
                     ts.start_time,
                     ts.end_time,
                     du.full_name as doctor_name,
-                    GROUP_CONCAT(s.specialization_title SEPARATOR ', ') as specialization,
+                    GROUP_CONCAT(DISTINCT s.specialization_title SEPARATOR ', ') as specialization,
                     b.branch_name
                 FROM appointment a
                 JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
@@ -518,8 +527,9 @@ def get_complete_patient_profile(patient_id: str):
                 LEFT JOIN doctor_specialization ds ON d.doctor_id = ds.doctor_id
                 LEFT JOIN specialization s ON ds.specialization_id = s.specialization_id
                 WHERE a.patient_id = %s
-                GROUP BY a.appointment_id, ts.available_date, ts.start_time, ts.end_time, du.full_name, b.branch_name
+                GROUP BY a.appointment_id
                 ORDER BY ts.available_date DESC, ts.start_time DESC
+                LIMIT 50
             """, (patient_id,))
             appointments = cursor.fetchall()
             
@@ -531,12 +541,12 @@ def get_complete_patient_profile(patient_id: str):
             """, (patient_id,))
             allergies = cursor.fetchall()
             
-            # 4. Get all consultations with treatment details
+            # 4. Get all consultations with treatment details - optimized
             cursor.execute("""
                 SELECT 
                     cr.*,
                     du.full_name as doctor_name,
-                    GROUP_CONCAT(s.specialization_title SEPARATOR ', ') as specialization,
+                    GROUP_CONCAT(DISTINCT s.specialization_title SEPARATOR ', ') as specialization,
                     a.time_slot_id,
                     ts.available_date as consultation_date
                 FROM consultation_record cr
@@ -547,12 +557,13 @@ def get_complete_patient_profile(patient_id: str):
                 LEFT JOIN doctor_specialization ds ON d.doctor_id = ds.doctor_id
                 LEFT JOIN specialization s ON ds.specialization_id = s.specialization_id
                 WHERE a.patient_id = %s
-                GROUP BY cr.consultation_rec_id, du.full_name, a.time_slot_id, ts.available_date
+                GROUP BY cr.consultation_rec_id
                 ORDER BY ts.available_date DESC
+                LIMIT 50
             """, (patient_id,))
             consultations = cursor.fetchall()
             
-            # 5. Get prescriptions
+            # 5. Get prescriptions - optimized with limit
             cursor.execute("""
                 SELECT 
                     pi.*,
@@ -570,6 +581,7 @@ def get_complete_patient_profile(patient_id: str):
                 JOIN user du ON d.doctor_id = du.user_id
                 WHERE a.patient_id = %s
                 ORDER BY pi.created_at DESC
+                LIMIT 100
             """, (patient_id,))
             prescriptions = cursor.fetchall()
             

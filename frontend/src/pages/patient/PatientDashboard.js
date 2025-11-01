@@ -1,5 +1,5 @@
 // src/pages/patient/PatientDashboard.js - Professional Patient Portal
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dashboardService from '../../services/dashboardService'
 import appointmentService from '../../services/appointmentService'
@@ -8,13 +8,18 @@ import billingService from '../../services/billingService'
 import authService from '../../services/authService'
 import '../../styles/patientDashboard.css'
 
-function formatDate(date) {
+// Memoized helper functions to prevent re-creation on every render
+const formatDate = memo((dateObj) => {
+  if (!dateObj) return 'N/A';
+  const date = dateObj instanceof Date ? dateObj : new Date(dateObj);
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })
-}
+});
 
-function formatTime(date) {
+const formatTime = memo((dateObj) => {
+  if (!dateObj) return 'N/A';
+  const date = dateObj instanceof Date ? dateObj : new Date(dateObj);
   return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-}
+});
 
 export default function PatientDashboard() {
   const navigate = useNavigate()
@@ -23,9 +28,12 @@ export default function PatientDashboard() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   
-  // Get patient ID from auth service
-  const currentUser = authService.getCurrentUser();
-  const patientId = currentUser?.patientId || localStorage.getItem('patientId') || sessionStorage.getItem('patientId');
+  // Get patient ID from auth service - memoized to prevent recalculation
+  const currentUser = useMemo(() => authService.getCurrentUser(), []);
+  const patientId = useMemo(() => 
+    currentUser?.patientId || localStorage.getItem('patientId') || sessionStorage.getItem('patientId'),
+    [currentUser]
+  );
   
   // If no patient ID, redirect to login
   useEffect(() => {

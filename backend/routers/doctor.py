@@ -111,13 +111,9 @@ def doctor_login(credentials: DoctorLoginRequest):
                 )
             
             logger.info(f"✅ User found: {user_data['email']} (type: {user_data['user_type']})")
-            logger.info(f"   Stored hash: {user_data['password_hash'][:20]}...")
             
-            # Hash the provided password
+            # Hash the provided password and verify
             provided_hash = hashlib.sha256(credentials.password.encode('utf-8')).hexdigest()
-            logger.info(f"   Generated hash: {provided_hash[:20]}...")
-            logger.info(f"   Password length: {len(credentials.password)}")
-            logger.info(f"   Hashes match: {provided_hash == user_data['password_hash']}")
             
             # Verify password
             if provided_hash != user_data['password_hash']:
