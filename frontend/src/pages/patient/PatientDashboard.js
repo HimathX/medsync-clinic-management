@@ -1,5 +1,5 @@
 // src/pages/patient/PatientDashboard.js - Professional Patient Portal
-import { useEffect, useState, useCallback, useMemo, memo } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dashboardService from '../../services/dashboardService'
 import appointmentService from '../../services/appointmentService'
@@ -7,19 +7,6 @@ import patientService from '../../services/patientService'
 import billingService from '../../services/billingService'
 import authService from '../../services/authService'
 import '../../styles/patientDashboard.css'
-
-// Memoized helper functions to prevent re-creation on every render
-const formatDate = memo((dateObj) => {
-  if (!dateObj) return 'N/A';
-  const date = dateObj instanceof Date ? dateObj : new Date(dateObj);
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })
-});
-
-const formatTime = memo((dateObj) => {
-  if (!dateObj) return 'N/A';
-  const date = dateObj instanceof Date ? dateObj : new Date(dateObj);
-  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-});
 
 export default function PatientDashboard() {
   const navigate = useNavigate()
@@ -34,6 +21,19 @@ export default function PatientDashboard() {
     currentUser?.patientId || localStorage.getItem('patientId') || sessionStorage.getItem('patientId'),
     [currentUser]
   );
+  
+  // Memoized helper functions to prevent recreation on every render
+  const formatDate = useCallback((dateObj) => {
+    if (!dateObj) return 'N/A';
+    const date = dateObj instanceof Date ? dateObj : new Date(dateObj);
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })
+  }, []);
+
+  const formatTime = useCallback((dateObj) => {
+    if (!dateObj) return 'N/A';
+    const date = dateObj instanceof Date ? dateObj : new Date(dateObj);
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  }, []);
   
   // If no patient ID, redirect to login
   useEffect(() => {

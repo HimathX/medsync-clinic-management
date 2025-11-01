@@ -1,9 +1,14 @@
 """
 Password Hashing Utilities
 Centralized password hashing and verification functions
+
+Note: This module maintains backward compatibility with the existing
+SHA-256 hashing used throughout the system. For new projects, consider
+using bcrypt, scrypt, or Argon2 for better security against brute force attacks.
 """
 import hashlib
 import logging
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +16,9 @@ logger = logging.getLogger(__name__)
 def hash_password(password: str) -> str:
     """
     Hash password using SHA-256
+    
+    Note: SHA-256 is used for backward compatibility with existing system.
+    For new implementations, consider using bcrypt or Argon2.
     
     Args:
         password: Plain text password
@@ -52,7 +60,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return hash_password(plain_password) == hashed_password
 
 
-def validate_password_strength(password: str) -> tuple[bool, str]:
+def validate_password_strength(password: str) -> Tuple[bool, str]:
     """
     Validate password meets minimum security requirements
     
@@ -66,7 +74,7 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
         password: Password to validate
         
     Returns:
-        tuple: (is_valid: bool, message: str)
+        Tuple[bool, str]: (is_valid, message)
         
     Example:
         >>> validate_password_strength("weak")
@@ -90,12 +98,3 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
         return False, "Password must contain at least one digit"
     
     return True, "Password is strong"
-
-
-# For backward compatibility
-def hash_password_legacy(password: str) -> str:
-    """
-    Legacy password hashing function (same as hash_password)
-    Kept for backward compatibility with existing code
-    """
-    return hash_password(password)
