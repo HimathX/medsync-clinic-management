@@ -8,14 +8,6 @@ import billingService from '../../services/billingService'
 import authService from '../../services/authService'
 import '../../styles/patientDashboard.css'
 
-function formatDate(date) {
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })
-}
-
-function formatTime(date) {
-  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-}
-
 export default function PatientDashboard() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -23,9 +15,25 @@ export default function PatientDashboard() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   
-  // Get patient ID from auth service
-  const currentUser = authService.getCurrentUser();
-  const patientId = currentUser?.patientId || localStorage.getItem('patientId') || sessionStorage.getItem('patientId');
+  // Get patient ID from auth service - memoized to prevent recalculation
+  const currentUser = useMemo(() => authService.getCurrentUser(), []);
+  const patientId = useMemo(() => 
+    currentUser?.patientId || localStorage.getItem('patientId') || sessionStorage.getItem('patientId'),
+    [currentUser]
+  );
+  
+  // Memoized helper functions to prevent recreation on every render
+  const formatDate = useCallback((dateObj) => {
+    if (!dateObj) return 'N/A';
+    const date = dateObj instanceof Date ? dateObj : new Date(dateObj);
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })
+  }, []);
+
+  const formatTime = useCallback((dateObj) => {
+    if (!dateObj) return 'N/A';
+    const date = dateObj instanceof Date ? dateObj : new Date(dateObj);
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  }, []);
   
   // If no patient ID, redirect to login
   useEffect(() => {

@@ -4,8 +4,7 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import date, timedelta
 from decimal import Decimal
 from core.database import get_db
-import hashlib
-import json
+from core.password_utils import hash_password, verify_password
 import logging
 
 router = APIRouter(tags=["doctor"])
@@ -13,18 +12,6 @@ router = APIRouter(tags=["doctor"])
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# ============================================
-# PASSWORD HASHING (SAME AS STAFF.PY)
-# ============================================
-
-def hash_password(password: str) -> str:
-    """Hash password using SHA-256"""
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash"""
-    return hash_password(plain_password) == hashed_password
 
 
 # ============================================
@@ -111,16 +98,9 @@ def doctor_login(credentials: DoctorLoginRequest):
                 )
             
             logger.info(f"✅ User found: {user_data['email']} (type: {user_data['user_type']})")
-            logger.info(f"   Stored hash: {user_data['password_hash'][:20]}...")
             
-            # Hash the provided password
-            provided_hash = hashlib.sha256(credentials.password.encode('utf-8')).hexdigest()
-            logger.info(f"   Generated hash: {provided_hash[:20]}...")
-            logger.info(f"   Password length: {len(credentials.password)}")
-            logger.info(f"   Hashes match: {provided_hash == user_data['password_hash']}")
-            
-            # Verify password
-            if provided_hash != user_data['password_hash']:
+            # Verify password using centralized utility
+            if not verify_password(credentials.password, user_data['password_hash']):
                 logger.warning(f"❌ Doctor login failed - invalid password for: {credentials.email}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

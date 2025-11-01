@@ -1,5 +1,6 @@
 // Branch Service - Handles branch-related API calls
 import api from './api';
+import clientCache from '../utils/clientCache';
 
 /**
  * Branch Service
@@ -7,12 +8,24 @@ import api from './api';
  */
 class BranchService {
   /**
-   * Get all branches
+   * Get all branches with caching (branches rarely change)
    * @returns {Promise} List of all branches
    */
   async getAllBranches() {
+    const cacheKey = clientCache.generateKey('/branches/', { limit: 100 });
+    const cached = clientCache.get(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+    
     const response = await api.get('/branches/?limit=100');
-    return response.data.branches || []; // Extract branches array from response
+    const branches = response.data.branches || []; // Extract branches array from response
+    
+    // Cache for 10 minutes since branches rarely change
+    clientCache.set(cacheKey, branches, 10 * 60 * 1000);
+    
+    return branches;
   }
 
   /**
