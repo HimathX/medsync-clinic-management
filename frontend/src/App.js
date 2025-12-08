@@ -240,7 +240,7 @@ function App() {
             <Route path="/doctor/profile" element={<DoctorProfile />} />
             <Route path="/profile" element={<DoctorProfile />} />
             <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />
-          </>
+          </> 
         )}
 
         {/* Staff Portal Routes */}
