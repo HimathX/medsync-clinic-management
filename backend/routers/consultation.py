@@ -880,3 +880,132 @@ def get_consultation_statistics(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {str(e)}"
         )
+    
+# ============================================
+# GET CONSULTATIONS BY DOCTOR
+# ============================================
+
+@router.get("/doctor/{doctor_id}", status_code=status.HTTP_200_OK)
+def get_consultations_by_doctor(
+    doctor_id: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    follow_up_required: Optional[bool] = None
+):
+    """
+    Get all consultations for a specific doctor with optional filters
+    
+    - Retrieves consultation records where the doctor conducted the appointment
+    - Supports pagination and date range filtering
+    - Optional filter by follow-up requirement
+    """
+    try:
+        # Validate UUID format
+        try:
+            uuid.UUID(doctor_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid doctor ID format: {doctor_id}"
+            )
+        
+        with get_db() as (cursor, connection):
+            # Check if doctor exists
+            cursor.execute(
+                "SELECT * FROM doctor WHERE doctor_id = %s",
+                (doctor_id,)
+            )
+            if not cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Doctor with ID {doctor_id} not found"
+                )
+            
+            # Build WHERE clause
+            where_conditions = ["ts.doctor_id = %s"]
+            params = [doctor_id]
+            
+            if start_date:
+                where_conditions.append("DATE(cr.created_at) >= %s")
+                params.append(start_date)
+            
+            if end_date:
+                where_conditions.append("DATE(cr.created_at) <= %s")
+                params.append(end_date)
+            
+            if follow_up_required is not None:
+                where_conditions.append("cr.follow_up_required = %s")
+                params.append(follow_up_required)
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            # Get total count
+            count_query = f"""
+                SELECT COUNT(*) as total
+                FROM consultation_record cr
+                JOIN appointment a ON cr.appointment_id = a.appointment_id
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                WHERE {where_clause}
+            """
+            
+            cursor.execute(count_query, params)
+            total = cursor.fetchone()['total']
+            
+            # Main query with doctor and patient details
+            query = f"""
+                SELECT 
+                    cr.*,
+                    a.patient_id,
+                    a.appointment_id,
+                    ts.available_date,
+                    ts.start_time,
+                    ts.end_time,
+                    u_patient.full_name as patient_name,
+                    u_patient.email as patient_email,
+                    b.branch_name,
+                    b.branch_id,
+                    (SELECT COUNT(*) FROM prescription_item pi WHERE pi.consultation_rec_id = cr.consultation_rec_id) as prescription_count,
+                    (SELECT COUNT(*) FROM treatment t WHERE t.consultation_rec_id = cr.consultation_rec_id) as treatment_count
+                FROM consultation_record cr
+                JOIN appointment a ON cr.appointment_id = a.appointment_id
+                JOIN time_slot ts ON a.time_slot_id = ts.time_slot_id
+                JOIN patient p ON a.patient_id = p.patient_id
+                JOIN user u_patient ON p.patient_id = u_patient.user_id
+                JOIN branch b ON ts.branch_id = b.branch_id
+                WHERE {where_clause}
+                ORDER BY cr.created_at DESC
+                LIMIT %s OFFSET %s
+            """
+            
+            params.extend([limit, skip])
+            cursor.execute(query, params)
+            consultations = cursor.fetchall()
+            
+            logger.info(f"Retrieved {len(consultations)} consultations for doctor {doctor_id}")
+            
+            return {
+                "doctor_id": doctor_id,
+                "total": total,
+                "returned": len(consultations),
+                "filters": {
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "follow_up_required": follow_up_required
+                },
+                "pagination": {
+                    "skip": skip,
+                    "limit": limit
+                },
+                "consultations": consultations or []
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching consultations for doctor {doctor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )

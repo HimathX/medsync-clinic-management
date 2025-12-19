@@ -70,7 +70,8 @@ class DoctorLoginResponse(BaseModel):
                 "room_no": "R101",
                 "consultation_fee": 2500.00,
                 "specializations": ["Cardiology", "General Medicine"],
-                "branch_name": "Main Branch"
+                "branch_name": "Main Branch",
+                "branch_id": "b1234567-aad4-11f0-afdd-005056c00001"
             }
         }
 
