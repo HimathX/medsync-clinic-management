@@ -34,9 +34,9 @@ if missing:
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': int(os.getenv('DB_PORT', '3306')),
-    'user': os.getenv('DB_USER','root'),
-    'password': os.getenv('DB_PASSWORD','Himathavenge!23'),
-    'database': os.getenv('DB_NAME','medsync'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),
+    'database': os.getenv('DB_NAME', 'medsync'),
     'charset': 'utf8mb4',
     'collation': 'utf8mb4_unicode_ci',
     'autocommit': False,

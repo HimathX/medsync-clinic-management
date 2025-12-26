@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Query
 from typing import Optional
 from core.database import get_db
+from core.cache import cached
 import logging
 
 router = APIRouter(tags=["branch"])
@@ -11,12 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
+@cached(ttl=300, key_prefix="branches")  # Cache for 5 minutes - branches rarely change
 def get_all_branches(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     is_active: Optional[bool] = True
 ):
-    """Get all branches with pagination"""
+    """Get all branches with pagination (cached for 5 minutes)"""
     try:
         with get_db() as (cursor, connection):
             # Build query

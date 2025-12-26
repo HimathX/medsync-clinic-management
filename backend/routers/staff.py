@@ -4,26 +4,14 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import date
 from decimal import Decimal
 from core.database import get_db
+from core.password_utils import hash_password, verify_password
 import logging
-import hashlib
 
 router = APIRouter(tags=["staff"])
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# ============================================
-# PASSWORD HASHING (SAME AS PATIENT.PY)
-# ============================================
-
-def hash_password(password: str) -> str:
-    """Hash password using SHA-256"""
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash"""
-    return hash_password(plain_password) == hashed_password
 
 
 # ============================================
