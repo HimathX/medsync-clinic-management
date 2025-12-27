@@ -7,7 +7,6 @@ import apiClient, { handleApiError } from './api'
 export interface TimeSlot {
   time_slot_id?: string
   id?: string
-  doctor_id: string
   branch_id: string
   available_date: string
   start_time: string

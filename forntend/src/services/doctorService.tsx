@@ -1,7 +1,6 @@
 import apiClient, { handleApiError } from './api'
 
-
-interface Doctor {
+export interface Doctor {
   doctor_id?: string
   full_name?: string
   name?: string
@@ -23,10 +22,55 @@ interface DoctorResponse {
 }
 
 // ============================================
+// REGISTRATION TYPES
+// ============================================
+
+export interface DoctorRegistrationData {
+  // Personal Information
+  full_name: string
+  NIC: string
+  gender: 'Male' | 'Female' | 'Other'
+  DOB: string
+
+  // Contact Information
+  email: string
+  contact_num1: string
+  contact_num2?: string
+
+  // Address Information
+  address_line1: string
+  address_line2?: string
+  city: string
+  province: string
+  postal_code: string
+  country: string
+
+  // Medical Information
+  license_number: string
+  specialization_ids?: string[]
+
+  // Employment Information
+  branch_name: string
+  salary: number
+
+  // Security
+  password: string
+}
+
+interface DoctorRegistrationResponse {
+  success: boolean
+  message: string
+  doctor_id?: string
+  doctor?: Doctor
+  detail?: string
+  [key: string]: unknown
+}
+
+// ============================================
 // SPECIALIZATION TYPES
 // ============================================
 
-interface Specialization {
+export interface Specialization {
   specialization_id: string
   specialization_title: string
   other_details?: string
@@ -60,7 +104,7 @@ interface SpecializationDetails {
 // TIME SLOT TYPES
 // ============================================
 
-interface TimeSlot {
+export interface TimeSlot {
   time_slot_id: string
   doctor_id: string
   available_date: string
@@ -87,7 +131,7 @@ interface TimeSlotResponse {
 // DASHBOARD TYPES
 // ============================================
 
-interface DashboardStats {
+export interface DashboardStats {
   today_appointments: number
   pending_consultations: number
   completed_today: number
@@ -96,7 +140,7 @@ interface DashboardStats {
   total_patients: number
 }
 
-interface PerformanceMetrics {
+export interface PerformanceMetrics {
   doctor_id: string
   total_consultations: number
   completed_consultations: number
@@ -111,7 +155,7 @@ interface PerformanceMetrics {
   is_available: boolean
 }
 
-interface ConsultationAnalytics {
+export interface ConsultationAnalytics {
   success: boolean
   doctor_id: string
   analysis_period_days: number
@@ -138,7 +182,7 @@ interface ConsultationAnalytics {
   }>
 }
 
-interface DoctorSchedule {
+export interface DoctorSchedule {
   success: boolean
   doctor_id: string
   start_date: string
@@ -210,9 +254,117 @@ interface AvailabilityReport {
 
 /**
  * Doctor Service
- * Handles doctor profile, specializations, schedules, and analytics
+ * Handles doctor profile, specializations, schedules, analytics, and registration
  */
 class DoctorService {
+  // ============================================
+  // REGISTRATION METHODS
+  // ============================================
+
+  /**
+   * Register a new doctor account
+   * @param registrationData - Doctor registration form data
+   * @returns Registration response with doctor ID
+   */
+  async registerDoctor(registrationData: DoctorRegistrationData): Promise<DoctorRegistrationResponse> {
+    try {
+      // Validate required fields
+      if (!registrationData.full_name?.trim()) {
+        throw new Error('Full name is required')
+      }
+      if (!registrationData.email?.trim()) {
+        throw new Error('Email is required')
+      }
+      if (!registrationData.password?.trim()) {
+        throw new Error('Password is required')
+      }
+      if (registrationData.password.length < 8) {
+        throw new Error('Password must be at least 8 characters')
+      }
+      if (!registrationData.NIC?.trim()) {
+        throw new Error('NIC number is required')
+      }
+      if (!registrationData.license_number?.trim()) {
+        throw new Error('Medical license number is required')
+      }
+
+      // Prepare data - exclude confirmPassword if present
+      const dataToSend = {
+        full_name: registrationData.full_name,
+        NIC: registrationData.NIC,
+        gender: registrationData.gender,
+        DOB: registrationData.DOB,
+        email: registrationData.email,
+        contact_num1: registrationData.contact_num1,
+        contact_num2: registrationData.contact_num2 || null,
+        address_line1: registrationData.address_line1,
+        address_line2: registrationData.address_line2 || null,
+        city: registrationData.city,
+        province: registrationData.province,
+        postal_code: registrationData.postal_code,
+        country: registrationData.country,
+        license_number: registrationData.license_number,
+        specialization_ids: registrationData.specialization_ids || [],
+        branch_name: registrationData.branch_name,
+        salary: registrationData.salary,
+        password: registrationData.password,
+      }
+
+      const response = await apiClient.post<DoctorRegistrationResponse>('/doctors/register', dataToSend)
+
+      if (response.data.success) {
+        console.log('✅ Doctor registered successfully', response.data.doctor_id)
+      }
+
+      return response.data
+    } catch (error) {
+      const errorMsg = handleApiError(error, 'Failed to register doctor')
+      throw new Error(errorMsg)
+    }
+  }
+
+  /**
+   * Validate doctor registration data
+   * @param data - Registration data to validate
+   * @returns Validation errors (empty if valid)
+   */
+  validateRegistrationData(data: DoctorRegistrationData): Record<string, string> {
+    const errors: Record<string, string> = {}
+
+    // Personal Information
+    if (!data.full_name?.trim()) errors.full_name = 'Full name is required'
+    if (!data.NIC?.trim()) errors.NIC = 'NIC number is required'
+    if (data.NIC && (data.NIC.length !== 10 && data.NIC.length !== 12)) {
+      errors.NIC = 'NIC must be 10 or 12 characters'
+    }
+    if (!data.DOB) errors.DOB = 'Date of birth is required'
+
+    // Contact Information
+    if (!data.email?.trim()) errors.email = 'Email is required'
+    if (data.email && !this.isValidEmail(data.email)) errors.email = 'Invalid email format'
+    if (!data.contact_num1?.trim()) errors.contact_num1 = 'Primary contact number is required'
+
+    // Address Information
+    if (!data.address_line1?.trim()) errors.address_line1 = 'Address line 1 is required'
+    if (!data.city?.trim()) errors.city = 'City is required'
+    if (!data.postal_code?.trim()) errors.postal_code = 'Postal code is required'
+
+    // Medical Information
+    if (!data.license_number?.trim()) errors.license_number = 'Medical license number is required'
+    if (!data.branch_name?.trim()) errors.branch_name = 'Branch selection is required'
+
+    // Employment Information
+    if (!data.salary || data.salary <= 0) errors.salary = 'Valid salary is required'
+
+    // Security
+    if (!data.password) errors.password = 'Password is required'
+    if (data.password && data.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters'
+    }
+
+    return errors
+  }
+
   // ============================================
   // CORE METHODS
   // ============================================
@@ -558,6 +710,14 @@ class DoctorService {
   // ============================================
   // HELPER METHODS
   // ============================================
+
+  /**
+   * Validate email format
+   */
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
 
   /**
    * Format doctor name with specialty

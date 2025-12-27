@@ -1,124 +1,89 @@
-import React, { useState, useEffect, ReactNode } from "react";
+import React, { useState, useEffect} from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Header from "./components/Header";
 import authService from "./services/authService";
 
 // Landing Page
 import LandingPage from "./Landing.tsx";
 
+// 404 Error Page and Loading Screen
+import ErrorPage from "./components/error-page.tsx";
+import { LoadingScreen } from "./components/loading.tsx";
 
-// import Login from "./pages/Login";
-// import PatientSignup from "./pages/PatientSignup";
-// import StaffSignup from "./pages/StaffSignup";
-// import DoctorLogin from "./pages/DoctorLogin";
-// import DoctorSignup from "./pages/DoctorSignup";
-// import Dashboard from "./pages/Dashboard";
-// import MyAppointments from "./pages/MyAppointments";
-// import Billing from "./pages/Billing";
-// import Treatments from "./pages/Treatments";
-// import ReportsHistory from "./pages/reportshistory";
-// import Patients from "./pages/Patients";
-// import PatientPortal from "./pages/PatientPortal";
-// import PatientDetail from "./pages/PatientDetail";
-// import Profile from "./pages/profile";
+// Patient Pages
+import PatientLogin from "./portals/patient/Login.tsx";
+import PatientSignup from "./portals/patient/SignUp.tsx";
+import PatientDashboard from "./portals/patient/Dashboard.tsx";
+import BookAppointment from "./portals/patient/BookAppointment.tsx";
+import PatientMedicalRecords from "./portals/patient/Records.tsx";
+import PatientBilling from "./portals/patient/Billing.tsx"; 
+import PatientInsurance from "./portals/patient/Insurance.tsx";
+import PatientProfile from "./portals/patient/Profile.tsx";
+import PatientNavbar from "./portals/patient/Navbar.tsx";
+import PatientFooter from "./portals/patient/Footer.tsx";
 
-// Staff Portal Pages
-// import StaffDashboard from "./pages/staff/StaffDashboard";
-// import StaffAppointments from "./pages/staff/StaffAppointments";
-// import StaffPatients from "./pages/staff/StaffPatients";
-// import StaffBilling from "./pages/staff/StaffBilling";
-// import StaffDoctors from "./pages/staff/StaffDoctors";
-// import StaffSchedule from "./pages/staff/staffSchedule";
-// import StaffReports from "./pages/staff/StaffReports";
-// import StaffProfile from "./pages/staff/StaffProfile";
-// import StaffPayments from "./pages/staff/StaffPayments";
+// Employee Pages 
+import EmployeeLogin from "./portals/employee/Login.tsx";
+import EmployeePatients from "./portals/employee/Patients.tsx";
+import EmployeeReports from "./portals/employee/Reports.tsx";
+import EmployeeSchedule from "./portals/employee/Schedule.tsx";
+import EmployeePayments from "./portals/employee/Payments.tsx";
+import EmployeeDoctors from "./portals/employee/Doctors.tsx";
+import EmployeeAppointments from "./portals/employee/Appointments.tsx";
+import EmployeeFooter from "./portals/employee/Footer.tsx";
 
-// Doctor Portal Pages
-// import DoctorDashboard from "./pages/doctor/DoctorDashboard";
-// import DoctorAppointments from "./pages/doctor/DoctorAppointments";
-// import DoctorPatients from "./pages/doctor/DoctorPatients";
-// import DoctorConsultations from "./pages/doctor/DoctorConsultations";
-// import DoctorConsultation from "./pages/doctor/DoctorConsultation";
-// import DoctorSchedule from "./pages/doctor/DoctorSchedule";
-// import DoctorPrescriptions from "./pages/doctor/DoctorPrescriptions";
-// import DoctorTreatments from "./pages/doctor/DoctorTreatments";
-// import DoctorProfile from "./portals/doctor/DoctorProfile";
-// import DoctorMedications from "./pages/doctor/DoctorMedications";
-// import DoctorTreatmentManagement from "./pages/doctor/DoctorTreatmentManagement";
-// import DoctorFinancialMetrics from "./pages/doctor/DoctorFinancialMetrics";
-
-
-// Patient Portal Pages
-import PatientDashboard from "./portals/patient/PatientDashboard";
-import BookAppointment from "./portals/patient/BookAppointment";
-import PatientMyAppointments from "./pages/patient/MyAppointments";
-import PatientBilling from "./pages/patient/Billing";
-import PatientMedicalRecords from "./pages/patient/MedicalRecords";
-import PatientPrescriptions from "./pages/patient/Prescriptions";
-import PatientLabResults from "./pages/patient/LabResults";
-import HealthConditions from "./pages/patient/HealthConditions";
-import Insurance from "./pages/patient/Insurance";
-
-// Styles
-import "./styles/auth.css";
+// Doctor Pages
+import DoctorLogin from "./portals/doctor/Login.tsx";
+import DoctorSignUp from "./portals/doctor/SignUp.tsx";
+import DoctorDashboard from "./portals/doctor/Dashboard.tsx";
+import DoctorSchedule from "./portals/doctor/Schedule.tsx";
+import DoctorAppointments from "./portals/doctor/Appointments.tsx";
+import DoctorConsultations from "./portals/doctor/Consultations.tsx";
+import DoctorPatients from "./portals/doctor/Patients.tsx";
+import DoctorCatalogue from "./portals/doctor/Catalogue.tsx";
+import DoctorFooter from "./portals/doctor/Footer.tsx";
+import DoctorNavbar from "./portals/doctor/Navbar.tsx";
 
 // Types
-type UserType = 'patient' | 'doctor' | 'admin' | 'manager' | 'nurse' | 'receptionist' | 'employee' | 'staff' | null;
-type UserRole = 'Patient' | 'Doctor' | 'System Admin' | 'Manager' | 'Nurse' | 'Receptionist' | 'Staff' | null;
-
-interface CurrentUser {
-  isAuthenticated: boolean;
-  userType: UserType;
-  userId?: string;
-}
+type UserType = 'patient' | 'employee' | 'doctor' | null;
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [userRole, setUserRole] = useState<UserRole>(null);
   const [userType, setUserType] = useState<UserType>(null);
-  const [branch, setBranch] = useState<string>("Colombo");
   const [loading, setLoading] = useState<boolean>(true);
 
-  const setRoleFromUserType = (type: UserType): void => {
-    const roleMap: Record<string, UserRole> = {
-      patient: 'Patient',
-      doctor: 'Doctor',
-      admin: 'System Admin',
-      manager: 'Manager',
-      nurse: 'Nurse',
-      receptionist: 'Receptionist',
-      employee: 'Staff',
-      staff: 'Staff',
-    };
-    
-    if (type && roleMap[type]) {
-      setUserRole(roleMap[type]);
-    }
-  };
-
-  // Load authentication state from localStorage on component mount
+  // Load authentication state from authService on component mount
   useEffect(() => {
     const checkAuth = (): void => {
-      const currentUser = authService.getCurrentUser() as CurrentUser | null;
-      console.log('🔍 Checking auth on app load. currentUser:', currentUser);
-      console.log('   localStorage data:', {
-        user_id: localStorage.getItem('user_id'),
-        user_type: localStorage.getItem('user_type'),
-        token: localStorage.getItem('token') ? 'exists' : 'missing'
+      console.log('🔍 Checking auth on app load...');
+      
+      // Use authService to get current user
+      const isAuth = authService.isAuthenticated();
+      const currentUserType = authService.getUserType();
+      const userId = authService.getUserId();
+      const fullName = authService.getFullName();
+      const email = authService.getEmail();
+
+      console.log('   Current user data:', {
+        isAuthenticated: isAuth,
+        userType: currentUserType,
+        userId,
+        fullName,
+        email
       });
 
-      if (currentUser && currentUser.isAuthenticated) {
-        console.log('✅ Auth found in authService:', currentUser);
-        console.log('   userType:', currentUser.userType);
-        console.log('   userId:', currentUser.userId);
+      if (isAuth && currentUserType) {
+        console.log('✅ Auth found in authService');
         setIsAuthenticated(true);
-        setUserType(currentUser.userType);
-        setRoleFromUserType(currentUser.userType);
-        console.log('✅ State updated - isAuthenticated: true, userType:', currentUser.userType);
+        
+        // Map 'staff' to 'employee' for internal use
+        const mappedUserType: UserType = currentUserType === 'staff' ? 'employee' : (currentUserType as UserType);
+        setUserType(mappedUserType);
+        
+        console.log('✅ State updated - isAuthenticated: true, userType:', mappedUserType);
       } else {
         console.log('❌ No valid auth found. Will show LandingPage.');
-        console.log('   currentUser:', currentUser);
         setIsAuthenticated(false);
+        setUserType(null);
       }
 
       setLoading(false);
@@ -126,7 +91,7 @@ const App: React.FC = () => {
 
     checkAuth();
 
-    // Listen for storage changes (e.g., when DoctorLogin sets localStorage and redirects)
+    // Listen for storage changes (e.g., when login sets localStorage and redirects)
     const handleStorageChange = (): void => {
       console.log('📝 Storage changed, re-checking authentication...');
       checkAuth();
@@ -147,261 +112,113 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const handleLogin = (role: UserRole, type: UserType): void => {
+  const handleLogin = (role: string, userType: string): void => {
+    console.log('✅ Login handler called - userType:', userType, 'role:', role);
     setIsAuthenticated(true);
-    setUserRole(role);
-    setUserType(type);
   };
 
   const handleLogout = (): void => {
     authService.logout();
     setIsAuthenticated(false);
-    setUserRole(null);
-    setUserType(null);
+    console.log('✅ Logout complete');
   };
 
   if (loading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white'
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <h2>Loading MedSync...</h2>
-          <p style={{ fontSize: '14px', opacity: 0.9 }}>Please wait</p>
-          <button
-            onClick={() => {
-              localStorage.clear();
-              window.location.reload();
-            }}
-            style={{
-              marginTop: '20px',
-              padding: '10px 20px',
-              background: 'rgba(255,255,255,0.2)',
-              color: 'white',
-              border: '1px solid white',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Clear Session (if stuck)
-          </button>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Loading MedSync..." />;
   }
 
+  // Not authenticated - show login/signup pages
   if (!isAuthenticated) {
     return (
       <div className="app">
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/staff-login" element={<Login onLogin={handleLogin} loginType="staff" />} />
-          <Route path="/staff-signup" element={<StaffSignup />} />
-          <Route path="/doctor-login" element={<DoctorLogin />} />
-          <Route path="/doctor/login" element={<DoctorLogin />} />
-          <Route path="/doctor-signup" element={<DoctorSignup />} />
-          <Route path="/patient-login" element={<Login onLogin={handleLogin} loginType="patient" />} />
+          <Route path="/patient-login" element={<PatientLogin onLogin={handleLogin} />} />
+          <Route path="/employee-login" element={<EmployeeLogin onLogin={handleLogin} />} />
+          <Route path="/doctor-login" element={<DoctorLogin onLogin={handleLogin} />} />
           <Route path="/patient-signup" element={<PatientSignup />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/doctor-signup" element={<DoctorSignUp />} />
+          <Route path="*" element={<ErrorPage />} />
         </Routes>
       </div>
     );
   }
 
+  // Authenticated - show portal based on userType
+  if (userType === 'patient') {
+    return (
+      <div className="app">
+        <PatientNavbar />
+        <Routes>
+          <Route path="/" element={<Navigate to="/patient/dashboard" replace />} />
+          <Route path="/patient/dashboard" element={<PatientDashboard />} />
+          <Route path="/patient/book-appointment" element={<BookAppointment />} />
+          <Route path="/patient/records" element={<PatientMedicalRecords />} />
+          <Route path="/patient/billing" element={<PatientBilling />} />
+          <Route path="/patient/insurance" element={<PatientInsurance />} />
+          <Route path="/patient/profile" element={<PatientProfile />} />
+          <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
+        </Routes>
+        <PatientFooter />
+      </div>
+    );
+  }
+
+  if (userType === 'doctor') {
+    return (
+      <div className="app">
+        <DoctorNavbar />
+        <Routes>
+          <Route path="/" element={<Navigate to="/doctor/dashboard" replace />} />
+          {/* Add doctor routes here as they're created */}
+          <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />
+          <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+          <Route path="/doctor/schedule" element={<DoctorSchedule />} />
+          {/* <Route path="/doctor/appointments" element={<DoctorAppointments />} /> */}
+          <Route path="/doctor/consultations" element={<DoctorConsultations />} />
+          <Route path="/doctor/patients" element={<DoctorPatients />} />
+          <Route path="/doctor/catalogue" element={<DoctorCatalogue />} />
+        </Routes>
+        <DoctorFooter />
+      </div>
+    );
+  }
+
+  if (userType === 'employee') {
+    return (
+      <div className="app">
+        <Routes>
+          <Route path="/" element={<Navigate to="/employee/appointments" replace />} />
+          {/* Add employee routes here as they're created */}
+          <Route path="*" element={<Navigate to="/employee/appointments" replace />} />
+          <Route path="/employee/patients" element={<EmployeePatients />} />
+          <Route path="/employee/reports" element={<EmployeeReports />} />
+          <Route path="/employee/schedule" element={<EmployeeSchedule />} />
+          <Route path="/employee/payments" element={<EmployeePayments />} />
+          <Route path="/employee/doctors" element={<EmployeeDoctors />} />
+          <Route path="/employee/appointments" element={<EmployeeAppointments />} />
+        </Routes>
+        <EmployeeFooter />
+      </div>
+    );
+  }
+
+  // Fallback for unknown user types
   return (
-    <div className="app">
-      <Routes>
-        {/* Patient Portal Routes */}
-        {userType === 'patient' && (
-          <>
-            <Route path="/" element={<PatientDashboard />} />
-            <Route path="/patient/dashboard" element={<PatientDashboard />} />
-            <Route path="/patient/book" element={<BookAppointment />} />
-            <Route path="/patient/appointments" element={<PatientMyAppointments />} />
-            <Route path="/patient/health-conditions" element={<HealthConditions />} />
-            <Route path="/patient/insurance" element={<Insurance />} />
-            <Route path="/patient/billing" element={<PatientBilling />} />
-            <Route path="/patient/records" element={<PatientMedicalRecords />} />
-            <Route path="/patient/prescriptions" element={<PatientPrescriptions />} />
-            <Route path="/patient/lab-results" element={<PatientLabResults />} />
-            <Route path="/patient/profile" element={<Profile />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
-          </>
-        )}
-
-        {/* Doctor Portal Routes */}
-        {userType === 'doctor' && (
-          <>
-            <Route path="/" element={<DoctorDashboard />} />
-            <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-            <Route path="/doctor/appointments" element={<DoctorAppointments />} />
-            <Route path="/doctor/consultation" element={<DoctorConsultation />} />
-            <Route path="/doctor/patients" element={<DoctorPatients />} />
-            <Route path="/doctor/consultations" element={<DoctorConsultations />} />
-            <Route path="/doctor/schedule" element={<DoctorSchedule />} />
-            <Route path="/doctor/prescriptions" element={<DoctorPrescriptions />} />
-            <Route path="/doctor/treatments" element={<DoctorTreatments />} />
-            <Route path="/doctor/medications" element={<DoctorMedications />} />
-            <Route path="/doctor/treatment-management" element={<DoctorTreatmentManagement />} />
-            <Route path="/doctor/financial-metrics" element={<DoctorFinancialMetrics />} />
-            <Route path="/doctor/profile" element={<DoctorProfile />} />
-            <Route path="/profile" element={<DoctorProfile />} />
-            <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />
-          </>
-        )}
-
-        {/* Staff Portal Routes */}
-        {(userType === 'receptionist' || userType === 'nurse' || userType === 'manager' ||
-          userType === 'admin' || userType === 'employee' || userType === 'staff') && (
-          <>
-            <Route path="/" element={<Navigate to="/staff/dashboard" replace />} />
-            <Route path="/staff/dashboard" element={<StaffDashboard />} />
-            <Route path="/staff/appointments" element={<StaffAppointments />} />
-            <Route path="/staff/patients" element={<StaffPatients />} />
-            <Route path="/staff/billing" element={<StaffBilling />} />
-            <Route path="/staff/payments" element={<StaffPayments />} />
-            <Route path="/staff/doctors" element={<StaffDoctors />} />
-            <Route path="/staff/schedule" element={<StaffSchedule />} />
-            <Route path="/staff/reports" element={<StaffReports />} />
-            <Route path="/staff/profile" element={<StaffProfile />} />
-            <Route path="/profile" element={<StaffProfile />} />
-
-            {/* Legacy routes with Header for backwards compatibility */}
-            <Route
-              path="/dashboard"
-              element={
-                <div className="authenticated-layout">
-                  <Header role={userRole} branch={branch} setBranch={setBranch} onLogout={handleLogout} userType={userType} />
-                  <main id="main" className="container page-enter">
-                    <Dashboard user={{ role: userRole, branch }} />
-                  </main>
-                </div>
-              }
-            />
-
-            {(userRole === "Staff" || userRole === "System Admin" || userRole === "Manager" || userRole === "Receptionist") && (
-              <>
-                <Route
-                  path="/patients"
-                  element={
-                    <div className="authenticated-layout">
-                      <Header role={userRole} branch={branch} setBranch={setBranch} onLogout={handleLogout} userType={userType} />
-                      <main id="main" className="container page-enter">
-                        <Patients />
-                      </main>
-                    </div>
-                  }
-                />
-
-                <Route
-                  path="/patient-portal"
-                  element={
-                    <div className="authenticated-layout">
-                      <Header role={userRole} branch={branch} setBranch={setBranch} onLogout={handleLogout} userType={userType} />
-                      <main id="main" className="container page-enter">
-                        <PatientPortal />
-                      </main>
-                    </div>
-                  }
-                />
-
-                <Route
-                  path="/patient/:patientId"
-                  element={
-                    <div className="authenticated-layout">
-                      <Header role={userRole} branch={branch} setBranch={setBranch} onLogout={handleLogout} userType={userType} />
-                      <main id="main" className="container page-enter">
-                        <PatientDetail />
-                      </main>
-                    </div>
-                  }
-                />
-              </>
-            )}
-
-            {(userRole === "Staff" || userRole === "Doctor" || userRole === "System Admin" || userRole === "Nurse" || userRole === "Manager") && (
-              <Route
-                path="/appointments"
-                element={
-                  <div className="authenticated-layout">
-                    <Header role={userRole} branch={branch} setBranch={setBranch} onLogout={handleLogout} userType={userType} />
-                    <main id="main" className="container page-enter">
-                      <MyAppointments />
-                    </main>
-                  </div>
-                }
-              />
-            )}
-
-            {(userRole === "Doctor" || userRole === "System Admin" || userRole === "Nurse") && (
-              <Route
-                path="/treatments"
-                element={
-                  <div className="authenticated-layout">
-                    <Header role={userRole} branch={branch} setBranch={setBranch} onLogout={handleLogout} userType={userType} />
-                    <main id="main" className="container page-enter">
-                      <Treatments />
-                    </main>
-                  </div>
-                }
-              />
-            )}
-
-            {(userRole === "Staff" || userRole === "Billing Staff" || userRole === "System Admin" || userRole === "Manager" || userRole === "Receptionist") && (
-              <Route
-                path="/billing"
-                element={
-                  <div className="authenticated-layout">
-                    <Header role={userRole} branch={branch} setBranch={setBranch} onLogout={handleLogout} userType={userType} />
-                    <main id="main" className="container page-enter">
-                      <Billing />
-                    </main>
-                  </div>
-                }
-              />
-            )}
-
-            {(userRole === "Staff" || userRole === "System Admin" || userRole === "Manager") && (
-              <Route
-                path="/reporting"
-                element={
-                  <div className="authenticated-layout">
-                    <Header role={userRole} branch={branch} setBranch={setBranch} onLogout={handleLogout} userType={userType} />
-                    <main id="main" className="container page-enter">
-                      <ReportsHistory />
-                    </main>
-                  </div>
-                }
-              />
-            )}
-
-            <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
-          </>
-        )}
-
-        {/* Fallback for unknown user types */}
-        {!['patient', 'doctor', 'receptionist', 'nurse', 'manager', 'admin', 'employee', 'staff'].includes(userType as string) && (
-          <Route
-            path="*"
-            element={
-              <div style={{ padding: '40px', textAlign: 'center' }}>
-                <h2>Unknown user type</h2>
-                <button onClick={handleLogout}>Logout</button>
-              </div>
-            }
-          />
-        )}
-      </Routes>
+    <div style={{ padding: '40px', textAlign: 'center' }}>
+      <h2>Unknown user type</h2>
+      <p>Please contact support</p>
+      <button onClick={handleLogout} style={{
+        padding: '10px 20px',
+        background: '#667eea',
+        color: 'white',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '14px'
+      }}>
+        Logout
+      </button>
     </div>
   );
 };

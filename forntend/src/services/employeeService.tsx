@@ -1,12 +1,12 @@
-// src/services/staffService.ts
+// src/services/employeeService.ts
 
 import apiClient, { handleApiError } from './api'
 
 // ============================================
-// STAFF TYPES
+// EMPLOYEE TYPES
 // ============================================
 
-interface StaffAddress {
+interface EmployeeAddress {
   address_line1: string
   address_line2?: string
   city: string
@@ -15,12 +15,12 @@ interface StaffAddress {
   country?: string
 }
 
-interface StaffContact {
+interface EmployeeContact {
   contact_num1: string
   contact_num2?: string
 }
 
-interface StaffRegistrationData {
+interface EmployeeRegistrationData {
   // Address
   address_line1: string
   address_line2?: string
@@ -51,15 +51,15 @@ interface StaffRegistrationData {
 interface RegistrationResponse {
   success: boolean
   message?: string
-  staff_id?: string
+  staff_id?: string // backend contract, keep as is
 }
 
-interface StaffLoginRequest {
+interface EmployeeLoginRequest {
   email: string
   password: string
 }
 
-interface StaffLoginResponse {
+interface EmployeeLoginResponse {
   success: boolean
   message?: string
   user_id?: string
@@ -69,7 +69,7 @@ interface StaffLoginResponse {
   role?: string
 }
 
-interface Staff {
+interface Employee {
   employee_id?: string
   id?: string
   user_id?: string
@@ -95,22 +95,22 @@ interface Staff {
   [key: string]: unknown
 }
 
-interface StaffListResponse {
+interface EmployeeListResponse {
   success: boolean
   branch_name: string
   total: number
   returned: number
-  staff: Staff[]
+  staff: Employee[] // backend field name is `staff`, keep it
 }
 
-interface StaffDetailsResponse {
-  staff: Staff
+interface EmployeeDetailsResponse {
+  staff: Employee // backend field name is `staff`, keep it
 }
 
-interface StaffByRoleResponse {
+interface EmployeeByRoleResponse {
   role: string
   total: number
-  staff: Staff[]
+  staff: Employee[]
 }
 
 interface UpdateSalaryRequest {
@@ -126,10 +126,10 @@ interface UpdateResponse {
 // ROLE TYPES
 // ============================================
 
-type StaffRole = 'nurse' | 'admin' | 'receptionist' | 'manager' | 'pharmacist' | 'lab_technician' | 'doctor'
+type EmployeeRole = 'nurse' | 'admin' | 'receptionist' | 'manager' | 'pharmacist' | 'lab_technician' | 'doctor'
 
 interface RoleInfo {
-  role: StaffRole
+  role: EmployeeRole
   display_name: string
   icon: string
   permissions: string[]
@@ -137,45 +137,24 @@ interface RoleInfo {
 }
 
 /**
- * Staff Service
- * Handles staff management, authentication, and operations
+ * Employee Service
+ * Handles employee management, authentication, and operations
  */
-class StaffService {
+class EmployeeService {
   // ============================================
   // AUTHENTICATION METHODS
   // ============================================
 
   /**
-   * Staff login
-   * @param email - Staff email
-   * @param password - Staff password
-   * @returns Login response with user details
+   * Employee registration
    */
-  async loginStaff(email: string, password: string): Promise<StaffLoginResponse> {
+  async registerEmployee(employeeData: EmployeeRegistrationData): Promise<RegistrationResponse> {
     try {
-      const response = await apiClient.post<StaffLoginResponse>('/staff/login', {
-        email,
-        password,
-      })
-      console.log('✅ Staff login successful')
+      const response = await apiClient.post<RegistrationResponse>('/staff/register', employeeData)
+      console.log('✅ Employee registered successfully')
       return response.data
     } catch (error) {
-      throw new Error(handleApiError(error, 'Staff login failed'))
-    }
-  }
-
-  /**
-   * Register new staff member
-   * @param staffData - Staff registration data
-   * @returns Registration response with staff ID
-   */
-  async registerStaff(staffData: StaffRegistrationData): Promise<RegistrationResponse> {
-    try {
-      const response = await apiClient.post<RegistrationResponse>('/staff/register', staffData)
-      console.log('✅ Staff registered successfully')
-      return response.data
-    } catch (error) {
-      throw new Error(handleApiError(error, 'Staff registration failed'))
+      throw new Error(handleApiError(error, 'Employee registration failed'))
     }
   }
 
@@ -184,21 +163,21 @@ class StaffService {
   // ============================================
 
   /**
-   * Get all staff by branch
+   * Get all employees by branch
    * @param branchName - Branch name (required)
    * @param skip - Number of records to skip
    * @param limit - Maximum records to return
    * @param role - Optional role filter
-   * @param activeOnly - Get only active staff (default: true)
-   * @returns List of staff members
+   * @param activeOnly - Get only active employees (default: true)
+   * @returns List of employee members
    */
-  async getStaffByBranch(
+  async getEmployeesByBranch(
     branchName: string,
     skip: number = 0,
     limit: number = 100,
-    role?: StaffRole,
+    role?: EmployeeRole,
     activeOnly: boolean = true
-  ): Promise<StaffListResponse> {
+  ): Promise<EmployeeListResponse> {
     try {
       const params = new URLSearchParams()
       params.append('branch_name', branchName)
@@ -207,43 +186,43 @@ class StaffService {
       params.append('active_only', activeOnly.toString())
       if (role) params.append('role', role)
 
-      const response = await apiClient.get<StaffListResponse>(
+      const response = await apiClient.get<EmployeeListResponse>(
         `/staff/?${params.toString()}`
       )
-      console.log('✅ Fetched staff by branch')
+      console.log('✅ Fetched employees by branch')
       return response.data
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch staff'))
+      throw new Error(handleApiError(error, 'Failed to fetch employees'))
     }
   }
 
   /**
-   * Get staff by ID
-   * @param staffId - Staff UUID
-   * @returns Staff details
+   * Get employee by ID
+   * @param employeeId - Employee UUID
+   * @returns Employee details
    */
-  async getStaffById(staffId: string): Promise<Staff> {
+  async getEmployeeById(employeeId: string): Promise<Employee> {
     try {
-      const response = await apiClient.get<StaffDetailsResponse>(`/staff/${staffId}`)
-      console.log('✅ Fetched staff details')
+      const response = await apiClient.get<EmployeeDetailsResponse>(`/staff/${employeeId}`)
+      console.log('✅ Fetched employee details')
       return response.data.staff
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch staff details'))
+      throw new Error(handleApiError(error, 'Failed to fetch employee details'))
     }
   }
 
   /**
-   * Get all staff with specific role
-   * @param role - Staff role
-   * @returns List of staff with that role
+   * Get all employees with specific role
+   * @param role - Employee role
+   * @returns List of employees with that role
    */
-  async getStaffByRole(role: StaffRole): Promise<Staff[]> {
+  async getEmployeesByRole(role: EmployeeRole): Promise<Employee[]> {
     try {
-      const response = await apiClient.get<StaffByRoleResponse>(`/staff/role/${role}`)
-      console.log('✅ Fetched staff by role')
+      const response = await apiClient.get<EmployeeByRoleResponse>(`/staff/role/${role}`)
+      console.log('✅ Fetched employees by role')
       return response.data.staff || []
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to fetch staff by role'))
+      throw new Error(handleApiError(error, 'Failed to fetch employees by role'))
     }
   }
 
@@ -252,55 +231,55 @@ class StaffService {
   // ============================================
 
   /**
-   * Update staff salary
-   * @param staffId - Staff UUID
+   * Update employee salary
+   * @param employeeId - Employee UUID
    * @param newSalary - New monthly salary
    * @returns Update confirmation
    */
-  async updateStaffSalary(staffId: string, newSalary: number): Promise<UpdateResponse> {
+  async updateEmployeeSalary(employeeId: string, newSalary: number): Promise<UpdateResponse> {
     try {
       const response = await apiClient.patch<UpdateResponse>(
-        `/staff/${staffId}/salary`,
+        `/staff/${employeeId}/salary`,
         { new_salary: newSalary }
       )
-      console.log('✅ Staff salary updated')
+      console.log('✅ Employee salary updated')
       return response.data
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to update staff salary'))
+      throw new Error(handleApiError(error, 'Failed to update employee salary'))
     }
   }
 
   /**
-   * Deactivate staff member
-   * @param staffId - Staff UUID
+   * Deactivate employee
+   * @param employeeId - Employee UUID
    * @returns Deactivation confirmation
    */
-  async deactivateStaff(staffId: string): Promise<UpdateResponse> {
+  async deactivateEmployee(employeeId: string): Promise<UpdateResponse> {
     try {
       const response = await apiClient.patch<UpdateResponse>(
-        `/staff/${staffId}/deactivate`
+        `/staff/${employeeId}/deactivate`
       )
-      console.log('✅ Staff member deactivated')
+      console.log('✅ Employee deactivated')
       return response.data
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to deactivate staff'))
+      throw new Error(handleApiError(error, 'Failed to deactivate employee'))
     }
   }
 
   /**
-   * Reactivate staff member
-   * @param staffId - Staff UUID
+   * Reactivate employee
+   * @param employeeId - Employee UUID
    * @returns Reactivation confirmation
    */
-  async reactivateStaff(staffId: string): Promise<UpdateResponse> {
+  async reactivateEmployee(employeeId: string): Promise<UpdateResponse> {
     try {
       const response = await apiClient.patch<UpdateResponse>(
-        `/staff/${staffId}/reactivate`
+        `/staff/${employeeId}/reactivate`
       )
-      console.log('✅ Staff member reactivated')
+      console.log('✅ Employee reactivated')
       return response.data
     } catch (error) {
-      throw new Error(handleApiError(error, 'Failed to reactivate staff'))
+      throw new Error(handleApiError(error, 'Failed to reactivate employee'))
     }
   }
 
@@ -311,8 +290,8 @@ class StaffService {
   /**
    * Get role information
    */
-  getRoleInfo(role: StaffRole): RoleInfo {
-    const roleMap: Record<StaffRole, RoleInfo> = {
+  getRoleInfo(role: EmployeeRole): RoleInfo {
+    const roleMap: Record<EmployeeRole, RoleInfo> = {
       doctor: {
         role: 'doctor',
         display_name: 'Doctor',
@@ -390,20 +369,19 @@ class StaffService {
   }
 
   /**
-   * Format staff name with role and branch
-   * Example: "Dr. John Smith - Main Branch (Cardiologist)"
+   * Format employee name with role and branch
    */
-  formatStaffInfo(staff: Staff): string {
-    const roleInfo = this.getRoleInfo(staff.role as StaffRole)
-    const branch = staff.branch_name ? ` - ${staff.branch_name}` : ''
-    return `${roleInfo.icon} ${staff.full_name}${branch}`
+  formatEmployeeInfo(employee: Employee): string {
+    const roleInfo = this.getRoleInfo(employee.role as EmployeeRole)
+    const branch = employee.branch_name ? ` - ${employee.branch_name}` : ''
+    return `${roleInfo.icon} ${employee.full_name}${branch}`
   }
 
   /**
-   * Get staff status
+   * Get employee status
    */
-  getStaffStatus(staff: Staff): { status: string; icon: string; color: string } {
-    if (!staff.is_active) {
+  getEmployeeStatus(employee: Employee): { status: string; icon: string; color: string } {
+    if (!employee.is_active) {
       return { status: 'Inactive', icon: '🔴', color: 'red' }
     }
     return { status: 'Active', icon: '🟢', color: 'green' }
@@ -433,46 +411,46 @@ class StaffService {
   }
 
   /**
-   * Check if staff is senior (5+ years of service)
+   * Check if employee is senior (5+ years of service)
    */
-  isSeniorStaff(joinedDate: string): boolean {
+  isSeniorEmployee(joinedDate: string): boolean {
     return this.calculateYearsOfService(joinedDate) >= 5
   }
 
   /**
    * Format address
    */
-  formatAddress(staff: Staff): string {
+  formatAddress(employee: Employee): string {
     const parts = [
-      staff.address_line1,
-      staff.address_line2,
-      staff.city,
-      staff.province,
-      staff.postal_code,
-      staff.country,
+      employee.address_line1,
+      employee.address_line2,
+      employee.city,
+      employee.province,
+      employee.postal_code,
+      employee.country,
     ].filter(Boolean)
 
     return parts.join(', ')
   }
 
   /**
-   * Get staff contact information
+   * Get employee contact information
    */
-  formatContactInfo(staff: Staff): {
+  formatContactInfo(employee: Employee): {
     primary: string
     secondary?: string
   } {
     return {
-      primary: staff.contact_num1 || 'Not provided',
-      secondary: staff.contact_num2,
+      primary: employee.contact_num1 || 'Not provided',
+      secondary: employee.contact_num2,
     }
   }
 
   /**
-   * Count staff by role
+   * Count employees by role
    */
-  countByRole(staffList: Staff[]): Record<StaffRole, number> {
-    const counts: Record<StaffRole, number> = {
+  countByRole(employeeList: Employee[]): Record<EmployeeRole, number> {
+    const counts: Record<EmployeeRole, number> = {
       doctor: 0,
       nurse: 0,
       admin: 0,
@@ -482,8 +460,8 @@ class StaffService {
       lab_technician: 0,
     }
 
-    staffList.forEach((staff) => {
-      counts[staff.role as StaffRole]++
+    employeeList.forEach((employee) => {
+      counts[employee.role as EmployeeRole]++
     })
 
     return counts
@@ -492,8 +470,8 @@ class StaffService {
   /**
    * Get average salary by role
    */
-  getAverageSalaryByRole(staffList: Staff[]): Record<StaffRole, number> {
-    const salaries: Record<StaffRole, { total: number; count: number }> = {
+  getAverageSalaryByRole(employeeList: Employee[]): Record<EmployeeRole, number> {
+    const salaries: Record<EmployeeRole, { total: number; count: number }> = {
       doctor: { total: 0, count: 0 },
       nurse: { total: 0, count: 0 },
       admin: { total: 0, count: 0 },
@@ -503,13 +481,13 @@ class StaffService {
       lab_technician: { total: 0, count: 0 },
     }
 
-    staffList.forEach((staff) => {
-      const role = staff.role as StaffRole
-      salaries[role].total += staff.salary
+    employeeList.forEach((employee) => {
+      const role = employee.role as EmployeeRole
+      salaries[role].total += employee.salary
       salaries[role].count++
     })
 
-    const averages: Record<StaffRole, number> = {
+    const averages: Record<EmployeeRole, number> = {
       doctor: 0,
       nurse: 0,
       admin: 0,
@@ -520,62 +498,63 @@ class StaffService {
     }
 
     Object.keys(salaries).forEach((role) => {
-      const key = role as StaffRole
-      averages[key] = salaries[key].count > 0 ? salaries[key].total / salaries[key].count : 0
+      const key = role as EmployeeRole
+      averages[key] =
+        salaries[key].count > 0 ? salaries[key].total / salaries[key].count : 0
     })
 
     return averages
   }
 
   /**
-   * Get total staff payroll
+   * Get total employee payroll
    */
-  getTotalPayroll(staffList: Staff[]): number {
-    return staffList.reduce((total, staff) => total + staff.salary, 0)
+  getTotalPayroll(employeeList: Employee[]): number {
+    return employeeList.reduce((total, employee) => total + employee.salary, 0)
   }
 
   /**
-   * Format comprehensive staff summary
+   * Format comprehensive employee summary
    */
-  formatStaffSummary(staff: Staff): string {
-    const status = this.getStaffStatus(staff)
-    const yearsService = this.calculateYearsOfService(staff.joined_date)
-    const roleInfo = this.getRoleInfo(staff.role as StaffRole)
+  formatEmployeeSummary(employee: Employee): string {
+    const status = this.getEmployeeStatus(employee)
+    const yearsService = this.calculateYearsOfService(employee.joined_date)
+    const roleInfo = this.getRoleInfo(employee.role as EmployeeRole)
 
-    let summary = `${roleInfo.icon} ${staff.full_name}\n`
+    let summary = `${roleInfo.icon} ${employee.full_name}\n`
     summary += `${'='.repeat(50)}\n\n`
     summary += `Status: ${status.icon} ${status.status}\n`
     summary += `Role: ${roleInfo.display_name}\n`
-    summary += `Branch: ${staff.branch_name || 'Not assigned'}\n`
-    summary += `Email: ${staff.email}\n`
-    summary += `Contact: ${staff.contact_num1}\n`
-    summary += `Salary: ${this.formatSalary(staff.salary)}\n`
-    summary += `Joined: ${staff.joined_date}\n`
+    summary += `Branch: ${employee.branch_name || 'Not assigned'}\n`
+    summary += `Email: ${employee.email}\n`
+    summary += `Contact: ${employee.contact_num1}\n`
+    summary += `Salary: ${this.formatSalary(employee.salary)}\n`
+    summary += `Joined: ${employee.joined_date}\n`
     summary += `Years of Service: ${yearsService}\n`
 
-    if (staff.address_line1) {
-      summary += `Address: ${this.formatAddress(staff)}\n`
+    if (employee.address_line1) {
+      summary += `Address: ${this.formatAddress(employee)}\n`
     }
 
     return summary
   }
 
   /**
-   * Get staff role distribution
+   * Get employee role distribution
    */
-  getStaffDistribution(staffList: Staff[]): Array<{
+  getEmployeeDistribution(employeeList: Employee[]): Array<{
     role: string
     display_name: string
     count: number
     percentage: number
   }> {
-    const total = staffList.length
-    const counts = this.countByRole(staffList)
+    const total = employeeList.length
+    const counts = this.countByRole(employeeList)
 
     return Object.entries(counts)
       .filter(([, count]) => count > 0)
       .map(([role, count]) => {
-        const roleInfo = this.getRoleInfo(role as StaffRole)
+        const roleInfo = this.getRoleInfo(role as EmployeeRole)
         return {
           role,
           display_name: roleInfo.display_name,
@@ -587,9 +566,9 @@ class StaffService {
   }
 
   /**
-   * Validate staff registration data
+   * Validate employee registration data
    */
-  validateRegistrationData(data: StaffRegistrationData): {
+  validateRegistrationData(data: EmployeeRegistrationData): {
     valid: boolean
     errors: string[]
   } {
@@ -638,38 +617,38 @@ class StaffService {
   }
 
   /**
-   * Filter staff by criteria
+   * Filter employees by criteria
    */
-  filterStaff(
-    staffList: Staff[],
+  filterEmployees(
+    employeeList: Employee[],
     criteria: {
-      role?: StaffRole
+      role?: EmployeeRole
       active?: boolean
       branch?: string
       minSalary?: number
       maxSalary?: number
     }
-  ): Staff[] {
-    return staffList.filter((staff) => {
-      if (criteria.role && staff.role !== criteria.role) return false
-      if (criteria.active !== undefined && staff.is_active !== criteria.active)
+  ): Employee[] {
+    return employeeList.filter((employee) => {
+      if (criteria.role && employee.role !== criteria.role) return false
+      if (criteria.active !== undefined && employee.is_active !== criteria.active)
         return false
-      if (criteria.branch && staff.branch_name !== criteria.branch) return false
-      if (criteria.minSalary && staff.salary < criteria.minSalary) return false
-      if (criteria.maxSalary && staff.salary > criteria.maxSalary) return false
+      if (criteria.branch && employee.branch_name !== criteria.branch) return false
+      if (criteria.minSalary && employee.salary < criteria.minSalary) return false
+      if (criteria.maxSalary && employee.salary > criteria.maxSalary) return false
       return true
     })
   }
 
   /**
-   * Sort staff by field
+   * Sort employees by field
    */
-  sortStaff(
-    staffList: Staff[],
+  sortEmployees(
+    employeeList: Employee[],
     field: 'name' | 'salary' | 'joined_date' | 'role',
     order: 'asc' | 'desc' = 'asc'
-  ): Staff[] {
-    const sorted = [...staffList].sort((a, b) => {
+  ): Employee[] {
+    const sorted = [...employeeList].sort((a, b) => {
       let aVal: unknown, bVal: unknown
 
       switch (field) {
@@ -706,9 +685,9 @@ class StaffService {
   }
 
   /**
-   * Export staff list as CSV
+   * Export employee list as CSV
    */
-  exportAsCSV(staffList: Staff[], filename: string = 'staff_list.csv'): void {
+  exportAsCSV(employeeList: Employee[], filename: string = 'employee_list.csv'): void {
     const headers = [
       'Full Name',
       'Email',
@@ -719,14 +698,14 @@ class StaffService {
       'Status',
     ]
 
-    const rows = staffList.map((staff) => [
-      staff.full_name,
-      staff.email,
-      staff.role,
-      staff.branch_name || '',
-      this.formatSalary(staff.salary),
-      staff.joined_date,
-      staff.is_active ? 'Active' : 'Inactive',
+    const rows = employeeList.map((employee) => [
+      employee.full_name,
+      employee.email,
+      employee.role,
+      employee.branch_name || '',
+      this.formatSalary(employee.salary),
+      employee.joined_date,
+      employee.is_active ? 'Active' : 'Inactive',
     ])
 
     const csv = [
@@ -746,4 +725,4 @@ class StaffService {
   }
 }
 
-export default new StaffService()
+export default new EmployeeService()

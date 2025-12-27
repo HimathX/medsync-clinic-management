@@ -125,6 +125,13 @@ interface MedicalAlert {
   icon: string
 }
 
+export type {
+  LabResult,
+  MedicalAlert,
+  HealthMetrics,
+  MedicalSummary
+}
+
 /**
  * Patient Dashboard Service
  * Provides medical summary and health overview for patients
@@ -168,7 +175,7 @@ class PatientDashboardService {
       params.append('lab_results_limit', Math.min(options?.labResultsLimit ?? 5, 20).toString())
 
       const response = await apiClient.get<MedicalSummary>(
-        `/patients/${patientId}/medical-summary?${params.toString()}`
+        `dashboard-patient/patients/${patientId}/medical-summary?${params.toString()}`
       )
       console.log('✅ Fetched medical summary')
       return response.data

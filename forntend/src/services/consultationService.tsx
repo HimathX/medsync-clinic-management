@@ -1,5 +1,8 @@
 import apiClient, { handleApiError } from './api'
 
+// ============================================
+// PRESCRIPTION TYPES
+// ============================================
 
 interface PrescriptionItem {
   prescription_item_id: string
@@ -50,7 +53,7 @@ interface TreatmentInput {
 // CONSULTATION TYPES
 // ============================================
 
-interface Consultation {
+export interface Consultation {
   consultation_rec_id: string
   appointment_id: string
   patient_id: string
@@ -74,7 +77,7 @@ interface Consultation {
   updated_at?: string
 }
 
-interface ConsultationSummary {
+export interface ConsultationSummary {
   consultation_rec_id: string
   appointment_id: string
   patient_id: string
@@ -88,6 +91,14 @@ interface ConsultationSummary {
   prescription_count: number
   treatment_count: number
   created_at?: string
+}
+
+interface DoctorConsultationDetail extends ConsultationSummary {
+  patient_email: string
+  start_time: string
+  end_time: string
+  branch_name: string
+  branch_id: string
 }
 
 interface CreateConsultationData {
@@ -129,6 +140,22 @@ interface ConsultationsListResponse {
   total: number
   returned: number
   consultations: ConsultationSummary[]
+}
+
+interface DoctorConsultationsResponse {
+  doctor_id: string
+  total: number
+  returned: number
+  filters: {
+    start_date?: string
+    end_date?: string
+    follow_up_required?: boolean
+  }
+  pagination: {
+    skip: number
+    limit: number
+  }
+  consultations: DoctorConsultationDetail[]
 }
 
 interface PatientHistoryResponse {
@@ -197,11 +224,7 @@ class ConsultationService {
    * Get all consultations with optional filters
    * @param skip - Number of records to skip
    * @param limit - Maximum records to return
-   * @param patientId - Filter by patient ID
-   * @param doctorId - Filter by doctor ID
-   * @param startDate - Filter from date (YYYY-MM-DD)
-   * @param endDate - Filter to date (YYYY-MM-DD)
-   * @param followUpRequired - Filter by follow-up requirement
+   * @param filters - Optional filters (patientId, doctorId, date range, follow-up)
    * @returns List of consultations
    */
   async getAllConsultations(
@@ -234,6 +257,44 @@ class ConsultationService {
       return response.data
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch consultations'))
+    }
+  }
+
+  /**
+   * Get consultations for a specific doctor
+   * @param doctorId - Doctor ID
+   * @param skip - Number of records to skip (default: 0)
+   * @param limit - Maximum records to return (default: 100)
+   * @param filters - Optional filters (date range, follow-up requirement)
+   * @returns List of consultations for the doctor with patient details
+   */
+  async getConsultationsByDoctor(
+    doctorId: string,
+    skip: number = 0,
+    limit: number = 100,
+    filters?: {
+      startDate?: string
+      endDate?: string
+      followUpRequired?: boolean
+    }
+  ): Promise<DoctorConsultationsResponse> {
+    try {
+      const params = new URLSearchParams()
+      params.append('skip', skip.toString())
+      params.append('limit', Math.min(limit, 500).toString())
+
+      if (filters?.startDate) params.append('start_date', filters.startDate)
+      if (filters?.endDate) params.append('end_date', filters.endDate)
+      if (filters?.followUpRequired !== undefined)
+        params.append('follow_up_required', filters.followUpRequired.toString())
+
+      const response = await apiClient.get<DoctorConsultationsResponse>(
+        `/consultations/doctor/${doctorId}?${params.toString()}`
+      )
+      console.log(`✅ Fetched ${response.data.returned} consultations for doctor ${doctorId}`)
+      return response.data
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch doctor consultations'))
     }
   }
 
@@ -280,7 +341,7 @@ class ConsultationService {
   /**
    * Delete consultation record
    * @param consultationRecId - Consultation record ID
-   * @param force - Force delete even if has prescriptions/treatments
+   * @param force - Force delete even if it has prescriptions/treatments
    * @returns Deletion confirmation
    */
   async deleteConsultation(
@@ -303,7 +364,7 @@ class ConsultationService {
   /**
    * Get patient consultation history
    * @param patientId - Patient ID
-   * @returns Complete consultation history for patient
+   * @returns Complete consultation history for the patient
    */
   async getPatientHistory(patientId: string): Promise<PatientHistoryResponse> {
     try {
@@ -319,10 +380,7 @@ class ConsultationService {
 
   /**
    * Get consultation statistics and analytics
-   * @param startDate - Start date (YYYY-MM-DD)
-   * @param endDate - End date (YYYY-MM-DD)
-   * @param doctorId - Filter by doctor
-   * @param branchId - Filter by branch
+   * @param filters - Optional filters (date range, doctor, branch)
    * @returns Statistics including top doctors and common diagnoses
    */
   async getStatistics(filters?: {
@@ -354,7 +412,7 @@ class ConsultationService {
 
   /**
    * Format consultation for display
-   * Example: "2025-12-15 10:00 AM - Dr. Smith - Upper respiratory tract infection"
+   * Example: "2025-12-15 - Dr. Smith - Upper respiratory tract infection"
    */
   formatConsultation(consultation: ConsultationSummary): string {
     const date = new Date(consultation.available_date).toLocaleDateString()
@@ -364,14 +422,14 @@ class ConsultationService {
   }
 
   /**
-   * Check if consultation needs follow-up
+   * Check if a consultation needs follow-up
    */
   needsFollowUp(consultation: Consultation): boolean {
     return consultation.follow_up_required
   }
 
   /**
-   * Get follow-up status
+   * Get the follow-up status string
    */
   getFollowUpStatus(consultation: Consultation): string {
     if (!consultation.follow_up_required) return 'Not required'
@@ -382,7 +440,7 @@ class ConsultationService {
   }
 
   /**
-   * Calculate consultation duration
+   * Calculate consultation duration in minutes
    */
   calculateDuration(consultation: Consultation): string {
     try {
@@ -396,7 +454,7 @@ class ConsultationService {
   }
 
   /**
-   * Group consultations by status
+   * Group consultations by follow-up status
    */
   groupByFollowUp(
     consultations: ConsultationSummary[]
@@ -408,7 +466,19 @@ class ConsultationService {
   }
 
   /**
-   * Get summary statistics from consultations
+   * Group doctor consultations by follow-up status
+   */
+  groupDoctorConsultationsByFollowUp(
+    consultations: DoctorConsultationDetail[]
+  ): { followUp: DoctorConsultationDetail[]; noFollowUp: DoctorConsultationDetail[] } {
+    return {
+      followUp: consultations.filter((c) => c.follow_up_required),
+      noFollowUp: consultations.filter((c) => !c.follow_up_required),
+    }
+  }
+
+  /**
+   * Get summary statistics from a list of consultations
    */
   getConsultationsSummary(
     consultations: ConsultationSummary[]
@@ -427,7 +497,33 @@ class ConsultationService {
   }
 
   /**
-   * Format diagnoses for display (split by commas if multiple)
+   * Get summary statistics from a list of doctor-specific consultations
+   */
+  getDoctorConsultationsSummary(
+    consultations: DoctorConsultationDetail[]
+  ): {
+    total: number
+    withFollowUp: number
+    totalPrescriptions: number
+    totalTreatments: number
+    byBranch: Record<string, number>
+  } {
+    const byBranch: Record<string, number> = {}
+    consultations.forEach((c) => {
+      byBranch[c.branch_name] = (byBranch[c.branch_name] || 0) + 1
+    })
+
+    return {
+      total: consultations.length,
+      withFollowUp: consultations.filter((c) => c.follow_up_required).length,
+      totalPrescriptions: consultations.reduce((sum, c) => sum + (c.prescription_count || 0), 0),
+      totalTreatments: consultations.reduce((sum, c) => sum + (c.treatment_count || 0), 0),
+      byBranch,
+    }
+  }
+
+  /**
+   * Format diagnoses string into an array
    */
   formatDiagnoses(diagnoses: string): string[] {
     return diagnoses
@@ -437,7 +533,7 @@ class ConsultationService {
   }
 
   /**
-   * Format symptoms for display
+   * Format symptoms string into an array
    */
   formatSymptoms(symptoms: string): string[] {
     return symptoms
@@ -447,7 +543,7 @@ class ConsultationService {
   }
 
   /**
-   * Calculate average time between consultations
+   * Calculate average days between consultations
    */
   calculateAverageGap(consultations: ConsultationSummary[]): number {
     if (consultations.length < 2) return 0
@@ -461,14 +557,14 @@ class ConsultationService {
     for (let i = 0; i < sorted.length - 1; i++) {
       const current = new Date(sorted[i].created_at || '')
       const next = new Date(sorted[i + 1].created_at || '')
-      totalGap += (current.getTime() - next.getTime()) / (1000 * 60 * 60 * 24)
+      totalGap += (current.getTime() - next.getTime()) / (1000 * 60 * 60 * 24) // gap in days
     }
 
     return Math.round(totalGap / (sorted.length - 1))
   }
 
   /**
-   * Get follow-up badge color
+   * Get a color based on follow-up status for UI badges
    */
   getFollowUpColor(consultation: Consultation): string {
     if (!consultation.follow_up_required) return 'gray'
@@ -478,21 +574,21 @@ class ConsultationService {
   }
 
   /**
-   * Extract medication list from prescriptions
+   * Extract a comma-separated list of medication names
    */
   getMedicationList(items: PrescriptionItem[]): string {
     return items.map((item) => `${item.generic_name} ${item.dosage}`).join(', ')
   }
 
   /**
-   * Extract treatment list
+   * Extract a comma-separated list of treatment names
    */
   getTreatmentList(treatments: Treatment[]): string {
     return treatments.map((t) => t.treatment_name).join(', ')
   }
 
   /**
-   * Check if consultation has all required data
+   * Check if a consultation object has all required data
    */
   isComplete(consultation: Consultation): boolean {
     return !!(
@@ -502,6 +598,109 @@ class ConsultationService {
       consultation.patient_id &&
       consultation.doctor_id
     )
+  }
+
+  /**
+   * Filter doctor consultations by a date range
+   */
+  filterByDateRange(
+    consultations: DoctorConsultationDetail[],
+    startDate: Date,
+    endDate: Date
+  ): DoctorConsultationDetail[] {
+    return consultations.filter((c) => {
+      const consultDate = new Date(c.available_date)
+      return consultDate >= startDate && consultDate <= endDate
+    })
+  }
+
+  /**
+   * Filter doctor consultations by patient name (case-insensitive)
+   */
+  filterByPatient(
+    consultations: DoctorConsultationDetail[],
+    patientName: string
+  ): DoctorConsultationDetail[] {
+    return consultations.filter((c) =>
+      c.patient_name.toLowerCase().includes(patientName.toLowerCase())
+    )
+  }
+
+  /**
+   * Sort doctor consultations by date (newest first)
+   */
+  sortByDateNewest(consultations: DoctorConsultationDetail[]): DoctorConsultationDetail[] {
+    return [...consultations].sort(
+      (a, b) =>
+        new Date(b.available_date).getTime() - new Date(a.available_date).getTime()
+    )
+  }
+
+  /**
+   * Sort doctor consultations by patient name (alphabetical)
+   */
+  sortByPatientName(consultations: DoctorConsultationDetail[]): DoctorConsultationDetail[] {
+    return [...consultations].sort((a, b) =>
+      a.patient_name.localeCompare(b.patient_name)
+    )
+  }
+
+  /**
+   * Get a unique list of patients who have consulted a doctor
+   */
+  getUniquePatients(consultations: DoctorConsultationDetail[]): Array<{
+    patient_id: string
+    patient_name: string
+    patient_email: string
+    total_consultations: number
+  }> {
+    const patients: Record<
+      string,
+      {
+        patient_id: string
+        patient_name: string
+        patient_email: string
+        total_consultations: number
+      }
+    > = {}
+
+    consultations.forEach((c) => {
+      if (!patients[c.patient_id]) {
+        patients[c.patient_id] = {
+          patient_id: c.patient_id,
+          patient_name: c.patient_name,
+          patient_email: c.patient_email,
+          total_consultations: 0,
+        }
+      }
+      patients[c.patient_id].total_consultations += 1
+    })
+
+    return Object.values(patients).sort(
+      (a, b) => b.total_consultations - a.total_consultations
+    )
+  }
+
+  /**
+   * Get consultation counts grouped by branch for a doctor
+   */
+  getConsultationsByBranch(
+    consultations: DoctorConsultationDetail[]
+  ): Array<{ branch_name: string; branch_id: string; count: number }> {
+    const branches: Record<string, { branch_name: string; branch_id: string; count: number }> = {}
+
+    consultations.forEach((c) => {
+      if (!branches[c.branch_id]) {
+        branches[c.branch_id] = {
+          branch_name: c.branch_name,
+          branch_id: c.branch_id,
+          count: 0,
+        }
+      }
+      branches[c.branch_id].count += 1
+    })
+
+    return Object.values(branches).sort((a, b) => b.count - a.count)
   }
 }
 

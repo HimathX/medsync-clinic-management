@@ -25,7 +25,7 @@ interface PatientProfileUpdate {
   insurance_policy_number?: string
 }
 
-interface PatientProfile {
+export interface PatientProfile {
   patient_id: string
   full_name: string
   email: string
@@ -53,7 +53,7 @@ interface PatientProfile {
   registration_date: string
 }
 
-interface PatientStats {
+export interface PatientStats {
   patient_id: string
   total_appointments: number
   upcoming_appointments: number
@@ -89,7 +89,7 @@ interface RecentDiagnosis {
   doctor_name: string
 }
 
-interface MedicalSummary {
+export interface MedicalSummary {
   patient_id: string
   blood_group?: string
   allergies?: string
@@ -122,7 +122,7 @@ class PatientProfileService {
   async getPatientProfile(patientId: string): Promise<PatientProfile> {
     try {
       const response = await apiClient.get<PatientProfile>(
-        `/patients/${patientId}/profile`
+        `profile-patient/patients/${patientId}/profile`
       )
       console.log('✅ Fetched patient profile')
       return response.data
@@ -143,7 +143,7 @@ class PatientProfileService {
   ): Promise<ProfileUpdateResponse> {
     try {
       const response = await apiClient.put<ProfileUpdateResponse>(
-        `/patients/${patientId}/profile`,
+        `profile-patient/patients/${patientId}/complete`,
         profileData
       )
       console.log('✅ Patient profile updated')
@@ -165,7 +165,7 @@ class PatientProfileService {
   async getPatientStatistics(patientId: string): Promise<PatientStats> {
     try {
       const response = await apiClient.get<PatientStats>(
-        `/patients/${patientId}/stats`
+        `profile-patient/patients/${patientId}/stats`
       )
       console.log('✅ Fetched patient statistics')
       return response.data
@@ -186,7 +186,7 @@ class PatientProfileService {
   async getMedicalSummary(patientId: string): Promise<MedicalSummary> {
     try {
       const response = await apiClient.get<MedicalSummary>(
-        `/patients/${patientId}/medical-summary`
+        `profile-patient/patients/${patientId}/medical-summary`
       )
       console.log('✅ Fetched medical summary')
       return response.data
@@ -634,3 +634,4 @@ class PatientProfileService {
 }
 
 export default new PatientProfileService()
+

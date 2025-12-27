@@ -8,7 +8,7 @@ export interface Treatment {
   treatment_service_code?: string
   treatment_name: string
   base_price: number
-  duration: string // HH:MM:SS format
+  duration: string | number // Can be HH:MM:SS or seconds
   description?: string
   [key: string]: unknown
 }
@@ -82,7 +82,7 @@ export interface TreatmentStatistics {
   treatment_service_code: string
   treatment_name: string
   base_price: number
-  duration: string
+  duration: string | number
   times_performed: number
   total_revenue: number
 }
@@ -320,17 +320,52 @@ class TreatmentCatalogueService {
   }
 
   /**
-   * Format duration for display (HH:MM:SS to readable)
+   * Format duration for display - handles both HH:MM:SS string and seconds (number)
+   * @param duration - Can be "HH:MM:SS" string or seconds as number
+   * @returns Readable format like "1h 30m" or "45s"
    */
-  formatDuration(duration: string): string {
-    const [hours, minutes, seconds] = duration.split(':').map(Number)
+  formatDuration(duration: string | number | undefined): string {
+    if (!duration && duration !== 0) return '0s'
+
+    let seconds = 0
+
+    // If duration is a number, treat it as seconds
+    if (typeof duration === 'number') {
+      seconds = Math.round(duration)
+    }
+    // If duration is a string, try to parse it
+    else if (typeof duration === 'string') {
+      // Check if it's HH:MM:SS format
+      if (duration.includes(':')) {
+        const parts = duration.split(':').map(Number)
+        if (parts.length === 3) {
+          const [hours, minutes, secs] = parts
+          seconds = hours * 3600 + minutes * 60 + secs
+        } else {
+          return duration // Return as-is if format is unexpected
+        }
+      } else {
+        // Try to parse as number
+        const parsed = parseInt(duration, 10)
+        if (!isNaN(parsed)) {
+          seconds = parsed
+        } else {
+          return duration // Return as-is if not a valid format
+        }
+      }
+    }
+
+    // Convert seconds to readable format
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
 
     const parts: string[] = []
     if (hours > 0) parts.push(`${hours}h`)
     if (minutes > 0) parts.push(`${minutes}m`)
-    if (seconds > 0) parts.push(`${seconds}s`)
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`)
 
-    return parts.length > 0 ? parts.join(' ') : '0s'
+    return parts.join(' ')
   }
 
   /**

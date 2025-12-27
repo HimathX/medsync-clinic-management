@@ -17,6 +17,18 @@ interface LoginResponse {
   user_type?: UserType
   full_name?: string
   email?: string
+  specialization?: string
+  branch_name?: string
+  branch_id?: string
+  phone?: string
+  license_number?: string
+}
+
+interface DoctorLoginResponse extends LoginResponse {
+  specialization?: string
+  branch_name?: string
+  phone?: string
+  license_number?: string
 }
 
 interface VerifyUserResponse {
@@ -46,11 +58,17 @@ interface CurrentUser {
   fullName: string | null
   email: string | null
   isAuthenticated: boolean
+  specialization?: string | null
+  branch_name?: string | null
+  branch_id?: string | null
+  phone?: string | null
+  license_number?: string | null
 }
 
 /**
- * Authentication Service
+ * Authentication Service (FIXED)
  * Manages user login, logout, and session management
+ * Now properly handles branch_id storage
  */
 class AuthService {
   private storageKeys = {
@@ -60,6 +78,12 @@ class AuthService {
     email: 'email',
     token: 'auth_token',
     isAuthenticated: 'isAuthenticated',
+    doctor_id: 'doctor_id',
+    specialization: 'specialization',
+    branch_name: 'branch_name',
+    branch_id: 'branch_id', // ✅ FIXED: Added to storage keys
+    phone: 'phone',
+    license_number: 'license_number',
   }
 
   /**
@@ -87,6 +111,35 @@ class AuthService {
   }
 
   /**
+   * Doctor-specific login handler
+   * @param email - Doctor's email address
+   * @param password - Doctor's password
+   * @returns Doctor login response with specialization and branch info
+   */
+  async doctorLogin(email: string, password: string): Promise<DoctorLoginResponse> {
+    try {
+      const credentials: LoginRequest = { email, password }
+
+      const response = await api.post<DoctorLoginResponse>('/doctors/login', credentials)
+
+      if (response.data.success) {
+        // Verify user is doctor
+        if (response.data.user_type !== 'doctor') {
+          throw new Error('This account is not registered as a doctor. Please use the correct portal.')
+        }
+
+        this.storeDoctorData(response.data)
+        console.log('✅ Doctor login successful')
+      }
+
+      return response.data
+    } catch (error) {
+      const errorMsg = handleApiError(error, 'Failed to login as doctor')
+      throw new Error(errorMsg)
+    }
+  }
+
+  /**
    * Store user data in localStorage
    * @param data - Login response data
    */
@@ -108,6 +161,42 @@ class AuthService {
     }
 
     localStorage.setItem(this.storageKeys.isAuthenticated, 'true')
+  }
+
+  /**
+   * Store doctor-specific data in localStorage
+   * @param data - Doctor login response data
+   */
+  private storeDoctorData(data: DoctorLoginResponse): void {
+    // Store base user data
+    this.storeUserData(data)
+
+    // Store doctor-specific data
+    if (data.user_id) {
+      localStorage.setItem(this.storageKeys.doctor_id, data.user_id)
+    }
+
+    if (data.specialization) {
+      localStorage.setItem(this.storageKeys.specialization, data.specialization)
+    }
+
+    if (data.branch_name) {
+      localStorage.setItem(this.storageKeys.branch_name, data.branch_name)
+    }
+
+    if (data.branch_id) {
+      localStorage.setItem(this.storageKeys.branch_id, data.branch_id) 
+    }
+
+    if (data.phone) {
+      localStorage.setItem(this.storageKeys.phone, data.phone)
+    }
+
+    if (data.license_number) {
+      localStorage.setItem(this.storageKeys.license_number, data.license_number)
+    }
+
+    console.log('✅ Doctor-specific data stored')
   }
 
   /**
@@ -187,12 +276,22 @@ class AuthService {
     const userType = localStorage.getItem(this.storageKeys.userType) as UserType | null
     const fullName = localStorage.getItem(this.storageKeys.fullName)
     const email = localStorage.getItem(this.storageKeys.email)
+    const specialization = localStorage.getItem(this.storageKeys.specialization)
+    const branch_name = localStorage.getItem(this.storageKeys.branch_name)
+    const branch_id = localStorage.getItem(this.storageKeys.branch_id) // ✅ FIXED: Now retrieved
+    const phone = localStorage.getItem(this.storageKeys.phone)
+    const license_number = localStorage.getItem(this.storageKeys.license_number)
 
     return {
       userId,
       userType,
       fullName,
       email,
+      specialization: specialization || undefined,
+      branch_name: branch_name || undefined,
+      branch_id: branch_id || undefined, 
+      phone: phone || undefined,
+      license_number: license_number || undefined,
       isAuthenticated: this.isAuthenticated(),
     }
   }
@@ -214,6 +313,22 @@ class AuthService {
   }
 
   /**
+   * Get current doctor ID (alias for getUserId for doctors)
+   * @returns Doctor ID or null
+   */
+  getDoctorId(): string | null {
+    return localStorage.getItem(this.storageKeys.doctor_id)
+  }
+
+  /**
+   * Get current branch ID
+   * @returns Branch ID or null
+   */
+  getBranchId(): string | null {
+    return localStorage.getItem(this.storageKeys.branch_id)
+  }
+
+  /**
    * Get current user full name
    * @returns Full name or null
    */
@@ -227,6 +342,38 @@ class AuthService {
    */
   getEmail(): string | null {
     return localStorage.getItem(this.storageKeys.email)
+  }
+
+  /**
+   * Get doctor specialization
+   * @returns Specialization or null
+   */
+  getSpecialization(): string | null {
+    return localStorage.getItem(this.storageKeys.specialization)
+  }
+
+  /**
+   * Get doctor branch name
+   * @returns Branch name or null
+   */
+  getBranchName(): string | null {
+    return localStorage.getItem(this.storageKeys.branch_name)
+  }
+
+  /**
+   * Get doctor phone number
+   * @returns Phone number or null
+   */
+  getPhone(): string | null {
+    return localStorage.getItem(this.storageKeys.phone)
+  }
+
+  /**
+   * Get doctor license number
+   * @returns License number or null
+   */
+  getLicenseNumber(): string | null {
+    return localStorage.getItem(this.storageKeys.license_number)
   }
 
   /**
@@ -325,6 +472,7 @@ class AuthService {
   hasValidSession(): boolean {
     return this.isAuthenticated() && !!this.getUserId() && !!this.getUserType()
   }
+
 }
 
 export default new AuthService()

@@ -1,135 +1,154 @@
-import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { ArrowRight, Phone, AlertTriangle, Clock, MapPin, Star, CheckCircle2, Users, Zap, Shield } from 'lucide-react'
+import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+// import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
+import { Button } from "@/components/ui/button";
+import { InfiniteMovingCards } from "./components/ui/infinite-moving-cards";
+import {
+  ArrowRight,
+  Phone,
+  AlertTriangle,
+  Clock,
+  MapPin,
+  Star,
+  CheckCircle2,
+  Users,
+  Zap,
+  Shield,
+} from "lucide-react";
+import { FocusCards } from "./components/ui/focus-cards";
+import { FlipWords } from "./components/ui/flip-words";
+import "@/index.css";
+import { staffMembers } from "@/data/staff";
+import { branches } from "@/data/branches.tsx";
+import { BranchesMap } from "@/components/branches-map";
+import { Mail } from "lucide-react";
 
 export default function LandingPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [activeSection, setActiveSection] = useState("#home");
 
-  const portalData = [
-    {
-      id: 'patient',
-      title: 'Patient Portal',
-      subtitle: 'For Patients & Families',
-      icon: '👨‍👩‍👧‍👦',
-      gradientFrom: 'from-purple-500',
-      gradientTo: 'to-pink-500',
-      features: [
-        'Book & Manage Appointments',
-        'View Medical Records',
-        'Online Bill Payment',
-        'Prescription Management',
-        'Lab Results Access'
-      ],
-      borderColor: 'border-purple-200',
-      accentColor: '#667eea',
-      routes: { login: '/patient-login', signup: '/patient-signup' }
-    },
-    {
-      id: 'doctor',
-      title: 'Doctor Portal',
-      subtitle: 'For Medical Professionals',
-      icon: '👨‍⚕️',
-      gradientFrom: 'from-green-500',
-      gradientTo: 'to-emerald-500',
-      features: [
-        'Patient Consultation Records',
-        'Appointment Schedule',
-        'Prescription Management',
-        'Treatment History',
-        'Lab Results Review'
-      ],
-      borderColor: 'border-green-200',
-      accentColor: '#10b981',
-      routes: { login: '/doctor-login', signup: '/doctor-signup' }
-    },
-    {
-      id: 'staff',
-      title: 'Staff Portal',
-      subtitle: 'For Admin & Support Staff',
-      icon: '🏥',
-      gradientFrom: 'from-blue-500',
-      gradientTo: 'to-cyan-500',
-      features: [
-        'Patient Database Management',
-        'Appointment Scheduling',
-        'Billing & Insurance',
-        'Inventory Management',
-        'Reports & Analytics'
-      ],
-      borderColor: 'border-blue-200',
-      accentColor: '#3b82f6',
-      routes: { login: '/staff-login' }
-    }
-  ]
+  // Scroll spy effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ["home", "portals", "highlights", "staff", "visit-us"];
+      const scrollPosition = window.scrollY + 100; // offset for header
 
-  const branches = [
-    {
-      name: 'Colombo',
-      address: '123 Main Street, Colombo 03',
-      phone: '+94111234567',
-      hours: 'Mon-Sat: 9 AM - 5 PM'
-    },
-    {
-      name: 'Kandy',
-      address: '456 Hill Road, Kandy',
-      phone: '+94817654321',
-      hours: 'Mon-Sat: 9 AM - 5 PM'
-    },
-    {
-      name: 'Galle',
-      address: '789 Beach Road, Galle',
-      phone: '+94915551234',
-      hours: 'Mon-Sat: 9 AM - 5 PM'
-    }
-  ]
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element) {
+          const { offsetTop, offsetHeight } = element;
+          if (
+            scrollPosition >= offsetTop &&
+            scrollPosition < offsetTop + offsetHeight
+          ) {
+            setActiveSection(`#${section}`);
+            break;
+          }
+        }
+      }
+    };
 
-  const testimonials = [
-    {
-      name: 'Sarah Johnson',
-      role: 'Patient',
-      text: 'MedSync made managing my health incredibly convenient. The appointment booking system is seamless!',
-      avatar: '👩‍⚕️',
-      rating: 5
-    },
-    {
-      name: 'Dr. Rajesh Kumar',
-      role: 'Medical Professional',
-      text: 'The doctor portal is intuitive and helps me manage patient records efficiently. Highly recommended!',
-      avatar: '👨‍⚕️',
-      rating: 5
-    },
-    {
-      name: 'Emma Wilson',
-      role: 'Admin Staff',
-      text: 'The staff portal streamlined our operations significantly. Great tool for healthcare management.',
-      avatar: '👩‍💼',
-      rating: 5
-    }
-  ]
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // Call once on mount
 
-  const features = [
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: 'Secure & Private',
-      desc: 'Enterprise-grade encryption for all patient data'
-    },
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: 'Lightning Fast',
-      desc: 'Optimized performance for seamless experience'
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: 'Multi-User Support',
-      desc: 'Role-based access for patients, doctors, and staff'
-    },
-    {
-      icon: <CheckCircle2 className="w-6 h-6" />,
-      title: 'HIPAA Compliant',
-      desc: 'Meets all healthcare industry standards'
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Smooth scroll to center of section
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    hash: string
+  ) => {
+    e.preventDefault();
+    const element = document.getElementById(hash.substring(1));
+    if (element) {
+      const headerOffset = 80; // adjust based on your header height
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
     }
-  ]
+  };
+
+  const contacts = [
+    {
+      icon: Phone,
+      label: "Phone",
+      value: "+94 11 543 0000",
+      action: "Call Now",
+      colorClass: "border-chart-1",
+      backgroundClass: "bg-chart-1/80",
+    },
+    {
+      icon: Mail,
+      label: "Email",
+      value: "info@medsync.lk",
+      action: "Send Message",
+      colorClass: "border-chart-2",
+      backgroundClass: "bg-chart-2/80",
+    },
+    {
+      icon: Clock,
+      label: "Hours",
+      value: "Mon - Sat: 9 AM - 5 PM",
+      action: "Schedule",
+      colorClass: "border-chart-3",
+      backgroundClass: "bg-chart-3/80",
+    },
+    {
+      icon: MapPin,
+      label: "Location",
+      value: "Multiple Cities",
+      action: "Explore",
+      colorClass: "border-chart-4",
+      backgroundClass: "bg-chart-4/80",
+    },
+  ];
+
+  const galleryItems = [
+    {
+      quote: "Modern Medical Facility",
+      name: "State-of-the-Art",
+      title: "Equipment & Infrastructure",
+      image: "/assets/images/photo_1.jpg",
+    },
+    {
+      quote: "Expert Medical Team",
+      name: "Experienced",
+      title: "Healthcare Professionals",
+      image: "/assets/images/photo_2.jpg",
+    },
+    {
+      quote: "Patient Care Excellence",
+      name: "Compassionate",
+      title: "Medical Services",
+      image: "/assets/images/photo_3.jpg",
+    },
+    {
+      quote: "Advanced Technology",
+      name: "Cutting-Edge",
+      title: "Diagnostic Center",
+      image: "/assets/images/photo_4.jpg",
+    },
+    {
+      quote: "Comfortable Facilities",
+      name: "Welcoming",
+      title: "Patient Wards",
+      image: "/assets/images/photo_5.jpg",
+    },
+  ];
+
+  const navItems = [
+    { label: "Home", hash: "#home" },
+    { label: "Portals", hash: "#portals" },
+    { label: "Highlights", hash: "#highlights" },
+    { label: "Staff", hash: "#staff" },
+    { label: "Visit Us", hash: "#visit-us" },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -137,341 +156,430 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-white text-xl font-bold animate-pulse">
-              ✚
+            <div className="w-15 h-15 flex items-center justify-center">
+              <img
+                src="/assets/logo.jpg"
+                alt="MedSync"
+                className="w-full h-full object-contain rounded-md"
+              />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">MedSync</h1>
-              <p className="text-xs text-muted-foreground">Healthcare Management</p>
+              <p className="text-xs text-muted-foreground">
+                Healthcare Management
+              </p>
             </div>
           </div>
           <div className="hidden md:flex gap-8">
-            <a href="#portals" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Portals</a>
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
-            <a href="#branches" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Branches</a>
-            <a href="#contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</a>
+            {navItems.map((item) => (
+              <a
+                key={item.hash}
+                href={item.hash}
+                onClick={(e) => handleNavClick(e, item.hash)}
+                className={`text-lg font-medium transition-colors ${
+                  activeSection === item.hash
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-primary"
+                }`}
+              >
+                {item.label}
+              </a>
+            ))}
           </div>
           <div className="flex gap-3 items-center">
-            <a href="tel:+94115430000" className="hidden sm:flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors">
-              <Phone className="w-4 h-4" />
-              <span className="hidden md:inline">+94 11 543 0000</span>
-            </a>
-            <Button variant="destructive" size="sm" className="gap-2 animate-pulse">
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2 animate-pulse"
+            >
               <AlertTriangle className="w-4 h-4" />
-              <span className="hidden sm:inline">1566</span>
+              <span className="hidden sm:inline">1344</span>
             </Button>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-background via-background to-secondary/20">
-        <div className="absolute inset-0 bg-grid-white/5" />
-        <div className="max-w-7xl mx-auto px-4 py-24 relative z-10">
-          <div className="text-center space-y-6 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div className="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-primary-foreground px-6 py-2 rounded-full text-sm font-semibold">
-              ✨ Welcome to MedSync Healthcare
-            </div>
-            <h2 className="text-5xl md:text-6xl font-bold text-foreground">
-              Your Health, <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Our Priority</span>
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Experience world-class healthcare with cutting-edge technology, expert medical professionals, and compassionate care. Your journey to better health starts here.
-            </p>
-            <div className="flex gap-4 justify-center pt-4">
-              <Button size="lg" className="gap-2 bg-purple-500 hover:bg-purple-600">
-                Get Started <ArrowRight className="w-4 h-4" />
-              </Button>
-              <Button size="lg" variant="outline">
-                Learn More
-              </Button>
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
-            {[
-              { number: '50K+', label: 'Patients Served', color: 'text-purple-500' },
-              { number: '200+', label: 'Medical Experts', color: 'text-green-500' },
-              { number: '15+', label: 'Years Excellence', color: 'text-amber-500' },
-              { number: '24/7', label: 'Emergency Care', color: 'text-destructive' }
-            ].map((stat, idx) => (
-              <Card key={idx} className="p-6 text-center border-0 bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
-                <div className={`text-3xl md:text-4xl font-bold ${stat.color} mb-2`}>{stat.number}</div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Grid */}
-      <section id="features" className="py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">Why Choose MedSync?</h2>
-            <p className="text-lg text-muted-foreground">Advanced features built for modern healthcare</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {features.map((feature, idx) => (
-              <Card key={idx} className="p-6 hover:shadow-lg transition-all hover:-translate-y-1 border-0 bg-card/50 backdrop-blur-sm">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-white mb-4">
-                  {feature.icon}
+      <section
+        id="home"
+        className="w-full py-16 bg-gradient-to-b from-background via-background to-secondary/20"
+      >
+        <div className="items-center justify-center overflow-hidden">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+              {/* Left - Hero Image */}
+              <div className="relative h-[600px] md:h-[600px] flex items-center justify-center order-2 md:order-1">
+                <div className="relative w-full h-full">
+                  <img
+                    src="/assets/hero.jpeg"
+                    alt="Healthcare Hero"
+                    className="w-full h-full object-cover rounded-2xl shadow-2xl"
+                  />
+                  {/* Optional overlay gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl"></div>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.desc}</p>
-              </Card>
-            ))}
+              </div>
+
+              {/* Right - Text Content */}
+              <div className="relative z-10 px-4 w-full order-1 md:order-2">
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                  <div>
+                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
+                      <FlipWords
+                        words={[
+                          "Your Health,",
+                          "Your Wellness,",
+                          "Your Future,",
+                        ]}
+                        duration={2500}
+                        className="text-foreground"
+                      />
+                      <span className="block bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent mt-2">
+                        Our Priority
+                      </span>
+                    </h2>
+                  </div>
+
+                  <p className="text-lg md:text-xl text-muted-foreground max-w-xl leading-relaxed">
+                    Experience world-class healthcare with cutting-edge
+                    technology, expert medical professionals, and compassionate
+                    care. Your journey to better health starts here.
+                  </p>
+
+                  <div className="flex gap-4 pt-6 flex-wrap">
+                    <Button
+                      size="lg"
+                      className="gap-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold"
+                    >
+                      Get Started <ArrowRight className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="font-semibold"
+                    >
+                      Learn More
+                    </Button>
+                  </div>
+
+                  {/* Optional: Quick Stats */}
+                  <div className="grid grid-cols-3 gap-4 pt-8 border-t border-border">
+                    <div>
+                      <p className="text-2xl md:text-3xl font-bold text-foreground">
+                        10K+
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Happy Patients
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-2xl md:text-3xl font-bold text-foreground">
+                        50+
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Expert Doctors
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-2xl md:text-3xl font-bold text-foreground">
+                        24/7
+                      </p>
+                      <p className="text-sm text-muted-foreground">Support</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Portal Selection Section */}
-      <section id="portals" className="py-20 bg-secondary/30">
+      <section id="portals" className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 w-full">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-foreground mb-4">
+              Choose Your Gateway
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Access the portal designed for your role
+            </p>
+          </div>
+
+          {/* Portal Cards Data */}
+          {(() => {
+            const portalCards = [
+              {
+                id: "patient",
+                title: "Patient Portal",
+                description:
+                  "Book appointments, manage health records, and access prescriptions",
+                src: "/assets/patient.jpeg",
+              },
+              {
+                id: "doctor",
+                title: "Doctor Portal",
+                description:
+                  "Manage patient consultations, prescriptions, and medical records",
+                src: "/assets/doctor.jpeg",
+              },
+              {
+                id: "employee",
+                title: "Employee Portal",
+                description:
+                  "Handle appointments, billing, inventory, and analytics",
+                src: "/assets/employee.jpeg",
+              },
+            ];
+
+            const handlePortalClick = (portalId: string) => {
+              if (portalId === "patient") {
+                navigate("/patient-login");
+              } else if (portalId === "doctor") {
+                navigate("/doctor-login");
+              } else if (portalId === "employee") {
+                navigate("/employee-login");
+              }
+            };
+
+            return (
+              <FocusCards cards={portalCards} onCardClick={handlePortalClick} />
+            );
+          })()}
+        </div>
+      </section>
+
+      {/* Highlights Section - INFINITE MOVING CARDS */}
+      <section id="highlights" className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
-            <div className="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-primary-foreground px-6 py-2 rounded-full text-sm font-semibold mb-4">
-              SELECT YOUR PORTAL
+            <h2 className="text-4xl font-bold text-foreground mb-4">
+              State-of-the-Art Healthcare
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Explore our world-class medical facilities and compassionate care
+              environment
+            </p>
+          </div>
+
+          <InfiniteMovingCards
+            items={galleryItems}
+            direction="left"
+            speed="fast"
+            pauseOnHover={true}
+            className="py-8"
+          />
+        </div>
+      </section>
+
+      {/* Staff Section */}
+      <section id="staff" className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 bg-gradient-to-r from-foreground to-primary bg-clip-text">
+              Trusted by Healthcare Heroes
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Meet the dedicated professionals powering MedSync
+            </p>
+          </div>
+
+          {/* Infinite Moving Cards */}
+          <div className="max-w-7xl mx-auto px-4 mb-16">
+            <InfiniteMovingCards
+              items={staffMembers}
+              direction="right"
+              speed="normal"
+              className="py-8"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Visit Us Section */}
+      <section id="visit-us" className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+              Our Locations
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Visit any of our healthcare facilities across the country
+            </p>
+          </div>
+
+          {/* Map + Contact Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+            {/* Left - Google Maps */}
+            <div className="h-[400px] lg:h-[450px] rounded-2xl overflow-hidden shadow-2xl sticky top-20 border border-border/20">
+              <BranchesMap branches={branches} />
             </div>
-            <h2 className="text-4xl font-bold text-foreground mb-4">Access Your Dashboard</h2>
-            <p className="text-lg text-muted-foreground">Choose the portal that matches your role</p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {portalData.map((portal) => (
-              <Card
-                key={portal.id}
-                className={`border-2 ${portal.borderColor} p-8 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer relative overflow-hidden group bg-card/50 backdrop-blur-sm`}
-              >
-                <div className={`absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br ${portal.gradientFrom} ${portal.gradientTo} opacity-5 rounded-full group-hover:opacity-10 transition-opacity`}></div>
-
-                <div className="relative z-10">
-                  <div className={`w-20 h-20 bg-gradient-to-br ${portal.gradientFrom} ${portal.gradientTo} rounded-2xl flex items-center justify-center text-4xl mb-6`}>
-                    {portal.icon}
-                  </div>
-
-                  <h3 className="text-2xl font-bold text-foreground mb-2">{portal.title}</h3>
-                  <p className="text-muted-foreground mb-6">{portal.subtitle}</p>
-
-                  <ul className="space-y-3 mb-8">
-                    {portal.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <CheckCircle2 className={`w-5 h-5 flex-shrink-0 mt-0.5 bg-gradient-to-br ${portal.gradientFrom} ${portal.gradientTo} bg-clip-text text-transparent`} />
-                        <span className="text-sm text-foreground">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {portal.id === 'staff' ? (
-                    <Button
-                      onClick={() => navigate(portal.routes.login)}
-                      className="w-full gap-2 font-semibold"
-                      style={{ background: portal.accentColor }}
-                    >
-                      Staff Login <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  ) : (
-                    <div className="flex gap-3">
-                      <Button
-                        onClick={() => navigate(portal.routes.login)}
-                        className="flex-1 font-semibold"
-                        style={{ background: portal.accentColor }}
+            {/* Right - Contact Section */}
+            <div className="space-y-8">
+              <div className="grid grid-cols-2 gap-6">
+                {contacts.map((contact, idx) => (
+                  <div
+                    key={idx}
+                    className={`group p-6 rounded-xl bg-white dark:bg-slate-900 border ${contact.backgroundClass} border-border/40 hover:border-border/80 hover:shadow-xl transition-all duration-300`}
+                  >
+                    <div className="flex flex-col items-center text-center gap-4">
+                      <div
+                        className={`w-14 h-14 rounded-xl flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300 ${contact.backgroundClass}`}
                       >
-                        Login
-                      </Button>
-                      <Button
-                        onClick={() => navigate(portal.routes.signup)}
-                        variant="outline"
-                        className="flex-1 font-semibold"
-                      >
-                        Register
-                      </Button>
+                        <contact.icon className="w-7 h-7" />
+                      </div>
+
+                      <div className="flex-1 w-full">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                          {contact.label}
+                        </p>
+                        <p className="text-sm font-semibold text-foreground mb-4 line-clamp-2">
+                          {contact.value}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`w-full text-xs font-semibold hover:shadow-lg border-2 ${contact.colorClass}`}
+                          onClick={() => {
+                            if (contact.label === "Phone") {
+                              window.location.href = `tel:${contact.value.replace(
+                                /\s/g,
+                                ""
+                              )}`;
+                            } else if (contact.label === "Email") {
+                              window.location.href = `mailto:${contact.value}`;
+                            }
+                          }}
+                        >
+                          {contact.action}
+                        </Button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">What Our Users Say</h2>
-            <p className="text-lg text-muted-foreground">Trusted by thousands of patients and healthcare professionals</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, idx) => (
-              <Card key={idx} className="p-8 hover:shadow-lg transition-all border-0 bg-card/50 backdrop-blur-sm">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="text-4xl">{testimonial.avatar}</div>
-                  <div>
-                    <h4 className="font-semibold text-foreground">{testimonial.name}</h4>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                   </div>
-                </div>
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground italic">"{testimonial.text}"</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Branches Section */}
-      <section id="branches" className="py-20 bg-secondary/30">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">Our Branches</h2>
-            <p className="text-lg text-muted-foreground">Serving communities across the country</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {branches.map((branch, idx) => (
-              <Card key={idx} className="p-8 hover:shadow-lg transition-all hover:-translate-y-1 border-0 bg-card/50 backdrop-blur-sm">
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-lg">
-                    <MapPin className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-foreground">{branch.name}</h3>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-muted-foreground">{branch.address}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <a href={`tel:${branch.phone}`} className="text-sm text-primary hover:underline font-medium">
-                      {branch.phone}
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-foreground">{branch.hours}</span>
-                  </div>
-                </div>
-
-                <Button variant="outline" className="w-full mt-6">Get Directions</Button>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact" className="py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">Contact Us</h2>
-            <p className="text-lg text-muted-foreground">Get in touch with us anytime</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { icon: '🚨', label: 'Emergency Hotline', number: '+94 11 543 1088' },
-              { icon: '📞', label: 'General Line', number: '+94 11 543 0000' },
-              { icon: '👨‍⚕️', label: 'Doctor Channeling', number: '+94 70 237 1591' }
-            ].map((contact, idx) => (
-              <Card key={idx} className="p-8 text-center hover:shadow-lg transition-all hover:-translate-y-1 border-0 bg-card/50 backdrop-blur-sm">
-                <div className="text-5xl mb-4">{contact.icon}</div>
-                <h4 className="text-lg font-semibold text-foreground mb-2">{contact.label}</h4>
-                <a href={`tel:${contact.number.replace(/\s/g, '')}`} className="text-primary hover:text-primary/80 font-semibold transition-colors">
-                  {contact.number}
-                </a>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold text-foreground mb-4">Ready to Transform Your Healthcare Experience?</h2>
-          <p className="text-lg text-muted-foreground mb-8">Join thousands of satisfied patients and healthcare professionals today</p>
-          <div className="flex gap-4 justify-center">
-            <Button size="lg" className="gap-2 bg-purple-500 hover:bg-purple-600">
-              Get Started Now <ArrowRight className="w-4 h-4" />
-            </Button>
-            <Button size="lg" variant="outline">Schedule Demo</Button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-foreground/5 border-t border-border py-12">
+      <footer className="bg-foreground/5 border-t border-border py-16">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          {/* Footer Content Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+            {/* Brand Column */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-white font-bold">
-                  ✚
+                <div className="w-20 h-20 flex items-center justify-center">
+                  <img
+                    src="/assets/logo.jpg"
+                    alt="MedSync"
+                    className="w-full h-full object-contain rounded-md"
+                  />
                 </div>
                 <h3 className="text-lg font-bold text-foreground">MedSync</h3>
               </div>
-              <p className="text-sm text-muted-foreground">Revolutionizing healthcare management</p>
+              <p className="text-sm text-muted-foreground">
+                Revolutionizing healthcare management with technology and
+                compassion.
+              </p>
             </div>
-            {[
-              { title: 'Quick Links', links: ['Home', 'Portals', 'Features', 'Branches'] },
-              { title: 'Services', links: ['Patient Care', 'Doctor Portal', 'Staff Management', 'Billing'] },
-              { title: 'Legal', links: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Contact'] }
-            ].map((col, idx) => (
-              <div key={idx}>
-                <h4 className="font-semibold text-foreground mb-4">{col.title}</h4>
-                <ul className="space-y-2">
-                  {col.links.map((link, i) => (
-                    <li key={i}><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{link}</a></li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+
+            {/* Quick Links */}
+            <div>
+              <h4 className="font-semibold text-foreground mb-4">
+                Quick Links
+              </h4>
+              <ul className="space-y-2">
+                {["Home", "Portals", "Highlights", "Staff", "Visit Us"].map(
+                  (link, i) => (
+                    <li key={i}>
+                      <a
+                        href={`#${link.toLowerCase()}`}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {link}
+                      </a>
+                    </li>
+                  )
+                )}
+              </ul>
+            </div>
+
+            {/* Services */}
+            <div>
+              <h4 className="font-semibold text-foreground mb-4">Services</h4>
+              <ul className="space-y-2">
+                {[
+                  "Patient Care",
+                  "Doctor Portal",
+                  "Staff Management",
+                  "Billing",
+                ].map((link, i) => (
+                  <li key={i}>
+                    <a
+                      href="#"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
+              <ul className="space-y-2">
+                {[
+                  "Privacy Policy",
+                  "Terms of Service",
+                  "Cookie Policy",
+                  "Contact",
+                ].map((link, i) => (
+                  <li key={i}>
+                    <a
+                      href="#"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
+          {/* Footer Bottom */}
           <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">© 2025 MedSync Medical Center. All rights reserved.</p>
-            <div className="flex gap-4">
-              {['f', '𝕏', 'in', '📷'].map((social, idx) => (
-                <a key={idx} href="#" className="w-10 h-10 rounded-full bg-secondary hover:bg-purple-500 hover:text-white flex items-center justify-center transition-colors">
-                  {social}
+            <p className="text-sm text-muted-foreground">
+              © 2025 MedSync Healthcare. All rights reserved.
+            </p>
+
+            {/* Social Links */}
+            <div className="flex gap-3">
+              {[
+                { icon: "𝕏", label: "Twitter" },
+                { icon: "f", label: "Facebook" },
+                { icon: "in", label: "LinkedIn" },
+                { icon: "📷", label: "Instagram" },
+              ].map((social, idx) => (
+                <a
+                  key={idx}
+                  href="#"
+                  aria-label={social.label}
+                  className="w-10 h-10 rounded-full bg-secondary hover:bg-blue-500 text-foreground hover:text-white flex items-center justify-center transition-all duration-300 font-semibold text-sm"
+                >
+                  {social.icon}
                 </a>
               ))}
             </div>
           </div>
         </div>
       </footer>
-
-      {/* Fixed CTA */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-40">
-        <a
-          href="tel:+94117145145"
-          className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
-        >
-          <Phone className="w-4 h-4" />
-          <div className="text-right text-sm hidden sm:block">
-            <div>DOCHELP</div>
-            <div>0117 145 145</div>
-          </div>
-        </a>
-        <a
-          href="tel:1566"
-          className="flex items-center gap-2 bg-destructive hover:bg-destructive/90 text-white px-4 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 animate-pulse"
-        >
-          <AlertTriangle className="w-4 h-4" />
-          <div className="text-right text-sm hidden sm:block">
-            <div>Emergency</div>
-            <div>1566</div>
-          </div>
-        </a>
-      </div>
     </div>
-  )
+  );
 }

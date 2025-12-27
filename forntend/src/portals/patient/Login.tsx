@@ -62,33 +62,33 @@ export default function PatientLogin({
       setLoading(true)
 
       // Call authentication API
-      const response = await authService.login(email, password, 'patient')
+      const response = await authService.login(email, password)
 
       if (!response.success) {
         setError(response.message || 'Login failed. Please try again.')
         return
       }
 
-      const userType = response.user_type.toLowerCase()
+      const userType = response.user_type?.toLowerCase()
 
       // Only allow patients
-      if (!ALLOWED_USER_TYPES.includes(userType)) {
+      if (!userType || !ALLOWED_USER_TYPES.includes(userType)) {
         setError('Only patients can access this portal. Please use the appropriate portal for your account type.')
         return
       }
 
-      // Call parent callback
+      // Call parent callback with role and userType
       if (onLogin) {
-        onLogin('Patient', userType)
+        onLogin('patient', userType)
       }
 
-      // Dispatch auth changed event
+      // Dispatch auth changed event for App.tsx to pick up the change
       window.dispatchEvent(new Event('authChanged'))
       console.log('✅ Patient authenticated')
 
       // Redirect to patient dashboard
       setTimeout(() => {
-        window.location.href = '/patient/dashboard'
+        navigate('/patient/dashboard')
       }, 100)
     } catch (err) {
       console.error('Login error:', err)
@@ -128,7 +128,7 @@ export default function PatientLogin({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="johndoe4@gmail.com"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value)

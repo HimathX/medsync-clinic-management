@@ -18,6 +18,7 @@ import { Loader2, AlertTriangle, ChevronRight, Calendar, Clock, User } from 'luc
 import appointmentService from '@/services/appointmentService'
 import doctorService from '@/services/doctorService'
 import authService from '@/services/authService'
+import PatientProfileService, { type PatientProfile } from '@/services/patientProfileService'
 import '@/index.css'
 
 interface Specialization {
@@ -55,6 +56,8 @@ export default function BookAppointment(): React.ReactElement {
   const [notes, setNotes] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
+  const [profile, setProfile] = useState<PatientProfile | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   const currentUser = authService.getCurrentUser()
   const patientId = currentUser?.patientId || localStorage.getItem('patientId')
@@ -64,8 +67,19 @@ export default function BookAppointment(): React.ReactElement {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
 
   useEffect(() => {
+    fetchProfile()
     fetchSpecializations()
   }, [])
+
+  const fetchProfile = async (): Promise<void> => {
+    try {
+      if (!patientId) return
+      const profileData = await PatientProfileService.getPatientProfile(patientId)
+      setProfile(profileData)
+    } catch (err) {
+      console.error('Error fetching profile:', err)
+    }
+  }
 
   const fetchSpecializations = async (): Promise<void> => {
     try {
@@ -199,20 +213,22 @@ export default function BookAppointment(): React.ReactElement {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border sticky top-0 bg-card z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Button variant="outline" onClick={() => navigate('/patient/dashboard')}>
-            ← Back to Dashboard
-          </Button>
-          <h1 className="text-2xl font-bold text-foreground">Book an Appointment</h1>
-          <div className="text-sm text-muted-foreground">Step {step} of 4</div>
-        </div>
-      </div>
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchProfile()
+    setRefreshing(false)
+  }
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      authService.logout()
+      navigate('/')
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Step 1: Select Specialty */}
         {step === 1 && (
           <div>
@@ -507,7 +523,7 @@ export default function BookAppointment(): React.ReactElement {
               </div>
 
               <div>
-                <Card className="sticky top-24">
+                <Card className="sticky top-32">
                   <CardHeader>
                     <CardTitle>Confirm Booking</CardTitle>
                   </CardHeader>
