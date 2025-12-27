@@ -1,17 +1,17 @@
-# 🏥 MedSync - Clinic Management System
+# 🏥 MedSync - Healthcare Management System
 
 <div align="center">
 
-![MedSync Logo](https://img.shields.io/badge/MedSync-Clinic%20Management-667eea?style=for-the-badge&logo=hospital&logoColor=white)
+![MedSync Logo](https://img.shields.io/badge/MedSync-Healthcare%20Management-667eea?style=for-the-badge&logo=hospital&logoColor=white)
 
-**A comprehensive FastAPI + React + MySQL clinic management system with role-based portals for patients, doctors, and staff.**
+**A modern, full-stack healthcare management platform with dedicated portals for patients, doctors, and administrative staff.**
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100.0-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-18.2-61DAFB?style=flat-square&logo=react&logoColor=white)](https://reactjs.org/)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react&logoColor=white)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
-[Features](#-features) • [Tech Stack](#-tech-stack) • [Installation](#-installation) • [API Docs](#-api-documentation) • [Contributing](#-contributing)
+[Features](#-features) • [Tech Stack](#-tech-stack) • [Quick Start](#-quick-start) • [Project Structure](#-project-structure) • [Contributing](#-contributing)
 
 </div>
 
@@ -22,13 +22,10 @@
 - [Overview](#-overview)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
+- [Quick Start](#-quick-start)
 - [Project Structure](#-project-structure)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Usage](#-usage)
-- [API Documentation](#-api-documentation)
-- [User Roles](#-user-roles)
-- [Database Schema](#-database-schema)
+- [User Portals](#-user-portals)
+- [Key Components](#-key-components)
 - [Contributing](#-contributing)
 - [License](#-license)
 
@@ -36,396 +33,198 @@
 
 ## 🌟 Overview
 
-**MedSync** is a modern, scalable clinic management system built with **FastAPI** and **React**, designed to streamline healthcare operations. It provides dedicated portals for patients, doctors, and administrative staff, enabling efficient appointment scheduling, medical record management, billing, and comprehensive reporting.
+**MedSync** is a comprehensive healthcare management system built with **React 19** and **TypeScript**, designed to streamline clinic operations. It provides three specialized portals for patients, doctors, and administrative staff, enabling seamless appointment scheduling, medical record management, and healthcare operations.
 
-### Why MedSync?
+### Key Highlights
 
-- ✅ **Role-Based Access Control** - Separate portals with tailored interfaces for different user types
-- ✅ **Real-Time Operations** - Live data synchronization across all modules
-- ✅ **Comprehensive Medical Records** - Complete patient history, prescriptions, and treatment tracking
-- ✅ **Integrated Billing** - Service-based billing with insurance claim management
-- ✅ **Multi-Branch Support** - Manage multiple clinic locations from a single system
-- ✅ **RESTful API** - Well-documented API with OpenAPI/Swagger integration
+- ✅ **Three Role-Based Portals** - Tailored interfaces for patients, doctors, and staff
+- ✅ **Modern Tech Stack** - React 19, TypeScript, Vite, Tailwind CSS
+- ✅ **Type-Safe** - Full TypeScript implementation with Zod validation
+- ✅ **Responsive Design** - Mobile-first approach with Tailwind CSS
+- ✅ **Accessible UI** - Radix UI components with WCAG compliance
+- ✅ **Production Ready** - 58+ custom components, comprehensive error handling
+- ✅ **Real-Time Features** - Live appointment updates, instant notifications
 
 ---
 
 ## ✨ Features
 
-### 👥 Patient Portal
-- 📅 **Appointment Booking** - Search doctors by specialization, view available time slots, book appointments
-- 📋 **Medical Records** - Access consultation history, prescriptions, lab results, and treatment records
-- 💳 **Billing & Payments** - View invoices, make payments, track payment history
-- 🏥 **Health Dashboard** - Overview of upcoming appointments, recent prescriptions, and health metrics
-- 🔔 **Notifications** - Real-time updates on appointment confirmations and reminders
+### 👥 Patient Portal (11 Pages)
+- 📅 **Smart Appointment Booking** - 4-step wizard with specialty and doctor selection
+- 📊 **Health Dashboard** - Health score tracking, medical summary, alerts
+- 📋 **Medical Records** - Access to consultations, prescriptions, health conditions
+- 💳 **Billing & Payments** - Invoice tracking and payment history
+- 🏥 **Insurance Management** - Insurance information and claim tracking
+- 👤 **Profile Management** - Complete health profile with medical history
+- 🔔 **Real-Time Updates** - Appointment confirmations and reminders
 
-### 👨‍⚕️ Doctor Portal
-- 📊 **Doctor Dashboard** - Daily schedule, patient queue, consultation statistics
-- 🩺 **Consultation Management** - Create detailed consultation records with diagnoses and treatment plans
-- 💊 **Prescription Writing** - Digital prescription management with medication tracking
-- 📅 **Schedule Management** - Set availability, manage time slots across multiple branches
-- 📈 **Patient History** - Complete medical history access for informed decision-making
+### 👨‍⚕️ Doctor Portal (10 Pages)
+- 📊 **Analytics Dashboard** - Consultation trends, patient satisfaction metrics
+- 🩺 **Consultation Management** - View and manage patient consultations
+- 📅 **Schedule Management** - Manage availability across multiple branches
+- 👥 **Patient Directory** - Complete patient records and medical history
+- 📦 **Treatment Catalogue** - Manage service offerings and treatments
+- 📈 **Performance Metrics** - Total patients, completed consultations, ratings
 
-### 🏢 Staff/Admin Portal
-- 👤 **Patient Management** - Register new patients, search by NIC, manage patient records
-- 📆 **Appointment Scheduling** - Book appointments on behalf of patients, manage cancellations
-- 👨‍⚕️ **Doctor & Staff Management** - Manage doctor profiles, specializations, and schedules
-- 💰 **Billing & Invoicing** - Generate invoices, process payments, handle insurance claims
-- 📊 **Reporting & Analytics** - Comprehensive reports on appointments, revenue, and operations
-- 🏥 **Branch Management** - Multi-location support with branch-specific operations
-- 📦 **Treatment Catalogue** - Manage service offerings and pricing
-
-### 🔒 Security & Authentication
-- 🔐 **Secure Authentication** - SHA-256 password hashing, JWT token-based sessions
-- 🛡️ **Role-Based Authorization** - Granular access control preventing unauthorized portal access
-- 🔑 **Session Management** - Persistent login with localStorage and automatic session cleanup
+### 🏢 Staff/Admin Portal (9 Pages)
+- 👤 **Patient Management** - Register, search, and manage patient records
+- 📆 **Appointment Scheduling** - Book and manage appointments on behalf of patients
+- 👨‍⚕️ **Doctor Management** - Manage doctor profiles and schedules
+- 💰 **Billing & Payments** - Invoice generation and payment processing
+- 📊 **Reporting & Analytics** - Comprehensive reports on operations and metrics
+- 🔧 **System Management** - Complete administrative control
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Backend (FastAPI)
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| **FastAPI** | 0.100.0 | High-performance REST API framework |
-| **Python** | 3.11+ | Programming language |
-| **MySQL** | 8.0+ | Relational database |
-| **mysql-connector-python** | 8.1.0 | Database connection pooling |
-| **Pydantic** | 2.0+ | Data validation and serialization |
-| **Uvicorn** | 0.23+ | ASGI server |
-
 ### Frontend
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **React** | 18.2.0 | UI library |
-| **React Router** | 6.x | Client-side routing |
-| **Axios** | 1.6.0 | HTTP client |
-| **CSS3** | - | Modern styling with gradients and animations |
+| **React** | 19.2 | UI framework |
+| **TypeScript** | 5.x | Type safety |
+| **Vite** | 5.x | Build tool & dev server |
+| **React Router** | 7.x | Client-side routing |
+| **Tailwind CSS** | 4.x | Utility-first CSS |
+| **Radix UI** | Latest | Accessible component primitives |
+| **shadcn/ui** | Latest | 58+ pre-built components |
+| **React Hook Form** | Latest | Form state management |
+| **Zod** | Latest | Schema validation |
+| **Axios** | 1.6+ | HTTP client |
+| **Recharts** | Latest | Data visualization |
+| **Framer Motion** | Latest | Animations |
+| **Lucide React** | Latest | Icon library |
 
-### Database
-- **MySQL 8.0+** with stored procedures for complex operations
-- **20+ Tables** including user, patient, doctor, appointment, consultation, billing, insurance
-- **Optimized Indexing** for fast query performance
-
----
-
-## 📁 Project Structure
-
-```
-medsync-clinic-management/
-├── backend/
-│   ├── core/
-│   │   └── database.py          # Database connection pool
-│   ├── routers/
-│   │   ├── appointment.py       # Appointment management
-│   │   ├── patient.py           # Patient CRUD operations
-│   │   ├── doctor.py            # Doctor management
-│   │   ├── timeslot.py          # Time slot scheduling
-│   │   ├── consultation.py      # Consultation records
-│   │   ├── prescription.py      # Prescription management
-│   │   ├── treatment.py         # Treatment records
-│   │   ├── invoice.py           # Invoice generation
-│   │   ├── payment.py           # Payment processing
-│   │   ├── insurance.py         # Insurance & claims
-│   │   ├── branch.py            # Branch management
-│   │   ├── staff.py             # Staff operations
-│   │   └── reports.py           # Analytics & reporting
-│   ├── schemas/                 # Pydantic models
-│   ├── main.py                  # FastAPI application entry
-│   └── requirements.txt         # Python dependencies
-│
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── StaffHeader.js
-│   │   │   ├── PatientLayout.js
-│   │   │   ├── DoctorLayout.js
-│   │   │   ├── LoadingSpinner.js
-│   │   │   └── ErrorMessage.js
-│   │   ├── pages/
-│   │   │   ├── patient/         # Patient portal pages
-│   │   │   ├── doctor/          # Doctor portal pages
-│   │   │   ├── staff/           # Staff portal pages
-│   │   │   ├── Login.js
-│   │   │   ├── PatientSignup.js
-│   │   │   └── LandingPage.js
-│   │   ├── services/
-│   │   │   ├── api.js           # Axios client
-│   │   │   ├── authService.js
-│   │   │   ├── patientService.js
-│   │   │   ├── doctorService.js
-│   │   │   ├── appointmentService.js
-│   │   │   └── ... (13 services)
-│   │   ├── styles/
-│   │   │   ├── staff.css
-│   │   │   ├── patient.css
-│   │   │   └── login.css
-│   │   ├── App.js
-│   │   └── index.js
-│   ├── package.json
-│   └── .env                     # Environment variables
-│
-└── README.md
-```
+### Backend Integration
+- **API Client**: Axios with interceptors for auth & error handling
+- **Base URL**: `http://localhost:8000` (configurable)
+- **Authentication**: JWT token-based with localStorage persistence
+- **Error Handling**: Comprehensive 401, 404, 422, 500 error management
 
 ---
 
-## 🚀 Installation
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Python 3.11+** (for FastAPI backend)
-- **Node.js 16+** and npm (for React frontend)
-- **MySQL 8.0+**
-- **Git**
+- **Node.js** 16+ and npm/yarn
+- **Backend** running on `http://localhost:8000`
 
-### 1️⃣ Clone Repository
+### Installation
 
 ```bash
-git clone https://github.com/yourusername/medsync-clinic-management.git
-cd medsync-clinic-management
-```
+# Clone the repository
+git clone https://github.com/yourusername/medsync.git
+cd medsync/frontend
 
-### 2️⃣ Database Setup
-
-```bash
-# Create MySQL database
-mysql -u root -p
-
-CREATE DATABASE medsync_db;
-USE medsync_db;
-
-# Import schema (if you have a SQL dump file)
-SOURCE database/schema.sql;
-```
-
-**Note:** Ensure your database includes:
-- All tables (user, patient, doctor, appointment, etc.)
-- Stored procedures: `BookAppointment`, `CreateTimeSlot`, `DeleteTimeSlot`, `AuthenticateUser`
-- Proper foreign key relationships
-
-### 3️⃣ FastAPI Backend Setup
-
-```bash
-cd backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies (includes FastAPI, Uvicorn, etc.)
-pip install -r requirements.txt
-
-# Configure environment variables (optional)
-# Create .env file with:
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=yourpassword
-DB_NAME=medsync_db
-
-# Run the server
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Backend will be available at: **http://localhost:8000**
-
-### 4️⃣ React Frontend Setup
-
-```bash
-cd ../frontend
-
-# Install dependencies (includes React, React Router, Axios)
+# Install dependencies
 npm install
 
-# Configure environment variables
-# Create .env file with:
-REACT_APP_API_URL=http://localhost:8000
+# Create environment file
+echo "VITE_API_BASE_URL=http://localhost:8000" > .env.local
 
 # Start development server
-npm start
+npm run dev
 ```
 
-Frontend will be available at: **http://localhost:3000**
+The frontend will be available at **http://localhost:5173**
 
----
+### Available Scripts
 
-## ⚙️ Configuration
-
-### Backend Configuration (`backend/core/database.py`)
-
-```python
-DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': int(os.getenv('DB_PORT', 3306)),
-    'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', ''),
-    'database': os.getenv('DB_NAME', 'medsync_db'),
-    'pool_size': 5
-}
-```
-
-### Frontend Configuration (`frontend/.env`)
-
-```env
-REACT_APP_API_URL=http://localhost:8000
+```bash
+npm run dev       # Start development server
+npm run build     # Build for production
+npm run preview   # Preview production build
+npm run lint      # Run ESLint
+npm run type-check # Check TypeScript types
 ```
 
 ---
 
-## 📖 Usage
+## 👥 User Portals
 
-### Access the Application
+### Authentication Flow
 
-1. **Landing Page**: Navigate to `http://localhost:3000`
-2. **Choose Portal**:
-   - **Patient Portal** - For patients to book appointments and view records
-   - **Doctor Portal** - For doctors to manage consultations and schedules
-   - **Staff Portal** - For administrative staff to manage operations
-
-### Default Login Credentials
-
-Create test users in your database or register new patients via the patient signup page.
-
-### Patient Portal Features
 ```
-1. Register/Login → Patient Signup or Login Page
-2. Book Appointment → Select doctor → Choose time slot → Confirm
-3. View Appointments → My Appointments Page
-4. Medical Records → Prescriptions, Lab Results, Treatment History
-5. Billing → View Invoices, Make Payments
+Landing Page
+    ↓
+Portal Selection (Patient / Doctor / Staff)
+    ↓
+Login / Signup
+    ↓
+Role-Specific Dashboard
+    ↓
+Protected Routes (Auto-redirect on logout)
 ```
 
-### Staff Portal Features
-```
-1. Login → Staff Login Page
-2. Book Appointment → Select patient → Choose doctor → Pick time slot
-3. Patient Management → Register patients, Search by NIC
-4. Billing → Generate invoices, Process payments
-5. Reports → View analytics and statistics
-```
+### Portal Routes
+
+| Portal | Base Path | Auth Required |
+|--------|-----------|--------------|
+| Patient | `/patient/*` | Yes |
+| Doctor | `/doctor/*` | Yes |
+| Staff | `/staff/*` | Yes |
+| Landing | `/` | No |
+
+### Session Management
+
+- **Storage**: JWT tokens stored in localStorage
+- **Persistence**: Sessions persist across page refreshes
+- **Auto-logout**: Automatic cleanup on token expiration
+- **Real-time Updates**: Storage event listeners for multi-tab sync
 
 ---
 
-## 📚 API Documentation
+## 🎨 Key Components
 
-### Interactive API Docs
+### Custom Animated Components
+- **background-ripple-effect** - Animated background with ripple effect
+- **flip-words** - Flipping text animation
+- **focus-cards** - Interactive card gallery with focus states
+- **infinite-moving-cards** - Auto-scrolling carousel testimonials
+- **vortex** - Animated vortex background effect
 
-FastAPI provides automatic interactive API documentation:
+### UI Component Library (58+)
+shadcn/ui collection includes: accordion, alert, avatar, badge, button, calendar, card, carousel, chart, checkbox, dialog, dropdown, form, input, table, tabs, toast, tooltip, and more.
 
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-
-### Key API Endpoints
-
-#### Authentication
-```http
-POST /auth/login          # User login (all roles)
-```
-
-#### Patients
-```http
-GET    /patients/                           # Get all patients
-GET    /patients/{patient_id}               # Get patient by ID
-POST   /patients/register                   # Register new patient
-GET    /patients/search/by-nic/{nic}        # Search by NIC
-```
-
-#### Doctors
-```http
-GET    /doctors/                            # Get all doctors
-GET    /doctors/{doctor_id}                 # Get doctor details
-GET    /doctors/{doctor_id}/time-slots      # Get available slots
-GET    /doctors/branch/{branch_id}          # Get doctors by branch
-```
-
-#### Appointments
-```http
-POST   /appointments/book                   # Book appointment
-GET    /appointments/                       # Get all appointments
-GET    /appointments/{appointment_id}       # Get appointment details
-GET    /appointments/patient/{patient_id}   # Get patient appointments
-PATCH  /appointments/{appointment_id}       # Update appointment
-DELETE /appointments/{appointment_id}       # Cancel appointment
-```
-
-#### Time Slots
-```http
-GET    /timeslots/                          # Get all time slots
-POST   /timeslots/create-bulk               # Create multiple slots
-GET    /timeslots/doctor/{doctor_id}        # Get doctor's slots
-DELETE /timeslots/{time_slot_id}            # Delete time slot
-```
-
-#### Consultations
-```http
-POST   /consultations/                      # Create consultation
-GET    /consultations/{consultation_id}     # Get consultation details
-GET    /consultations/patient/{patient_id}  # Get patient consultations
-```
-
-#### Billing & Payments
-```http
-POST   /invoices/                           # Create invoice
-GET    /invoices/{invoice_id}               # Get invoice
-POST   /payments/process                    # Process payment
-GET    /payments/patient/{patient_id}       # Get payment history
-```
-
-For complete API documentation, visit the Swagger UI after starting the backend server.
+### Maps Integration
+- **Google Maps API** integration for branch locations
+- Interactive map with location markers
+- Branch information cards
 
 ---
 
-## 👥 User Roles
+## 🔐 Security Features
 
-| Role | Access Level | Key Features |
-|------|-------------|--------------|
-| **Patient** | `/patient/*` | Book appointments, view records, make payments |
-| **Doctor** | `/doctor/*` | Manage consultations, write prescriptions, set schedule |
-| **Staff/Admin** | `/staff/*` | Full access to patient management, billing, reporting |
-| **Employee** | `/staff/*` | Administrative operations, appointment scheduling |
-
-### Role-Based Route Protection
-
-The application enforces strict route protection:
-- Patients cannot access staff/doctor portals
-- Staff cannot access patient portal
-- Doctors have dedicated portal with clinical focus
-- Automatic redirects for unauthorized access attempts
+- ✅ **Type-Safe** - Full TypeScript with strict mode
+- ✅ **Input Validation** - Zod schema validation
+- ✅ **Error Handling** - Comprehensive error boundaries
+- ✅ **Protected Routes** - Role-based access control
+- ✅ **Token Management** - Secure JWT handling
+- ✅ **CORS Support** - Configured for backend communication
+- ✅ **Accessible** - WCAG compliance with Radix UI
 
 ---
 
-## 🗄️ Database Schema
+## 📊 Data Flow
 
-### Core Tables
-
-- **`user`** - Base user table with authentication (email, password_hash, user_type)
-- **`patient`** - Patient demographics and medical information
-- **`doctor`** - Doctor profiles, licenses, consultation fees
-- **`staff`** - Administrative staff records
-- **`appointment`** - Appointment bookings with status tracking
-- **`time_slot`** - Doctor availability slots
-- **`consultation_record`** - Detailed consultation documentation
-- **`prescription`** - Medication prescriptions
-- **`treatment`** - Treatment records
-- **`invoice`** - Billing invoices
-- **`payments`** - Payment transactions
-- **`insurance_package`** - Insurance plans
-- **`insurance_claim`** - Insurance claim processing
-- **`branch`** - Clinic branch locations
-- **`medical_conditions`** - Patient medical conditions
-
-### Key Stored Procedures
-
-- **`BookAppointment(patient_id, time_slot_id, notes)`** - Atomic appointment booking
-- **`CreateTimeSlot(doctor_id, branch_id, date, start_time, end_time)`** - Create availability
-- **`DeleteTimeSlot(time_slot_id)`** - Remove time slot if not booked
-- **`AuthenticateUser(email, password_hash)`** - User login validation
+```
+React Component
+    ↓
+Service Layer (appointmentService, etc.)
+    ↓
+API Client (Axios with interceptors)
+    ↓
+Backend (FastAPI - http://localhost:8000)
+    ↓
+Database
+    ↓
+Response with error handling
+    ↓
+Update component state
+    ↓
+Render updated UI
+```
 
 ---
 
@@ -450,11 +249,12 @@ We welcome contributions! Please follow these steps:
 
 ### Development Guidelines
 
-- Follow existing code style and patterns
-- Add comments for complex logic
-- Update documentation for new features
-- Test thoroughly before submitting
-- Ensure all services use the centralized API client (`services/api.js`)
+- Write TypeScript for type safety
+- Follow existing component patterns
+- Use Tailwind CSS for styling
+- Add proper error handling
+- Update documentation
+- Test across different screen sizes
 
 ---
 
@@ -466,10 +266,12 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🙏 Acknowledgments
 
-- FastAPI for the excellent web framework
-- React team for the powerful UI library
-- MySQL for reliable data storage
-- All contributors who help improve MedSync
+- **React** - UI library
+- **Vite** - Build tool
+- **Tailwind CSS** - Styling
+- **Radix UI & shadcn/ui** - Component primitives
+- **TypeScript** - Type safety
+- All contributors and users
 
 ---
 
@@ -477,9 +279,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 For questions, issues, or suggestions:
 
-- **GitHub Issues**: [Create an issue](https://github.com/yourusername/medsync-clinic-management/issues)
-- **Email**: support@medsync.com
-- **Documentation**: Check the `/docs` folder for additional guides
+- **GitHub Issues**: [Create an issue](https://github.com/yourusername/medsync/issues)
+- **Documentation**: Check inline comments and types
 
 ---
 
